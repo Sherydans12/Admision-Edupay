@@ -1,122 +1,155 @@
 # Análisis de fuentes
 
-## Inventario de fuentes
+## Estado y criterio
 
-| ID | Fuente | Estado | Uso permitido |
-| --- | --- | --- | --- |
-| SRC-001 | Encargo inicial “Admisión EduPay”, 6 de agosto de 2026 | Disponible en la conversación; no versionado previamente | Fuente principal para esta fundación |
-| SRC-002 | Contenido previo del repositorio | No existe; el repositorio remoto estaba vacío | Ninguno |
-| SRC-003 | Reglamentos, formularios y comunicaciones vigentes de Colegio Conquistadores | No entregados | Pendiente de validación |
-| SRC-004 | Políticas legales, privacidad, retención y seguridad aplicables | No entregadas | Pendiente de especialista y responsables |
-| SRC-005 | Contratos o documentación técnica de EduPay | No entregados | Pendiente de equipos propietarios |
+- **Actualizado:** 2026-08-06.
+- **Propietario funcional y técnico:** Nicolás Sena.
+- **Reglas institucionales:** requieren validación de Admisión y/o Dirección de Colegio Particular Conquistadores.
+- **Legal/normativo:** responsable pendiente antes del piloto.
 
-Esta documentación no debe presentarse como reproducción de un proceso institucional aprobado. Es una interpretación estructurada de `SRC-001`.
+El repositorio público conserva metadatos y requisitos extraídos. Los PDF originales y cualquier dato personal real permanecen fuera del repositorio.
+
+## Inventario de fuentes autorizadas
+
+| ID | Fuente | Fecha/periodo | Autoridad y alcance | Presencia en repositorio |
+| --- | --- | --- | --- | --- |
+| SRC-001 | Encargo inicial “Admisión EduPay” | 2026-08-06 | Visión, alcance, seguridad, multitenancy y modo de trabajo | Sólo extracción documental |
+| SRC-002 | “PROCESO ADMISION 2027”, Colegio Particular Conquistadores | Admisión 2027 | Proceso y reglas institucionales declaradas | PDF no almacenado; sólo metadatos y extracción |
+| SRC-003 | “FICHA DE INSCRIPCIÓN COLEGIO CONQUISTADORES” | Vigente para la fuente entregada | Campos y documentos de la ficha institucional | PDF no almacenado; sólo metadatos y extracción |
+| SRC-004 | Decisiones del propietario funcional Nicolás Sena | 2026-08-06 | Decisiones funcionales y responsabilidades del producto | Registradas como decisiones aprobadas |
+| SRC-005 | Stack vigente de EduPay | Informado 2026-08-06 | Contexto tecnológico y operacional; no selección automática de stack | Registrado como evidencia para ADR-0001 |
+
+La precedencia funcional es: una decisión explícita de `SRC-004` gobierna el diseño de producto, pero una diferencia con documentos institucionales no se elimina; se registra y se solicita validación o actualización formal al colegio.
 
 ## Requisitos extraídos
 
-### Producto y operación
+### SRC-001 — Producto y controles transversales
 
-- SaaS multiempresa con primera implementación en Colegio Conquistadores.
+- SaaS multiempresa, con aislamiento desde el primer incremento.
 - Familias capaces de gestionar varios estudiantes y postulaciones.
-- Operación segmentada por institución, sede, año académico y curso.
-- Formularios, documentos, observaciones, entrevistas, evaluaciones, resultados y matrícula.
-- Administración de cupos, lista de espera, responsables, comunicaciones y reportes.
-- Flujo configurable sobre una estructura común auditable.
+- Operación por institución, sede, año académico y curso.
+- Formularios, documentos, observaciones, entrevistas, evaluaciones, resultados y futura matrícula.
+- Cupos, lista de espera, responsables, comunicaciones, reportes y auditoría.
+- Datos sensibles protegidos por tenant, propósito, rol y mínimo privilegio.
+- Admisión y EduPay desacoplados, sin tablas compartidas.
+- Trabajo por etapas con trazabilidad y aprobación humana.
 
-### Datos y seguridad
+### SRC-002 — Proceso institucional 2027
 
-- Aislamiento multiempresa obligatorio desde el inicio.
-- Contexto de tenant derivado de identidad y permisos, nunca confiado desde el cliente.
-- Acceso restringido a datos de menores, salud, necesidades educativas y finanzas.
-- Cifrado, auditoría, archivos privados, protección contra enumeración y cargas maliciosas.
-- Decisiones pendientes para escaneo antivirus, retención, eliminación y consentimientos.
-- Prohibición de secretos y datos personales reales en el repositorio.
+- Principios de transparencia, objetividad, equidad, igualdad de oportunidades y no discriminación arbitraria.
+- Adhesión de las familias al Proyecto Educativo Institucional (PEI) y reglamentos.
+- Publicación de PEI, Reglamento Interno, protocolos e información de aranceles 2027.
+- Certificado de nacimiento.
+- Certificado anual de estudios o informe de notas vigente.
+- Informe de personalidad o desarrollo personal cuando corresponda.
+- Ficha de postulación y eventuales antecedentes adicionales.
+- Documentación completa no garantiza vacante; la admisión depende de requisitos y cupos.
+- Recepción y validación, entrevista del apoderado, entrevista y/o evaluación del estudiante, revisión de antecedentes y cupos, comunicación y formalización.
+- Falta de formalización dentro del plazo implica desistimiento salvo autorización.
+- Según el documento, el pago de matrícula asegura el cupo.
 
-### Integración
+### SRC-003 — Ficha institucional
 
-- Admisión y EduPay son dominios desacoplados.
-- No deben compartir tablas.
-- El límite debe contemplar aceptación, reserva de vacante, aceptación familiar, inicio de matrícula, obligación de pago y confirmación de matrícula.
-- Se requieren identificadores externos, contratos, idempotencia y estado de sincronización.
+- Estudiante: nombre completo, curso, RUT, nacimiento, domicilio y colegio de procedencia.
+- Hogar: personas con quienes vive y cantidad de integrantes.
+- Trayectoria/apoyos: PIE actual o anterior, repitencia, especialistas y necesidades educativas especiales.
+- Madre, padre, apoderado titular y apoderado financiero: identificación, nacionalidad, educación, ocupación y contacto.
+- Trabajo, cargo, ingreso mensual del hogar y motivo de postulación.
+- Documentos: nacimiento, certificado anual o notas, informes de personalidad 2025 y 2026, notas parciales y ficha completa.
+- Aranceles e información adicional.
 
-### Forma de trabajo
+### SRC-004 — Decisiones funcionales confirmadas
 
-- Trabajo por etapas con aprobación humana.
-- Trazabilidad y lista viva de preguntas.
-- No seleccionar stack ni implementar producción en esta etapa.
+- Piloto desde primero básico hasta cuarto medio y una sola sede.
+- Una cuenta familiar administra varios hijos.
+- Colegio asigna directamente horarios de entrevista.
+- Evaluación diagnóstica obligatoria para todos los postulantes.
+- Admisión revisa y recomienda; Dirección decide.
+- Correo es el único canal inicial; WhatsApp queda diferido.
+- Cada institución crea y modifica formularios mediante constructor controlado, nunca código arbitrario.
+- Pago de matrícula ocurre fuera de Admisión.
+- EduPay gestiona información de pago y el portal de pagos existente la consulta.
+- Antes de generar deuda anual y concepto de matrícula, el estudiante debe existir en EduPay y estar asociado o matriculado en un curso.
+- Admisión realiza un handoff controlado después de una decisión favorable, sujeto al contrato y al momento exacto aún por definir.
+
+### SRC-005 — Stack vigente de EduPay
+
+| Área | Tecnología vigente |
+| --- | --- |
+| Backend | NestJS 11, TypeScript, Prisma 7, Passport JWT |
+| Frontend | Next.js 16 App Router, React 19, Tailwind CSS, Zod 4, React Hook Form |
+| Datos | PostgreSQL 15 |
+| Contratos/documentación | Swagger / OpenAPI 3.0 en `/api/docs` |
+| Despliegue | cPanel / Passenger como Node.js App |
+| Desarrollo local | Docker Compose para PostgreSQL |
+
+Esto crea una fuerte preferencia de alineación, no una adopción definitiva. `ADR-0001` evalúa la recomendación; despliegue, repositorios, archivos, correo, colas, integración y arquitectura física multiempresa siguen abiertos.
 
 ## Diferencias, tensiones e inconsistencias
 
-### C-001 — “Estados” mezclan conceptos distintos
+### Contradicciones fundacionales conservadas
 
-La lista propuesta combina:
+- **C-001 — Estados mezclados:** `SRC-001` mezcla etapas, estados, actividades, hitos y resultados. Resuelta para el núcleo mediante `D-001` y `Q-003`; se separan las dimensiones.
+- **C-002 — Aceptación ambigua:** decisión favorable, reserva, comunicación, respuesta familiar, handoff y matrícula no son equivalentes. Resuelta conceptualmente mediante `Q-004`; el botón de aceptación del piloto sigue abierto.
+- **C-003 — Multiinstitución tardía:** el roadmap parecía postergar multitenancy. Resuelta mediante `Q-002`: existe desde el primer incremento; la etapa tardía es onboarding y hardening.
+- **C-004 — Libertad versus estructura:** las instituciones configuran formularios y procesos sin alterar el núcleo. Resuelta en principio mediante versiones, constructor controlado y `D-003`.
+- **C-005 — Disponibilidad visible:** sigue abierto si se mostrarán cantidades, categorías o sólo convocatoria.
+- **C-006 — Obligación de pago:** resuelta en propiedad: EduPay gestiona obligaciones y pagos; queda abierto el contrato y disparador.
+- **C-007 — Auditoría versus eliminación:** sigue pendiente de política legal de retención, minimización y seudonimización.
+- **C-008 — Perfil familiar versus tenant:** resuelta mediante `D-002`: perfil familiar global controlado e instantánea institucional versionada.
 
-- estados operativos (`DOCUMENT_REVIEW`, `FINAL_REVIEW`);
-- tareas pendientes o agendadas (`GUARDIAN_INTERVIEW_PENDING`, `..._SCHEDULED`);
-- hitos ya ocurridos (`DOCUMENTS_COMPLETE`, `..._COMPLETED`);
-- resultados (`ACCEPTED`, `WAITLISTED`, `REJECTED`);
-- estados de otro proceso o handoff (`ENROLLMENT_PENDING`, `ENROLLED`);
-- cierres transversales (`WITHDRAWN`, `EXPIRED`).
+### Contradicciones institucionales nuevas
 
-Una única enumeración produciría transiciones rígidas y semántica ambigua. La propuesta en `02-admission-workflow.md` separa estas dimensiones.
+#### C-009 — Aplicabilidad de evaluación diagnóstica
 
-### C-002 — Aceptación institucional versus aceptación familiar
+`SRC-002` permite que entrevista y/o evaluación dependa del nivel, mientras `SRC-004` establece evaluación diagnóstica obligatoria para todos los cursos del piloto. La decisión funcional queda aprobada por Nicolás Sena el 2026-08-06, pero debe ser validada por Admisión/Dirección y reflejada en la documentación institucional.
 
-`ACCEPTED` puede significar decisión favorable, vacante ofrecida, vacante reservada o aceptación de la oferta por la familia. El encargo nombra esos momentos por separado para EduPay, por lo que no deben colapsarse.
+#### C-010 — Numeración de etapas en la ficha
 
-### C-003 — Preparación multiinstitución como etapa tardía
+`SRC-003` salta visualmente desde la etapa 3 a la etapa 5 y omite la etapa 4. No se infiere el contenido faltante. El colegio debe confirmar si es un error editorial y entregar una versión corregida.
 
-El roadmap solicitado incluye “Preparación multiinstitución”, pero el aislamiento multiempresa es obligatorio desde el comienzo. Se propone interpretar esa etapa posterior como **preparación operacional para incorporar más instituciones**, no como incorporación tardía de `tenant_id` o controles de aislamiento.
+#### C-011 — Informes de personalidad
 
-### C-004 — Configuración libre versus estructura común
+`SRC-002` solicita informe de personalidad o desarrollo personal “cuando corresponda”; `SRC-003` solicita específicamente informes de personalidad 2025 y 2026. Debe validarse obligatoriedad por curso, año de procedencia y disponibilidad real.
 
-Cada institución debe configurar su proceso, pero debe conservarse una estructura común auditable. Falta definir qué elementos son invariantes de plataforma y cuáles pueden omitirse, reordenarse o repetirse.
+#### C-012 — Antecedentes adicionales
 
-### C-005 — Disponibilidad visible versus confidencialidad de capacidad
+`SRC-002` permite antecedentes adicionales definidos por el establecimiento. Esto no se implementará como campos hardcodeados: requiere catálogo configurable y versionado por institución, año, curso y versión de proceso.
 
-El portal debe mostrar cursos habilitados y “disponibilidad definida por la institución”, pero no se especifica si se mostrarán cantidades exactas, categorías como “disponible” o solamente la posibilidad de postular. Esto afecta experiencia, competencia por cupos y exposición de información operacional.
+#### C-013 — Sensibilidad de la ficha
 
-### C-006 — Responsabilidad de la obligación de pago
+`SRC-003` captura salud, PIE/NEE, tratamientos e ingreso familiar. Son datos altamente restringidos; el colegio debe justificar propósito, obligatoriedad, roles con acceso y retención de cada campo antes del piloto.
 
-Se solicita que Admisión pueda emitir una señal cuando “debe generarse una obligación de pago”, pero la obligación pertenece conceptualmente a EduPay. Debe acordarse si Admisión solicita el inicio, publica un hecho o emite un comando, sin atribuirse la creación financiera.
+#### C-014 — Canal de ingreso
 
-### C-007 — Historial inmutable versus eliminación de datos
-
-Se requieren historial inmutable, retención y eliminación. Falta una política que separe evidencia auditable, datos personales eliminables o anonimizables y obligaciones de conservación.
-
-### C-008 — Datos familiares reutilizables versus aislamiento institucional
-
-La cuenta familiar puede reutilizar estudiantes y antecedentes entre postulaciones, pero una institución no debe acceder a información aportada para otra. Se requiere definir qué datos son globales de la familia, qué se copian como instantánea y qué consentimientos habilitan cada uso.
+La ficha y el proceso existentes contemplan correo o entrega presencial. Debe definirse si el portal reemplaza completamente esos canales o si personal autorizado creará postulaciones asistidas con evidencia de autoría y consentimiento.
 
 ## Datos faltantes
 
-- Reglamento, formulario actual, documentos exigidos y plantillas de comunicación del colegio.
-- Sedes, niveles, cursos, calendarios, zonas horarias, cupos y responsables reales.
-- Reglas para entrevistas y evaluaciones por nivel.
-- Criterios y autoridad para decidir, reservar, esperar, rechazar y expirar.
-- Política de hermanos, prioridades, desempates y orden de lista de espera.
-- Tiempos objetivo, ventanas de postulación y reglas de reprogramación.
-- Canales de notificación y evidencia válida de entrega.
-- Necesidades de accesibilidad, idiomas y soporte asistido.
-- Reglas legales y contractuales de consentimiento, residencia de datos, retención y eliminación.
-- Modelo de identidad de familias y personal; requisitos de autenticación reforzada.
-- Volumen esperado de instituciones, postulaciones, documentos y concurrencia.
-- Sistemas actuales y contrato de integración de EduPay.
-- Definiciones de matrícula confirmada, obligación financiera y reconciliación.
+- Copias institucionales aprobadas y control de versión de PEI, reglamentos, protocolos y aranceles a publicar.
+- Representante formal del colegio y responsable legal/normativo.
+- Cupos, calendario, plazos de formalización, excepciones y reglas de desistimiento.
+- Política de lista de espera, prioridades, desempates y visibilidad.
+- Confirmación institucional de C-009 a C-014.
+- Obligatoriedad, propósito, visibilidad y retención de cada campo/documento.
+- Pautas de entrevista, evaluación y recomendación.
+- Plantillas, remitente, entrega y manejo de fallos de correo.
+- Volúmenes, SLA, accesibilidad/idiomas y soporte asistido.
+- Contrato vigente o futuro de EduPay, estados pre-pago y evento que confirma matrícula.
 
 ## Validaciones requeridas con Colegio Conquistadores
 
-1. Confirmar el proceso real y excepciones por nivel o curso.
-2. Validar el formulario, obligatoriedad, momento de captura y visibilidad de cada dato sensible.
-3. Entregar catálogo de documentos, criterios de vigencia y responsables de revisión.
-4. Definir roles reales, delegaciones, reemplazos y separación de funciones.
-5. Acordar estados comprensibles para familias y textos de próximos pasos.
-6. Validar cupos, reservas, expiraciones, lista de espera y reingreso de vacantes.
-7. Definir entrevista, evaluación, reprogramación, inasistencia y excepciones.
-8. Aprobar plantillas, canales, horarios y responsables de comunicaciones.
-9. Acordar reportes y exportaciones, incluyendo quién puede acceder a datos restringidos.
-10. Validar política de retención, eliminación, consentimiento y atención de solicitudes de titulares.
+1. Designar representante formal para revisión y compuertas.
+2. Validar cobertura, sede y obligatoriedad de evaluación para todo el piloto.
+3. Corregir o explicar la numeración faltante de `SRC-003`.
+4. Resolver “cuando corresponda” frente a informes 2025/2026.
+5. Aprobar catálogo de documentos y antecedentes adicionales por curso.
+6. Justificar datos altamente restringidos y aprobar acceso/retención.
+7. Definir canal exclusivo o postulaciones asistidas.
+8. Validar cupos, reservas, plazos, desistimiento, espera y reapertura.
+9. Aprobar estados y mensajes familiares, incluido correo.
+10. Confirmar responsables, pautas y autoridad de recomendación/decisión.
 
 ## Criterio de evidencia futuro
 
-Cada requisito nuevo debe registrar su fuente, fecha, propietario y estado de aprobación. Cuando una minuta o documento contradiga otro, no se debe elegir silenciosamente: se registra la diferencia en `09-open-questions.md` y se solicita decisión al propietario funcional.
+Cada requisito nuevo debe registrar fuente, fecha, propietario y estado. Una pregunta resuelta conserva su ID, respuesta, fecha y responsable. Si una decisión de producto difiere de un documento institucional, ambas evidencias permanecen visibles hasta que el colegio valide o actualice formalmente su fuente.

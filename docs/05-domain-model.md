@@ -52,7 +52,13 @@ La separación perfil/instantánea evita que una institución vea datos de otra 
 | Concepto | Responsabilidad | Pertenencia al tenant |
 | --- | --- | --- |
 | `AdmissionCycle` | Ventana y reglas generales de admisión para un año | `tenantId` directo |
-| `FormTemplateVersion` | Definición versionada de secciones, campos y propósitos | `tenantId` directo |
+| `FormTemplate` | Identidad estable y propósito de un formulario institucional | `tenantId` directo |
+| `FormVersion` | Versión `DRAFT`, `PUBLISHED` o `ARCHIVED`; publicada es inmutable | `tenantId` directo, dentro de `FormTemplate` |
+| `FormSection` | Sección ordenable y contenido descriptivo seguro | `tenantId` directo, dentro de `FormVersion` |
+| `FormFieldDefinition` | Tipo controlado, etiqueta, ayuda, obligatoriedad, validación y acceso | `tenantId` directo, dentro de `FormVersion` |
+| `FormFieldOption` | Opción estable y ordenada de un campo de selección | `tenantId` directo, dentro de `FormFieldDefinition` |
+| `FormConditionalRule` | Condición declarativa mediante operadores permitidos | `tenantId` directo, dentro de `FormVersion` |
+| `DataClassification` | Clasificación canónica que condiciona propósito y permisos | Global si es catálogo cerrado; aplicación institucional siempre explícita |
 | `DocumentRequirementVersion` | Requisito, condiciones, formatos y vigencia | `tenantId` directo |
 | `WorkflowDefinitionVersion` | Etapas habilitadas, guardas, roles y tiempos | `tenantId` directo |
 | `CommunicationTemplateVersion` | Contenido y variables aprobadas por canal/propósito | `tenantId` directo |
@@ -66,7 +72,8 @@ Las versiones publicadas son inmutables. Una nueva publicación no debe cambiar 
 | --- | --- | --- |
 | `Application` | Ciclo de vida de una postulación a una oferta | `tenantId` directo y anclaje a `CourseOffering` |
 | `ApplicationPartySnapshot` | Datos aportados de estudiante y adultos para este caso | `tenantId` directo, contenido restringido |
-| `FormResponse` | Respuestas por versión de formulario y enmiendas | `tenantId` directo, dentro de postulación |
+| `ApplicationFormSnapshot` | Copia inmutable del esquema publicado usado al enviar | `tenantId` directo, dentro de postulación |
+| `ApplicationAnswer` | Respuesta a un campo del snapshot, con clasificación heredada | `tenantId` directo, dentro de postulación |
 | `RequirementSubmission` | Cumplimiento de un requisito y versiones aportadas | `tenantId` directo |
 | `DocumentAsset` | Metadatos seguros y referencia a objeto privado | `tenantId` directo; clave física no confiada desde cliente |
 | `DocumentReview` | Dictamen sobre una versión documental | `tenantId` directo |
@@ -112,6 +119,14 @@ erDiagram
     FAMILY_PROFILE ||--o{ STUDENT_PROFILE : administra
     STUDENT_PROFILE ||--o{ APPLICATION : origina
     APPLICATION ||--|| APPLICANT_SNAPSHOT : congela
+    FORM_TEMPLATE ||--o{ FORM_VERSION : versiona
+    FORM_VERSION ||--o{ FORM_SECTION : organiza
+    FORM_SECTION ||--o{ FORM_FIELD_DEFINITION : contiene
+    FORM_FIELD_DEFINITION ||--o{ FORM_FIELD_OPTION : ofrece
+    FORM_VERSION ||--o{ FORM_CONDITIONAL_RULE : condiciona
+    FORM_VERSION ||--o{ APPLICATION_FORM_SNAPSHOT : origina
+    APPLICATION ||--|| APPLICATION_FORM_SNAPSHOT : conserva
+    APPLICATION_FORM_SNAPSHOT ||--o{ APPLICATION_ANSWER : responde
     APPLICATION ||--o{ REQUIREMENT_SUBMISSION : cumple
     REQUIREMENT_SUBMISSION ||--o{ DOCUMENT_ASSET : versiona
     APPLICATION ||--o{ GUARDIAN_INTERVIEW : requiere
@@ -131,6 +146,12 @@ El diagrama muestra relaciones conceptuales, no cardinalidades físicas definiti
 
 Protege publicación y versionado de configuración institucional. No debe contener todas las postulaciones. Invariantes: referencias internas del mismo tenant, versiones publicadas inmutables y fechas coherentes.
 
+### `FormTemplate`
+
+Protege la identidad del formulario y sus versiones. Una `FormVersion` usa los estados `DRAFT`, `PUBLISHED` y `ARCHIVED`; la máquina de transición exacta se cerrará en G1. Publicar congela secciones, campos, opciones, reglas, clasificaciones y permisos. Modificar un formulario publicado crea una nueva versión borrador. No admite JavaScript, HTML ejecutable ni código arbitrario.
+
+`ApplicationFormSnapshot` pertenece a la postulación y permite reconstruir exactamente el esquema enviado aunque la plantilla evolucione. `ApplicationAnswer` conserva la referencia estable al campo y su clasificación aplicable.
+
 ### `CourseOffering` y `CapacityPlan`
 
 Protege apertura, capacidad, reservas y disponibilidad. Debe resolver concurrencia sin cargar el agregado `Application`. Queda pendiente definir si capacidad y reservas forman un solo agregado o coordinan mediante transacción/servicio de dominio.
@@ -149,7 +170,7 @@ Entrevistas y evaluaciones podrían compartir contrato de agenda, pero mantener 
 
 ### `AdmissionDecision`
 
-Protege recomendación, aprobación y resultado. Debe impedir autoaprobación cuando la política exija separación de funciones. Una decisión favorable no equivale a matrícula.
+`AdmissionRecommendation` protege borrador, envío a Dirección, devolución justificada, reemplazo y cierre. `AdmissionDecision` protege la resolución final de Dirección. La recomendación no publica resultado ni consume cupo por sí sola. Una decisión favorable no equivale a oferta aceptada ni matrícula.
 
 ### `AdmissionOffer` y `SeatReservation`
 
@@ -164,6 +185,8 @@ Protege mensajes salientes, clave de idempotencia, intentos y confirmaciones. No
 - Toda referencia entre entidades institucionales pertenece al mismo tenant.
 - Una membresía válida es necesaria, pero puede no ser suficiente para datos restringidos.
 - Una postulación enviada conserva su configuración y respuestas históricas.
+- Una versión publicada de formulario es inmutable y cada postulación conserva su snapshot.
+- Reglas condicionales usan sólo tipos y operadores controlados; nunca código ejecutable.
 - Un documento en cuarentena no puede revisarse ni descargarse como seguro.
 - Una decisión requiere el rol y las guardas vigentes al decidir.
 - Una oferta no excede la capacidad/reserva permitida.
@@ -197,6 +220,10 @@ Protege mensajes salientes, clave de idempotencia, intentos y confirmaciones. No
 ### Decisión y capacidad
 
 - `ApplicationReadyForFinalReview`
+- `AdmissionRecommendationDrafted`
+- `AdmissionRecommendationSubmitted`
+- `AdmissionRecommendationReturned`
+- `AdmissionRecommendationSuperseded`
 - `AdmissionDecisionRecorded`
 - `ApplicationWaitlisted`
 - `SeatReserved`
@@ -211,6 +238,8 @@ Protege mensajes salientes, clave de idempotencia, intentos y confirmaciones. No
 
 - `EnrollmentHandoffRequested`
 - `EnrollmentHandoffAccepted`
+- `AcademicPartyLinked`
+- `StudentCourseAssociationConfirmed`
 - `PaymentObligationRequested` o un hecho alternativo por acordar
 - `EnrollmentConfirmed`
 - `IntegrationDeliveryFailed`
@@ -235,5 +264,6 @@ Los nombres no son contratos aprobados. Antes de publicarlos se debe definir ver
 - Proveedor y modelo de identidad.
 - Estrategia concreta de almacenamiento y cifrado.
 - Motor de flujo propio, reglas declarativas o producto externo.
+- Representación técnica y editor UX del constructor de formularios.
 - Consistencia técnica de capacidad y reservas.
 - Bus, webhook, cola o API para integración.

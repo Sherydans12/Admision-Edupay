@@ -43,19 +43,23 @@ Establecer lenguaje común, alcance, evidencia, requisitos iniciales, riesgos y 
 - Matriz preliminar de roles y permisos.
 - Preguntas, supuestos, contradicciones y decisiones.
 - Proceso ADR y roadmap.
+- Configuración inicial del piloto Conquistadores 2027 separada del núcleo.
+- `ADR-0001` como propuesta de alineación de stack, sin adopción ni scaffolding.
 
 ### G0 — Aprobación de fundación
 
 Evidencia requerida:
 
-- Propietario funcional y revisores identificados.
+- Propietario funcional/técnico identificado; representante formal del colegio identificado.
 - Alcance y fuera de alcance aceptados.
-- Contradicciones C-001 a C-008 resueltas o diferidas con dueño y fecha.
-- Decisiones D-001 a D-010 aceptadas, modificadas o rechazadas.
-- Preguntas Q-001 a Q-005 respondidas.
-- Confirmación de que no se eligió stack ni se creó producción.
+- Contradicciones C-001 a C-014 resueltas o diferidas con dueño y fecha; las institucionales requieren colegio.
+- Decisiones D-001 a D-010 aprobadas y decisiones funcionales D-011 a D-024 registradas.
+- Q-001 a Q-004 resueltas; Q-005 requiere completar representante formal.
+- Confirmación de que `ADR-0001` sigue propuesto, sin stack definitivo ni producción.
 
-**Aprobadores sugeridos:** sponsor de producto, representante de admisión del colegio, arquitectura y seguridad/privacidad; participación de EduPay para su límite.
+**Responsables actuales:** Nicolás Sena para producto, técnica, integración EduPay y seguridad/privacidad técnica; Admisión y/o Dirección para reglas institucionales. Representante formal del colegio pendiente. Responsable legal/normativo pendiente antes del piloto.
+
+**Estado al 2026-08-06:** BLOQUEADA. Falta representante formal del colegio, resolución/diferimiento institucional de C-009, C-010, C-011, C-013 y C-014, y aprobación explícita del commit documental final.
 
 ## E1 — Diseño funcional
 
@@ -67,7 +71,9 @@ Validar el proceso real con usuarios y convertir requisitos en comportamientos y
 
 - Mapa de actores, journeys y casos de uso.
 - Catálogo de oferta, formulario y requisitos documentales del piloto.
+- Constructor de formularios: tipos, validaciones, reglas, sensibilidad y permisos.
 - Máquina de estados y actividades aprobada, incluyendo excepciones.
+- Ciclo de recomendación de Admisión y decisión de Dirección.
 - Política de cupos, reserva, espera, expiración y reapertura.
 - Proyección de estados/mensajes para familias.
 - Matriz roles × permisos × alcance × sensibilidad.
@@ -77,6 +83,7 @@ Validar el proceso real con usuarios y convertir requisitos en comportamientos y
 ### G1 — Aprobación funcional
 
 - Preguntas Q-101 a Q-184 resueltas para el piloto.
+- Q-310 resuelta para fijar el momento del handoff.
 - Proceso validado por responsables reales.
 - Datos sensibles justificados y minimizados.
 - Casos felices, alternos y excepciones aprobados.
@@ -92,6 +99,7 @@ Elegir opciones reversibles y documentar decisiones necesarias para seguridad, c
 
 - Contextos y arquitectura lógica/de despliegue propuesta.
 - Alternativas de stack con criterios, costos y riesgos.
+- Resolución de `ADR-0001` antes de scaffolding.
 - Modelo de datos lógico y estrategia concreta de tenancy.
 - Identidad, autorización, sesiones y soporte excepcional.
 - Archivos privados, escaneo, claves y secretos.
@@ -103,6 +111,7 @@ Elegir opciones reversibles y documentar decisiones necesarias para seguridad, c
 ### G2 — Aprobación arquitectónica
 
 - ADR críticos aprobados.
+- Monorepo/multirepo, archivos, correo, colas, integración, despliegue y tenancy física decididos sólo cuando corresponda.
 - Preguntas Q-201 a Q-210 abordadas al nivel necesario.
 - Revisión de seguridad, privacidad, operación y costos.
 - Prueba conceptual sólo si fue autorizada y eliminable.
@@ -165,10 +174,11 @@ Implementar el recorrido mínimo de postulación y gestión para el piloto, sin 
 ### Entregables tentativos
 
 - Oferta, cuenta, familia, estudiante, formulario y envío.
+- Constructor controlado y versionado de formularios, sin código arbitrario.
 - Documentos privados, escaneo, revisión y corrección.
 - Actividades requeridas del piloto.
 - Revisión, decisión, cupos, oferta y respuesta.
-- Vista familiar, comunicaciones mínimas y auditoría.
+- Vista familiar, correo como canal inicial, comunicaciones mínimas y auditoría.
 - Administración, configuración y permisos mínimos.
 - Pruebas funcionales, accesibilidad, seguridad, concurrencia y recuperación.
 
@@ -218,7 +228,7 @@ Implementar y certificar el handoff desacoplado aprobado.
 
 ### G7 — Aprobación de integración
 
-- Preguntas Q-301 a Q-308 cerradas.
+- Preguntas Q-301 a Q-310 cerradas, especialmente estado pre-pago y evento de matrícula.
 - Propietarios y SLA de ambos dominios.
 - Certificación en ambiente seguro con datos sintéticos.
 - Plan de activación, monitoreo y rollback.

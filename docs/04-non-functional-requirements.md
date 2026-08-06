@@ -16,17 +16,19 @@ Estos requisitos expresan cualidades y controles esperados, pero aún carecen de
 | NFR-SEC-006 | La recuperación de cuenta no debe permitir enumeración ni reutilización de tokens. | Mensajes uniformes, rate limiting y pruebas adversariales. |
 | NFR-SEC-007 | Identificadores públicos deben ser no predecibles y no sustituir autorización. | Pruebas de enumeración y respuestas no reveladoras. |
 | NFR-SEC-008 | Aplicar rate limiting contextual en autenticación, recuperación, búsqueda, carga y acciones sensibles. | Límites por riesgo, identidad, origen y tenant; métricas de falsos positivos. |
-| NFR-SEC-009 | Validar entradas, salidas y plantillas para mitigar inyección y contenido activo. | Pruebas de seguridad y política de render seguro. |
+| NFR-SEC-009 | Validar entradas, salidas, plantillas y esquemas para mitigar inyección y contenido activo. | Pruebas de seguridad y política de render seguro. |
 | NFR-SEC-010 | Secretos deben residir fuera del repositorio y rotarse. | Escaneo de secretos y proceso de respuesta. |
 | NFR-SEC-011 | Operaciones críticas deben ser idempotentes y seguras ante concurrencia. | Pruebas de doble envío, reintento y carrera de cupos. |
 | NFR-SEC-012 | Cambios de permisos, cupos, decisiones, exportaciones y soporte excepcional requieren auditoría reforzada. | Eventos completos, alertas y revisión periódica. |
+| NFR-SEC-013 | El constructor de formularios no ejecutará JavaScript, HTML activo ni expresiones arbitrarias aportadas por una institución. | Catálogo cerrado de tipos/operadores, sanitización y pruebas adversariales. |
+| NFR-SEC-014 | Publicar o archivar esquemas requiere autorización separada de la edición de borradores. | Pruebas por permiso y auditoría de publicación. |
 
 ## Privacidad y datos sensibles
 
 | ID | Requisito | Verificación futura |
 | --- | --- | --- |
 | NFR-PRV-001 | Clasificar datos como públicos, internos, personales, restringidos o altamente restringidos. | Inventario de datos y propietario por categoría. |
-| NFR-PRV-002 | Minimizar captura y condicionar cada campo sensible a un propósito documentado. | Revisión de formulario y base legal/consentimiento aprobado. |
+| NFR-PRV-002 | Minimizar captura y condicionar cada campo sensible a propósito, obligatoriedad y retención documentados. | Revisión de salud, PIE/NEE e ingreso familiar con colegio y responsable legal. |
 | NFR-PRV-003 | Datos de menores, salud, NEE y finanzas requieren permisos específicos, no sólo acceso a la postulación. | Pruebas de acceso a nivel de campo/sección. |
 | NFR-PRV-004 | No incluir datos sensibles en URLs, logs, métricas, nombres de archivo ni mensajes de error. | Escaneo y revisión de observabilidad. |
 | NFR-PRV-005 | Lecturas y modificaciones de datos restringidos deben ser auditables. | Muestreo y consulta de auditoría por propósito. |
@@ -81,7 +83,7 @@ Estos requisitos expresan cualidades y controles esperados, pero aún carecen de
 | ID | Requisito | Verificación futura |
 | --- | --- | --- |
 | NFR-UX-001 | La experiencia debe ser utilizable en móvil y escritorio. | Matriz de dispositivos y pruebas responsivas por definir. |
-| NFR-UX-002 | Se recomienda WCAG 2.2 nivel AA como objetivo sujeto a aprobación. | Auditoría automática y manual, teclado y lector de pantalla. |
+| NFR-UX-002 | WCAG 2.2 nivel AA es el objetivo aprobado mediante D-009. | Auditoría automática y manual, teclado y lector de pantalla. |
 | NFR-UX-003 | Formularios deben mostrar progreso, errores accionables y recuperación de borrador. | Pruebas con usuarios y escenarios de fallo. |
 | NFR-UX-004 | Lenguaje de estado familiar debe ser claro y no revelar decisiones internas. | Revisión de contenido por institución. |
 | NFR-UX-005 | Zona horaria, formato de fecha y canal deben ser consistentes por institución y usuario. | Casos de horario de verano y confirmaciones. |
@@ -105,6 +107,14 @@ Estos requisitos expresan cualidades y controles esperados, pero aún carecen de
 | NFR-MNT-003 | Cambios incluyen trazabilidad a requisito/ADR y pruebas proporcionales. | Plantilla y control de PR. |
 | NFR-MNT-004 | Dependencias futuras requieren justificación, mantenimiento y análisis de riesgo. | Registro de decisión e inventario. |
 | NFR-MNT-005 | Despliegues y migraciones futuras deben ser reversibles o tener plan de recuperación. | Ensayo previo y aprobación por etapa. |
+| NFR-MNT-006 | La alineación con el stack vigente de EduPay debe evaluarse mediante ADR antes de scaffolding. | `ADR-0001` aceptado o rechazado con evidencia; no basta la preferencia operacional. |
+| NFR-MNT-007 | Ninguna regla del piloto puede depender del nombre “Colegio Conquistadores”. | Configurar dos tenants sintéticos y revisar ausencia de condicionales institucionales. |
+
+## Contexto tecnológico no vinculante
+
+EduPay usa actualmente NestJS 11, TypeScript, Prisma 7, Passport JWT, Next.js 16 App Router, React 19, Tailwind CSS, Zod 4, React Hook Form, PostgreSQL 15, Swagger/OpenAPI 3.0, cPanel/Passenger y Docker Compose para PostgreSQL local. Es evidencia para `ADR-0001`, no un requisito no funcional ni una selección definitiva.
+
+Siguen sin decidirse arquitectura de repositorios, archivos, correo, colas, integración, despliegue y arquitectura física multiempresa.
 
 ## Cumplimiento por validar
 

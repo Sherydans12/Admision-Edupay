@@ -2,9 +2,10 @@
 
 ## Estado del documento
 
-- **Fuente:** encargo inicial del proyecto, recibido el 6 de agosto de 2026.
-- **Estado:** propuesta para revisión; no constituye aprobación funcional ni arquitectónica.
+- **Fuentes:** `SRC-001` a `SRC-005`, registradas en `01-source-analysis.md`.
+- **Estado:** fundación actualizada con decisiones funcionales aprobadas; G0 aún no cerrada.
 - **Compuerta:** G0 — fundación documental.
+- **Propietario funcional y técnico:** Nicolás Sena.
 
 ## Visión
 
@@ -16,6 +17,8 @@ El producto debe sostener dos necesidades simultáneas:
 2. Una operación institucional configurable por institución, sede, año académico y curso, con controles de capacidad, privacidad y auditoría.
 
 Colegio Particular Conquistadores será el primer piloto, no el modelo de datos ni el límite permanente del producto.
+
+Para el piloto 2027 se confirma una sede, cobertura desde primero básico hasta cuarto medio, entrevista del apoderado y evaluación diagnóstica obligatoria con horarios asignados por el colegio. Admisión revisa y recomienda; Dirección decide. Estas reglas se configuran por tenant y versión, nunca por el nombre de la institución.
 
 ## Resultados buscados
 
@@ -43,14 +46,14 @@ Colegio Particular Conquistadores será el primer piloto, no el modelo de datos 
 
 - Cuenta, recuperación de acceso y administración de datos familiares.
 - Registro de estudiantes y creación de postulaciones por oferta académica habilitada.
-- Formulario por pasos, borrador y carga privada de documentos.
+- Formulario por pasos construido con esquemas controlados, borrador y carga privada de documentos.
 - Respuesta a observaciones, agenda o confirmación de entrevistas y seguimiento.
 - Comunicaciones, resultado, aceptación o desistimiento y futura derivación a matrícula.
 
 ### Para instituciones
 
 - Configuración por institución, sede, año, nivel y curso.
-- Gestión de oferta, requisitos, formularios, flujo, cupos y lista de espera.
+- Gestión de oferta, requisitos, constructor controlado de formularios, flujo, cupos y lista de espera.
 - Revisión documental, entrevistas, evaluaciones, notas, responsables y decisión final.
 - Comunicaciones, auditoría, reportes y exportación según permisos.
 
@@ -81,7 +84,7 @@ Es responsable de la oferta de admisión, postulaciones, requisitos, revisión, 
 
 ### EduPay
 
-Será responsable de capacidades financieras y de matrícula que se definan en su propio dominio. Admisión no debe escribir sus tablas ni asumir éxito por haber emitido una solicitud.
+Es responsable del registro académico y financiero definitivo, matrícula, asociación del estudiante al curso y obligaciones. El portal de pagos consulta EduPay, no Admisión. Admisión no debe escribir tablas de EduPay ni asumir matrícula por la sola entrega técnica de un mensaje.
 
 ### Identidad y archivos
 
@@ -90,11 +93,18 @@ Son capacidades transversales potenciales. Su ubicación técnica y propiedad de
 ## Principios de producto
 
 - Configuración con límites: flexibilidad institucional sin perder semántica común.
+- Constructor seguro: formularios configurables sin JavaScript, HTML ejecutable ni código arbitrario.
 - Historia antes que sobreescritura: conservar hechos relevantes y sus autores.
 - Vistas apropiadas: el estado operativo interno no se expone literalmente a la familia.
 - Acceso por propósito: tener acceso a una postulación no implica ver todos sus datos.
 - Capacidad explícita: elegibilidad académica, oferta de vacante y matrícula son hechos diferentes.
 - Integración resiliente: contratos versionados, idempotencia y estado de sincronización.
+
+## Decisiones tecnológicas
+
+El stack vigente de EduPay es NestJS 11, TypeScript, Prisma 7, Passport JWT, Next.js 16 App Router, React 19, Tailwind CSS, Zod 4, React Hook Form, PostgreSQL 15, Swagger/OpenAPI 3.0, cPanel/Passenger y Docker Compose para PostgreSQL local.
+
+Existe una fuerte preferencia por alinear Admisión con ese stack para reducir fragmentación. Su adopción definitiva permanece propuesta en `ADR-0001`; no se asume que la estrategia de despliegue u otras decisiones físicas deban copiarse sin evaluación.
 
 ## Indicadores de éxito por definir
 

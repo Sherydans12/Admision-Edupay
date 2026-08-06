@@ -1,19 +1,19 @@
 # ADR-0000: Proceso de decisiones arquitectónicas
 
-- **Estado:** Propuesto
+- **Estado:** Aceptado
 - **Fecha:** 2026-08-06
-- **Decisores:** Por asignar
+- **Decisor:** Nicolás Sena
 - **Compuerta:** G0
 
 ## Contexto
 
 Admisión EduPay manejará datos sensibles, aislamiento multiempresa, capacidad concurrente e integración con otro dominio. Varias decisiones tendrán efectos duraderos y no deben quedar implícitas en código, conversaciones o pull requests.
 
-## Decisión propuesta
+## Decisión
 
 Usar registros de decisión arquitectónica (ADR) versionados en `docs/decisions/` para decisiones relevantes, con alternativas, evidencia, riesgos y estado explícito.
 
-Este ADR define el proceso. Su presencia no significa que el proceso ya haya sido aprobado.
+Este ADR define el proceso aprobado mediante `D-010` el 2026-08-06.
 
 ## Cuándo crear un ADR
 
@@ -82,7 +82,7 @@ Sólo decisores humanos autorizados cambian un ADR a `Aceptado`. El commit o PR 
 | Integración EduPay | Propietarios de ambos dominios + seguridad |
 | Costos/proveedor | Sponsor + arquitectura/operación |
 
-Los nombres concretos están pendientes en Q-005.
+Nicolás Sena es responsable funcional/técnico, de integración y seguridad técnica. El representante formal del colegio y el responsable legal/normativo siguen pendientes en Q-005.
 
 ## Consecuencias
 
@@ -121,6 +121,6 @@ Usar ADR sólo para decisiones relevantes, asignar responsables y revisar su vig
 ## Referencias
 ```
 
-## Aprobación solicitada
+## Registro de aprobación
 
-Aprobar este proceso como convención de gobernanza a partir de G0, con decisores concretos por asignar.
+Aceptado por Nicolás Sena el 2026-08-06 como convención de gobernanza. Cada ADR futuro debe identificar además a los revisores de los ámbitos afectados.

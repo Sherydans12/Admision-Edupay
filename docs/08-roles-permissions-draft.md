@@ -16,7 +16,7 @@ Administra configuración, membresías y operación dentro de una institución. 
 
 ### Encargado de admisión
 
-Coordina casos, documentos, agenda, comunicaciones, capacidad y recomendaciones según alcance. La decisión final puede requerir un rol distinto.
+Coordina casos, documentos, agenda, comunicaciones, capacidad y recomendaciones según alcance. En el piloto revisa y emite la recomendación, pero no decide ni publica automáticamente el resultado.
 
 ### Entrevistador o evaluador
 
@@ -24,7 +24,7 @@ Accede sólo a actividades o casos asignados y a la mínima información necesar
 
 ### Dirección o aprobador final
 
-Revisa antecedentes permitidos y emite/aprueba decisiones. No debería administrar sus propios permisos ni alterar evidencia previa.
+Revisa antecedentes permitidos y puede aprobar, rechazar o devolver a revisión con justificación. No debería administrar sus propios permisos ni alterar evidencia o recomendaciones previas.
 
 ### Apoderado postulante
 
@@ -40,7 +40,9 @@ Leyenda: `P` permitido por rol sujeto a alcance; `C` condicionado/reforzado; `�
 | Ver metadatos operativos del tenant | P | P | C | — | C | — |
 | Acceder a contenido institucional | C excepcional | C | P | C asignado | C | PROPIO |
 | Administrar sedes/años/ofertas | — | P | C | — | — | — |
-| Publicar formularios/requisitos/flujo | — | P/C | C | — | C revisión | — |
+| Publicar requisitos/flujo | — | P/C | C | — | C revisión | — |
+| Editar borradores de formulario | — | P/C | C | — | — | — |
+| Publicar/archivar versiones de formulario | — | C reforzado | C si delegado | — | C revisión | — |
 | Administrar membresías y roles | — | P dentro de delegación | — | — | — | — |
 | Administrar cupos | — | P/C | C | — | C consulta | — |
 | Crear/editar borrador | — | — | C soporte auditado | — | — | PROPIO |
@@ -55,7 +57,9 @@ Leyenda: `P` permitido por rol sujeto a alcance; `C` condicionado/reforzado; `�
 | Crear notas internas | — | C | P | C asignado | P | — |
 | Ver todas las notas internas | C excepcional | C | C | C propias/asignadas | C | — |
 | Recomendar decisión | — | C | P | C | C | — |
-| Aprobar decisión final | — | C si delegado | C si delegado | — | P | — |
+| Devolver recomendación a revisión | — | — | — | — | P | — |
+| Aprobar/rechazar decisión final | — | — | — | — | P | — |
+| Publicar/comunicar resultado | — | C | P tras decisión | — | C | — |
 | Emitir oferta/gestionar espera | — | C | P/C | — | C | Responder propia |
 | Enviar comunicaciones | — | C | P | C acotado | C | — |
 | Ver auditoría | C plataforma | P/C | C acotado | — | C | Historial familiar |
@@ -65,6 +69,7 @@ Leyenda: `P` permitido por rol sujeto a alcance; `C` condicionado/reforzado; `�
 ## Permisos granulares tentativos
 
 - `tenant.settings.read`, `tenant.settings.manage`, `tenant.settings.publish`
+- `form.draft.read`, `form.draft.manage`, `form.version.publish`, `form.version.archive`
 - `membership.read`, `membership.grant`, `membership.revoke`
 - `offering.read`, `offering.manage`, `capacity.read`, `capacity.adjust`
 - `application.read`, `application.assign`, `application.transition`
@@ -72,7 +77,7 @@ Leyenda: `P` permitido por rol sujeto a alcance; `C` condicionado/reforzado; `�
 - `document.metadata.read`, `document.content.read`, `document.review`
 - `interview.schedule`, `interview.conduct`, `assessment.schedule`, `assessment.conduct`
 - `internal_note.create`, `internal_note.restricted.read`
-- `decision.recommend`, `decision.approve`, `offer.issue`, `waitlist.manage`
+- `decision.recommend`, `decision.return`, `decision.approve`, `decision.reject`, `result.communicate`, `offer.issue`, `waitlist.manage`
 - `communication.compose`, `communication.approve`, `communication.send`
 - `audit.read`, `export.create`, `support.elevate`
 - `integration.read`, `integration.retry`, `integration.reconcile`
@@ -95,7 +100,8 @@ Una persona puede tener más de una membresía, incluso en distintos tenants, pe
 ## Separación de funciones por validar
 
 - Quien configura criterios no necesariamente aprueba decisiones.
-- Quien recomienda podría no aprobar su propia recomendación.
+- En el piloto, Admisión recomienda y Dirección decide; Admisión no aprueba su propia recomendación.
+- Editar un borrador no concede automáticamente permiso de publicación.
 - Ajustar cupos y emitir ofertas podrían requerir doble control.
 - Administrar roles no debe habilitar autoelevación fuera del límite delegado.
 - Exportar datos restringidos puede requerir aprobación o justificación adicional.
@@ -125,3 +131,16 @@ Una persona puede tener más de una membresía, incluso en distintos tenants, pe
 ## Recomendación
 
 Validar tareas reales mediante talleres y construir una matriz permiso × alcance × sensibilidad. Evitar roles demasiado amplios y permisos basados únicamente en pantallas.
+
+## Responsabilidades conocidas del piloto
+
+| Actividad | Responsable confirmado | Pendiente |
+| --- | --- | --- |
+| Revisión de antecedentes | Admisión | Personas y reemplazos |
+| Recomendación | Admisión | Pauta, estados y visibilidad detallada |
+| Decisión final | Dirección | Representante formal y delegación |
+| Horarios de entrevista/evaluación | Colegio | Rol operativo concreto y reprogramación |
+| Comunicación inicial | Colegio mediante correo | Remitente, plantillas, proveedor y fallos |
+| Integración EduPay | Nicolás Sena | Contrato y soporte operativo |
+| Seguridad y privacidad técnica en diseño | Nicolás Sena | Revisión independiente futura |
+| Legal/normativo | Pendiente | Debe definirse antes del piloto |

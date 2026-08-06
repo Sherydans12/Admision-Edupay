@@ -48,6 +48,8 @@ Todas las entidades de configuración, operación, comunicación e integración 
 
 Incluye sedes, años, niveles configurados, ofertas, cupos, plantillas, requisitos, flujos, postulaciones, instantáneas, documentos, entrevistas, evaluaciones, decisiones, ofertas, reservas, listas de espera, mensajes, tareas, auditoría e integración.
 
+También incluye `FormTemplate`, `FormVersion`, secciones, campos, opciones, reglas condicionales, snapshots y respuestas. Publicar un esquema nunca puede incorporar código ejecutable.
+
 ### Entidades globales
 
 `UserAccount`, `FamilyProfile` y `StudentProfile` pueden ser globales de plataforma. No son un canal de consulta institucional. Una institución accede solamente a datos contenidos o referenciados explícitamente por una postulación de su tenant y según el consentimiento/propósito aplicable.
@@ -183,6 +185,7 @@ Eliminar datos personales y conservar auditoría pueden coexistir si el evento s
 - Robo de sesión y recuperación fraudulenta.
 - Manipulación concurrente de cupos u ofertas.
 - Inyección en formularios, notas, plantillas o exportaciones.
+- Abuso del constructor mediante HTML activo, JavaScript o reglas recursivas/costosas; sólo se admiten tipos y operadores controlados.
 - Exfiltración por logs, analítica, copias o enlaces duraderos.
 - Duplicación o falsificación de eventos hacia EduPay.
 
@@ -194,6 +197,7 @@ Eliminar datos personales y conservar auditoría pueden coexistir si el evento s
 - Sesión, revocación, recuperación, rate limits y enumeración.
 - Cargas maliciosas, formatos engañosos y fallos del escáner.
 - Concurrencia de reservas, aceptación e idempotencia.
+- Esquemas maliciosos, reglas condicionales, publicación no autorizada y acceso a respuestas por clasificación.
 - Revisión de dependencias, secretos, configuración y amenazas.
 - Ejercicio de restauración, incidente y acceso excepcional.
 

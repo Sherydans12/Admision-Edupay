@@ -1,45 +1,71 @@
 # Límite conceptual de integración con EduPay
 
-## Objetivo
+## Estado
 
-Preparar una integración futura entre Admisión y EduPay sin implementarla ni compartir tablas. Este documento define responsabilidades y opciones para aprobación posterior.
+- **Fuentes:** `SRC-001`, `SRC-004` y `SRC-005`.
+- **Propietario de integración:** Nicolás Sena.
+- **Decisión G0:** `D-007` aprobada — integración idempotente sin tablas compartidas.
+- **Implementación:** fuera de alcance; contrato y mecanismo pendientes.
 
-## Principios
-
-- Cada dominio conserva su modelo, almacenamiento y reglas.
-- Los contratos usan identificadores externos opacos; no claves internas compartidas.
-- Todo mensaje es versionado, correlacionable, autenticado e idempotente.
-- La entrega técnica y el resultado de negocio son estados diferentes.
-- Reintentos no crean matrículas, reservas u obligaciones duplicadas.
-- Los payloads contienen el mínimo de datos personales necesario.
-- Fallos se hacen visibles y reconciliables; no se ocultan con estados optimistas.
-
-## Responsabilidades propuestas
+## Propiedad de dominios
 
 ### Admisión
 
-- Gestionar postulación, decisión, lista de espera, oferta y respuesta familiar.
-- Determinar que se alcanzó una condición de handoff aprobada.
-- Emitir hechos o solicitudes mediante un contrato.
-- Mantener correlación y estado técnico de sincronización.
-- Procesar confirmaciones válidas sin adjudicarse acciones de EduPay.
+Es dueña de:
+
+- postulación y snapshot de formulario;
+- documentos, revisión y correcciones;
+- entrevista, evaluación y recomendación;
+- decisión institucional y cupo de admisión;
+- lista de espera, reserva, comunicación y eventual respuesta familiar;
+- intención y trazabilidad del handoff.
 
 ### EduPay
 
-- Validar si puede iniciar matrícula bajo su propio contrato.
-- Crear y gestionar su proceso de matrícula.
-- Generar obligaciones de pago si le corresponde.
-- Confirmar o rechazar solicitudes de forma idempotente.
-- Emitir hechos de matrícula/pago relevantes para Admisión.
+Es dueño de:
 
-### Propiedad por decidir
+- registro académico y financiero definitivo;
+- creación o vinculación de estudiante y apoderado en su dominio;
+- asociación o matrícula del estudiante en un curso;
+- proceso de matrícula y sus estados;
+- deuda anual, concepto de matrícula y demás obligaciones;
+- confirmación financiera/académica que defina como matrícula;
+- datos consultados por el portal de pagos existente.
 
-- Identidad maestra de persona, estudiante y apoderado.
-- Catálogo compartido de instituciones/sedes/años o mapeos externos.
-- Condición exacta que habilita obligación de pago.
-- Qué dominio reserva la vacante si la matrícula excede el plazo de oferta.
+El portal de pagos consulta EduPay, no Admisión. Admisión no calcula ni sirve saldos como fuente de verdad.
 
-## Secuencia conceptual
+## Principios aprobados
+
+- No compartir tablas, modelos ORM ni acceso directo a bases de datos.
+- Usar contratos explícitos, versionados y con mínima información personal.
+- Usar identificadores externos opacos; RUT y correo nunca son `idempotencyKey`.
+- Hacer idempotentes creación, vinculación, asociación y generación de efectos.
+- Distinguir entrega técnica, aceptación del procesamiento y resultado de negocio.
+- No marcar una postulación `ENROLLED` sólo porque un mensaje fue entregado.
+- Conservar reintentos, errores sanitizados, correlación y reconciliación.
+- Resolver tenant e institución desde mapeos autorizados, no desde valores arbitrarios del cliente.
+
+## Precondiciones conocidas
+
+Según `SRC-004`, para generar deuda anual y concepto de matrícula:
+
+1. el estudiante debe existir o quedar vinculado idempotentemente en EduPay;
+2. debe estar asociado o matriculado en un curso según el estado que EduPay defina;
+3. institución, año y curso deben resolverse mediante referencias contractuales válidas;
+4. EduPay aplica sus propias reglas financieras.
+
+El handoff debe poder crear o vincular de forma idempotente:
+
+- institución;
+- año académico;
+- curso;
+- apoderado;
+- estudiante;
+- relación académica necesaria.
+
+“Crear o vincular” no autoriza emparejamientos débiles por nombre, RUT o correo. El contrato debe definir identidad, coincidencias, conflictos y revisión manual.
+
+## Secuencia conceptual con punto de decisión abierto
 
 ```mermaid
 sequenceDiagram
@@ -47,147 +73,125 @@ sequenceDiagram
     participant Admission as Admisión
     participant Bridge as Borde de integración
     participant EduPay as EduPay
+    participant Payments as Portal de pagos
 
-    Admission->>Admission: Decisión favorable
-    Admission->>Admission: Reserva y oferta de vacante
-    Admission-->>Family: Comunica oferta
-    Family->>Admission: Acepta oferta vigente
+    Admission->>Admission: Admisión emite recomendación
+    Admission->>Admission: Dirección aprueba
+    Admission-->>Family: Comunica resultado
+    alt Se exige aceptación familiar explícita
+        Family->>Admission: Acepta oferta vigente
+    else Handoff tras aprobación de Dirección
+        Admission->>Admission: Verifica regla contractual
+    end
     Admission->>Bridge: EnrollmentHandoffRequested (idempotente)
-    Bridge->>EduPay: Solicitud/Evento v1
-    EduPay->>EduPay: Valida y crea o recupera proceso
+    Bridge->>EduPay: Crear o vincular institución, año, curso y partes
+    EduPay->>EduPay: Crear/recuperar asociación académica
     EduPay-->>Bridge: HandoffAccepted o HandoffRejected
-    Bridge-->>Admission: Actualiza sincronización
-    EduPay->>EduPay: Gestiona matrícula y obligación
-    EduPay-->>Bridge: EnrollmentConfirmed
-    Bridge-->>Admission: Matrícula confirmada
-    Admission-->>Family: Actualiza estado visible
+    Bridge-->>Admission: Actualiza sincronización técnica
+    EduPay->>EduPay: Genera deuda anual y concepto de matrícula
+    Payments->>EduPay: Consulta obligaciones
+    Family->>Payments: Realiza pago externo a Admisión
+    EduPay-->>Bridge: Evento de matrícula por definir
+    Bridge-->>Admission: Resultado de negocio confirmado
+    Admission-->>Family: Proyecta estado final
 ```
 
-Emitir señales antes de la aceptación familiar puede ser necesario para reserva o preparación, pero requiere una decisión explícita sobre propósito y minimización.
+El `alt` representa `Q-310`: todavía no se decide si el handoff ocurre inmediatamente tras la aprobación de Dirección o después de aceptación explícita de la familia.
 
 ## Hechos y comandos candidatos
 
-| Momento de negocio | Opción recomendada inicial | Alternativa | Pregunta clave |
+| Momento | Propietario | Contrato tentativo | Estado |
 | --- | --- | --- | --- |
-| Decisión favorable | Evento interno `AdmissionDecisionApproved` | Evento externo informativo | ¿EduPay necesita conocerlo antes de la aceptación? |
-| Vacante reservada | Evento interno `AdmissionSeatReserved` | Comando hacia servicio de capacidad si es externo | ¿Quién es dueño de la capacidad? |
-| Familia acepta vacante | Evento `AdmissionOfferAccepted` | Parte del comando de handoff | ¿Qué datos mínimos necesita EduPay? |
-| Iniciar matrícula | Comando `StartEnrollment` / `EnrollmentHandoffRequested` | Evento consumido por EduPay | ¿Se necesita respuesta inmediata o aceptación asíncrona? |
-| Generar obligación | Comando `RequestPaymentObligation` sólo si EduPay lo exige | EduPay deriva la obligación desde matrícula | ¿Quién decide monto, vencimiento y conceptos? |
-| Matrícula confirmada | Evento de EduPay `EnrollmentConfirmed` | Consulta de reconciliación | ¿Qué significa confirmada y qué revierte? |
+| Recomendación enviada | Admisión | `AdmissionRecommendationSubmitted` interno | No sale a EduPay |
+| Decisión favorable | Admisión | `AdmissionDecisionApproved` interno | Confirmado como hecho separado |
+| Reserva de cupo | Admisión | `AdmissionSeatReserved` interno | Política pendiente |
+| Aceptación familiar | Admisión | `AdmissionOfferAccepted` | Uso en piloto pendiente |
+| Inicio de handoff | Admisión → EduPay | comando `StartEnrollment` o equivalente | Mecanismo/nombre pendiente |
+| Partes vinculadas | EduPay | confirmación idempotente | Contrato pendiente |
+| Asociación académica | EduPay | evento/resultado por definir | Bloquea generación financiera |
+| Obligaciones generadas | EduPay | evento informativo si Admisión lo necesita | Propiedad confirmada |
+| Matrícula confirmada | EduPay | evento por definir | Pregunta bloqueante Q-309 |
 
-Recomendación provisional: publicar hechos dentro de Admisión y usar un comando idempotente para iniciar el proceso externo. EduPay debería derivar sus obligaciones con sus propias reglas, salvo que su contrato requiera una solicitud explícita.
+No se ha decidido REST, eventos, webhook, cola ni combinación. Swagger/OpenAPI 3.0 existe en EduPay y es una opción de alineación, no una selección automática.
 
-## Identificadores
+## Identificadores y mapeos
 
-Cada intercambio debería incluir identificadores opacos y estables:
+Cada intercambio debería incluir:
 
-- `messageId`: único por mensaje.
-- `idempotencyKey`: estable para el efecto lógico, no para cada reintento.
-- `correlationId`: agrupa el handoff completo.
-- `causationId`: mensaje o acción que originó el actual.
-- `tenantExternalId`: mapeo acordado de institución.
-- `admissionApplicationExternalId`: referencia pública de integración, distinta del ID mostrado a familia.
-- `studentExternalId` y `guardianExternalId`: sólo si existe identidad maestra o mapeo aprobado.
-- `academicYearExternalId`, `campusExternalId`, `courseExternalId`: referencias contractuales o catálogos mapeados.
-- `occurredAt`: instante del hecho.
-- `schemaVersion`: versión de contrato.
+- `messageId`: único por mensaje;
+- `idempotencyKey`: estable para el efecto lógico;
+- `correlationId`: agrupa el handoff;
+- `causationId`: identifica causa inmediata;
+- `tenantExternalId`: mapeo de institución;
+- `admissionApplicationExternalId` y `admissionDecisionExternalId`;
+- referencias externas de año, curso, apoderado y estudiante;
+- `occurredAt` y `schemaVersion`.
 
-No deben exponerse IDs secuenciales ni usarse RUT/correo como claves de idempotencia.
+No deben usarse RUT, correo, teléfono ni nombres como claves de idempotencia. Esos datos sólo podrían formar parte del payload mínimo si el contrato y su fundamento lo requieren.
 
-## Sobre idempotencia
+## Idempotencia
 
-- La clave representa una intención estable, por ejemplo “iniciar matrícula para esta oferta aceptada versión 1”.
-- El consumidor conserva resultado previo y responde consistentemente a duplicados.
-- Mismo `idempotencyKey` con payload incompatible debe rechazarse y alertar.
-- Productor registra mensaje y cambio de negocio en una unidad confiable o mecanismo equivalente al outbox.
-- Consumidor procesa mediante inbox/deduplicación o garantía equivalente.
-- Reintentos usan backoff, límite y cola de errores.
-- Operación manual de reenvío preserva correlación y deja auditoría.
-
-Los patrones concretos dependen de arquitectura posterior.
-
-## Contrato envolvente tentativo
-
-Ejemplo ilustrativo, no implementable ni aprobado:
-
-```json
-{
-  "messageId": "synthetic-message-id",
-  "messageType": "EnrollmentHandoffRequested",
-  "schemaVersion": 1,
-  "occurredAt": "2030-01-01T12:00:00Z",
-  "tenantExternalId": "synthetic-tenant-id",
-  "correlationId": "synthetic-correlation-id",
-  "causationId": "synthetic-causation-id",
-  "idempotencyKey": "synthetic-idempotency-key",
-  "data": {
-    "admissionApplicationExternalId": "synthetic-application-id",
-    "admissionOfferExternalId": "synthetic-offer-id"
-  }
-}
-```
-
-Los valores son deliberadamente sintéticos. El contrato real debe definir campos requeridos, semántica de ausencia, clasificación, firma/autenticación, tamaño, compatibilidad y errores.
+- La clave representa una intención estable y versionada, no un intento de red.
+- Reintentar devuelve el resultado previo y no duplica personas, asociaciones, deudas o matrículas.
+- La misma clave con payload incompatible se rechaza y alerta.
+- Productor conserva de forma confiable cambio de negocio y mensaje saliente, mediante outbox o garantía equivalente.
+- Consumidor deduplica mediante inbox o garantía equivalente.
+- Los efectos internos de EduPay también deben ser idempotentes, no sólo la recepción.
+- Reintentos tienen backoff, límite y cola operativa.
+- Reenvío y reconciliación manual dejan auditoría.
 
 ## Estado de sincronización
 
-No debe mezclarse con el estado de admisión. Propuesta:
+El estado técnico no reemplaza el estado de admisión:
 
 - `NOT_REQUIRED`
 - `PENDING`
 - `DELIVERING`
-- `DELIVERED` (aceptado técnicamente, no completado)
-- `ACKNOWLEDGED` (EduPay aceptó procesar)
-- `COMPLETED` (resultado de negocio confirmado)
+- `DELIVERED`
+- `ACKNOWLEDGED`
+- `COMPLETED`
 - `RETRY_SCHEDULED`
 - `FAILED_REQUIRES_ATTENTION`
 - `CANCELLED`
 
-Debe existir historial de intentos con errores sanitizados. La familia verá una proyección simple y sólo cuando sea accionable.
-
-## Versionado y compatibilidad
-
-- Versión explícita de esquema y catálogo de tipos.
-- Cambios aditivos compatibles dentro de una versión cuando sea posible.
-- Cambios semánticos o eliminaciones requieren nueva versión y ventana de migración.
-- Consumidores ignoran campos desconocidos sólo si el contrato lo permite.
-- Pruebas de contrato entre equipos antes de despliegue.
-- Documentación de deprecación, responsables y plazo.
+`DELIVERED` sólo indica entrega técnica. `ACKNOWLEDGED` indica que EduPay aceptó procesar. `COMPLETED` exige el resultado contractual correspondiente; no se presume matrícula.
 
 ## Seguridad y privacidad
 
-- Autenticación de sistema a sistema y autorización por operación/tenant.
+- Autenticación sistema a sistema y autorización por operación/tenant.
 - Protección contra replay además de idempotencia.
-- Cifrado en tránsito; cifrado en reposo y gestión de secretos fuera del repositorio.
-- Lista mínima de datos; preferir referencias y consulta autorizada cuando sea adecuado.
-- Evitar antecedentes de salud, NEE, notas internas o documentos salvo requisito explícito y validado.
-- Auditoría de envío, recepción, consulta y corrección.
-- Política de retención de mensajes y payloads.
-- Validación estricta de esquema y límites.
+- Cifrado en tránsito y reposo; secretos fuera del repositorio.
+- Esquema y tamaño validados estrictamente.
+- Payload mínimo; excluir salud, PIE/NEE, evaluaciones, notas internas y documentos salvo aprobación expresa.
+- Auditoría de emisión, recepción, consulta, conflicto y corrección.
+- Retención del payload y referencias definida antes de producción.
+- Conflictos de identidad se detienen para revisión; no se fusionan automáticamente.
 
-## Errores y reconciliación
+## Fallos y reconciliación
 
-- Distinguir error transitorio, rechazo contractual y rechazo de negocio.
-- No marcar `ENROLLED` por timeout ni por entrega de mensaje.
-- Exponer una cola operativa de casos que requieren atención.
-- Disponer de una reconciliación por correlación/estado que no duplique efectos.
-- Definir compensación para oferta expirada o desistimiento durante matrícula.
-- Definir autoridad ante estados divergentes y procedimiento manual auditado.
+- Distinguir error transitorio, rechazo de contrato y rechazo de negocio.
+- No avanzar a matrícula por timeout, `2xx`, entrega de cola ni acuse técnico.
+- Mantener cola de casos con atención y errores sanitizados.
+- Reconciliar por referencias externas e idempotencia sin duplicar efectos.
+- Definir compensación si la oferta expira, la familia desiste o Dirección revierte antes de completar matrícula.
+- EduPay es autoridad sobre estado académico/financiero; Admisión es autoridad sobre postulación y cupo de admisión.
 
-## Fuera de alcance actual
+## Preguntas bloqueantes
 
-- Elegir REST, eventos, webhook, cola o proveedor.
-- Implementar endpoints, tópicos, credenciales o código.
-- Definir payload con datos personales reales.
-- Compartir esquema o acceso directo a bases de datos.
+- **Q-309:** ¿Qué estado exacto utiliza EduPay antes del pago de matrícula y qué evento contractual confirma que la matrícula quedó realizada? Responsable: Nicolás Sena; resolver antes de aprobar el contrato de integración.
+- **Q-310:** ¿El handoff ocurre inmediatamente después de la aprobación de Dirección o después de una aceptación familiar explícita? Responsable: Nicolás Sena con validación del colegio; resolver en G1 antes de fijar el flujo del piloto.
+- **Q-301:** ¿Cuál es el sistema maestro y el identificador externo de institución, año, curso, persona y estudiante?
+- **Q-305:** ¿Cuál es el payload mínimo y fundamento de transferencia?
+- **Q-306:** ¿Cuál será la interfaz, autenticación, versionado y límites?
+- **Q-307:** ¿Cuáles serán SLA, reintentos, reconciliación y soporte?
 
-## Aprobaciones requeridas
+## Decisiones técnicas diferidas
 
-1. Propiedad de cada paso de negocio.
-2. Momento exacto del handoff y condición de reversión.
-3. Hecho versus comando por interacción.
-4. Identidad maestra y mapeos.
-5. Datos mínimos, retención y fundamento de transferencia.
-6. Semántica de matrícula y obligación confirmada.
-7. SLA, reintentos, reconciliación y soporte.
+- REST, eventos, webhook, cola o combinación.
+- Outbox/inbox concretos.
+- Contrato de identidad y resolución de duplicados.
+- Mecanismo de firma/autenticación.
+- Estrategia de despliegue y observabilidad.
+- Política de reversión y reconciliación.
+
+Ninguna de estas decisiones se implementa en esta etapa.
