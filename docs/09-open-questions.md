@@ -13,7 +13,8 @@
 | Propiedad funcional y técnica | Nicolás Sena | CONFIRMADO 2026-08-06 |
 | Integración EduPay | Nicolás Sena | CONFIRMADO 2026-08-06 |
 | Seguridad y privacidad técnica durante diseño | Nicolás Sena | CONFIRMADO 2026-08-06 |
-| Reglas institucionales | Admisión y/o Dirección de Colegio Conquistadores | ROL CONFIRMADO; representante formal pendiente |
+| Representación formal institucional | Arturo Javier Galleguillos Trigo, Sostenedor de Colegio Particular Conquistadores | CONFIRMADO 2026-08-06 |
+| Reglas institucionales | Arturo Javier Galleguillos Trigo, con participación de Admisión y/o Dirección | CONFIRMADO; asuntos diferidos conservan hitos |
 | Validación legal/normativa | Por designar | PENDIENTE antes del piloto |
 
 ## Preguntas G0 conservadas y resueltas
@@ -24,7 +25,7 @@
 | Q-002 | Multitenancy se implementa desde el primer incremento; la etapa posterior es onboarding y hardening operacional. | Nicolás Sena | 2026-08-06 | RESUELTA |
 | Q-003 | Se aprueba separar etapas, estados, actividades, eventos y resultados. | Nicolás Sena | 2026-08-06 | RESUELTA |
 | Q-004 | Se distinguen decisión institucional, reserva, comunicación, aceptación cuando aplique, handoff y matrícula. No se decide aún si el piloto tendrá botón independiente de aceptación. | Nicolás Sena | 2026-08-06 | RESUELTA con detalle G1 abierto en Q-310 |
-| Q-005 | Producto/técnica, integración y seguridad técnica: Nicolás Sena. Reglas institucionales: Admisión/Dirección. Faltan representante formal del colegio y responsable legal/normativo. | Nicolás Sena | 2026-08-06 | PARCIAL |
+| Q-005 | Producto/técnica, integración y seguridad técnica: Nicolás Sena. Representante formal institucional: Arturo Javier Galleguillos Trigo, Sostenedor. Legal/normativo sigue pendiente antes del piloto y no bloquea E1. | Nicolás Sena | 2026-08-06T14:16:00-04:00 | RESUELTA |
 
 ## Decisiones G0 aprobadas
 
@@ -49,11 +50,11 @@ Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
 
 | ID | Decisión | Estado/observación |
 | --- | --- | --- |
-| D-011 | Piloto desde primero básico hasta cuarto medio | APROBADA; validación institucional pendiente |
+| D-011 | Piloto desde primero básico hasta cuarto medio | APROBADA dentro del alcance G0 |
 | D-012 | Colegio Conquistadores opera una sede para el piloto | APROBADA; no elimina soporte multi-sede del núcleo |
 | D-013 | Una cuenta familiar administra varios hijos | APROBADA |
 | D-014 | Colegio asigna directamente horarios de entrevista | APROBADA |
-| D-015 | Evaluación diagnóstica obligatoria para todos los postulantes del piloto | APROBADA por producto; C-009 pendiente de colegio |
+| D-015 | Evaluación diagnóstica obligatoria para todos los postulantes del piloto | APROBADA por producto; diferencia documental diferida a G1 en C-009 |
 | D-016 | Admisión revisa/recomienda y Dirección toma decisión final | APROBADA |
 | D-017 | Resultado y acciones se notifican inicialmente sólo por correo | APROBADA |
 | D-018 | WhatsApp queda diferido para costo y arquitectura futura | APROBADA/DIFERIDA |
@@ -93,12 +94,60 @@ Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
 | C-006 | Admisión menciona obligación que pertenece a EduPay | D-021/D-022 fijan propiedad; contrato sigue abierto | RESUELTA EN PROPIEDAD |
 | C-007 | Historial inmutable vs eliminación | Matriz de retención/legal pendiente | ABIERTA G2/G5 |
 | C-008 | Perfil reutilizable vs aislamiento tenant | D-002 | RESUELTA |
-| C-009 | SRC-002 permite evaluación según nivel; D-015 la exige para todos | Producto aprobado; colegio debe validar/actualizar documento | PENDIENTE INSTITUCIONAL |
-| C-010 | SRC-003 salta de etapa 3 a 5 | No inferir etapa 4; solicitar corrección | PENDIENTE INSTITUCIONAL |
-| C-011 | SRC-002 dice informe “cuando corresponda”; SRC-003 pide 2025 y 2026 | Definir condición, años y cursos | PENDIENTE INSTITUCIONAL |
+| C-009 | SRC-002 permite evaluación según nivel; D-015 la exige para todos | D-015 sigue aprobada; validar diferencia y mantener regla configurable antes de G1 | DIFERIDA A G1 |
+| C-010 | SRC-003 salta de etapa 3 a 5 | Inconsistencia de numeración; etapa 4 = “Revisión de antecedentes”; no altera flujo | RESUELTA |
+| C-011 | SRC-002 dice informe “cuando corresponda”; SRC-003 pide 2025 y 2026 | Definir aplicabilidad y años/equivalentes antes de publicar formulario/catálogo 2027 | DIFERIDA A G1 |
 | C-012 | SRC-002 permite antecedentes adicionales | Catálogo configurable/versionado; definir contenido | RESUELTA EN DISEÑO, catálogo pendiente |
-| C-013 | SRC-003 pide salud, NEE e ingreso familiar | Clasificación alta; justificar acceso, obligatoriedad y retención | PENDIENTE INSTITUCIONAL/LEGAL |
-| C-014 | Fuentes contemplan correo/presencial frente al portal | Resolver reemplazo total o postulación asistida | ABIERTA G1 |
+| C-013 | SRC-003 pide salud, NEE e ingreso familiar | Justificación funcional antes de G1; tratamiento/acceso/retención antes de datos reales | DIFERIDA CON HITOS |
+| C-014 | Fuentes contemplan correo/presencial frente al portal | Resolver reemplazo o postulación asistida auditada; correo sigue como notificación | DIFERIDA A G1 |
+
+## Resoluciones de cierre G0
+
+Registradas por la aprobación de Nicolás Sena del `2026-08-06T14:16:00-04:00`, con Arturo Javier Galleguillos Trigo como representante formal institucional.
+
+### C-009 — Evaluación diagnóstica
+
+- **Estado:** DIFERIDA A G1.
+- D-015 sigue aprobada: evaluación diagnóstica obligatoria para todos los postulantes del piloto.
+- La diferencia con `SRC-002` debe validarse antes de cerrar G1.
+- La regla se representa mediante configuración del proceso y no se hardcodea.
+- **Responsables:** Arturo Javier Galleguillos Trigo (institucional) y Nicolás Sena (producto).
+- **Fecha límite:** antes de aprobar G1.
+
+### C-010 — Numeración de etapas
+
+- **Estado:** RESUELTA.
+- Se reconoce una inconsistencia de numeración en la ficha.
+- La etapa 4 corresponde a “Revisión de antecedentes”, según el reglamento completo.
+- No altera el flujo aprobado.
+- **Responsables:** Nicolás Sena (registro) y Arturo Javier Galleguillos Trigo (validación institucional).
+
+### C-011 — Informes de personalidad
+
+- **Estado:** DIFERIDA A G1.
+- Se definirá si aplica a todos los cursos o sólo cuando corresponda.
+- Se aclarará si se exigen 2025 y 2026 o antecedentes equivalentes.
+- Debe resolverse antes de publicar el formulario y catálogo documental 2027.
+- **Responsables:** Arturo Javier Galleguillos Trigo y Nicolás Sena.
+- **Fecha límite:** antes de aprobar G1.
+
+### C-013 — Datos sensibles
+
+- **Estado:** DIFERIDA CON HITOS.
+- Antes de aprobar G1 se justifican necesidad, obligatoriedad, visibilidad y propósito de PIE/NEE, especialistas, salud e ingreso mensual familiar.
+- Antes de autorizar datos reales se aprueban fundamento de tratamiento, matriz de acceso, retención, eliminación/anonimización y atención de solicitudes de titulares.
+- La aparición de un campo en la ficha histórica no lo vuelve obligatorio.
+- **Responsables:** Arturo Javier Galleguillos Trigo (institucional), Nicolás Sena (producto y seguridad técnica) y responsable legal/normativo aún por designar antes del piloto.
+
+### C-014 — Canales actuales y portal
+
+- **Estado:** DIFERIDA A G1.
+- En G1 se decidirá si el portal reemplaza correo y entrega presencial.
+- Se evaluará postulación asistida por personal autorizado.
+- Toda postulación asistida registrará operador, consentimiento/autorización, origen, fecha, institución, evidencia y auditoría.
+- Correo continúa como canal inicial de notificación.
+- **Responsables:** Arturo Javier Galleguillos Trigo y Nicolás Sena.
+- **Fecha límite:** antes de aprobar G1.
 
 ## Preguntas funcionales para G1
 
@@ -204,10 +253,15 @@ Estas preguntas no bloquean G0; deben resolverse en G2 antes de scaffolding o cu
 
 ## Estado de la compuerta G0
 
-**G0 sigue bloqueada al 2026-08-06.** D-001 a D-010 y Q-001 a Q-004 están cerradas, pero falta:
+**G0: APROBADA / CERRADA** el `2026-08-06T14:16:00-04:00` sobre el commit sustantivo `1d33191d7b0bb9e4d6f2c99dfa9a8baed701a379`.
 
-1. designar al representante formal del colegio para Q-005;
-2. validar o diferir formalmente C-009, C-010, C-011, C-013 y C-014 con Admisión/Dirección;
-3. registrar aprobación humana del alcance/fuera de alcance y del commit documental final.
+- Aprobador de producto/técnica: Nicolás Sena.
+- Representante formal institucional: Arturo Javier Galleguillos Trigo, Sostenedor.
+- D-001 a D-024 incluidas en el alcance.
+- C-009, C-011 y C-014 diferidas a G1; C-010 resuelta; C-013 diferida con hitos.
+- E1 — Diseño funcional autorizada.
+- G1 no aprobada.
+- `ADR-0001` permanece `PROPOSED`.
+- Responsable legal/normativo pendiente antes del piloto; no bloquea el inicio de E1.
 
-El responsable legal puede designarse después de G0, pero obligatoriamente antes del piloto y antes de cerrar políticas que dependan de Q-201/Q-202.
+El registro formal está en `docs/approvals/G0-foundation-closure-2026-08-06.md`. Cambios sustantivos posteriores al commit aprobado requieren nueva revisión.

@@ -82,7 +82,7 @@ Sólo decisores humanos autorizados cambian un ADR a `Aceptado`. El commit o PR 
 | Integración EduPay | Propietarios de ambos dominios + seguridad |
 | Costos/proveedor | Sponsor + arquitectura/operación |
 
-Nicolás Sena es responsable funcional/técnico, de integración y seguridad técnica. El representante formal del colegio y el responsable legal/normativo siguen pendientes en Q-005.
+Nicolás Sena es responsable funcional/técnico, de integración y seguridad técnica. Arturo Javier Galleguillos Trigo, Sostenedor, es representante formal institucional. El responsable legal/normativo sigue pendiente antes del piloto.
 
 ## Consecuencias
 

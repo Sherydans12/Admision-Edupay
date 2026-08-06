@@ -3,9 +3,13 @@
 ## Estado del documento
 
 - **Fuentes:** `SRC-001` a `SRC-005`, registradas en `01-source-analysis.md`.
-- **Estado:** fundación actualizada con decisiones funcionales aprobadas; G0 aún no cerrada.
-- **Compuerta:** G0 — fundación documental.
+- **Estado:** fundación aprobada y cerrada; E1 — Diseño funcional autorizada.
+- **Compuerta:** G0 — `APPROVED / CLOSED` el `2026-08-06T14:16:00-04:00`.
 - **Propietario funcional y técnico:** Nicolás Sena.
+- **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor de Colegio Particular Conquistadores.
+- **Commit sustantivo aprobado:** `1d33191d7b0bb9e4d6f2c99dfa9a8baed701a379`.
+
+El cierre de G0 no autoriza implementación, datos reales, stack definitivo ni integración ejecutable. Cambios sustantivos posteriores al commit aprobado requieren nueva revisión humana.
 
 ## Visión
 

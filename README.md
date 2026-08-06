@@ -6,11 +6,11 @@ La primera institución prevista es Colegio Particular Conquistadores. El produc
 
 ## Estado actual
 
-El proyecto se encuentra en **fundación documental y descubrimiento**. La documentación ya incorpora el proceso y la ficha institucional del piloto 2027, decisiones funcionales del propietario y el stack vigente de EduPay como fuentes autorizadas.
+La **fundación documental G0 está aprobada y cerrada** sobre el commit `1d33191d7b0bb9e4d6f2c99dfa9a8baed701a379`. La aprobación fue otorgada por Nicolás Sena el `2026-08-06T14:16:00-04:00`, con Arturo Javier Galleguillos Trigo, Sostenedor de Colegio Particular Conquistadores, como representante formal institucional.
 
-Las decisiones G0 `D-001` a `D-010` están aprobadas. G0 todavía no se considera cerrada porque faltan la designación del representante formal del colegio y validaciones institucionales expresamente registradas.
+E1 — Diseño funcional está autorizada. G1 no está aprobada y conserva asuntos diferidos que deben resolverse antes de su cierre.
 
-Existe una preferencia documentada, aún no aprobada, por alinear el stack con EduPay. Todavía no se ha seleccionado un stack definitivo ni se ha creado código de aplicación, esquema SQL, migraciones, contenedores, pipelines o infraestructura.
+Esta autorización permite únicamente continuar el diseño funcional. No autoriza implementación, uso de datos reales, integración ejecutable ni selección definitiva de stack. `ADR-0001` permanece `PROPOSED`.
 
 ## Principios
 
@@ -40,16 +40,16 @@ Existe una preferencia documentada, aún no aprobada, por alinear el stack con E
 | `docs/09-open-questions.md` | Preguntas, supuestos y decisiones pendientes. |
 | `docs/10-roadmap-approval-gates.md` | Etapas de trabajo y compuertas de aprobación. |
 | `docs/11-pilot-colegio-conquistadores-2027.md` | Configuración funcional conocida del piloto 2027. |
+| `docs/approvals/G0-foundation-closure-2026-08-06.md` | Registro formal de aprobación y cierre de G0. |
 | `docs/decisions/ADR-0000-decision-process.md` | Proceso para registrar decisiones arquitectónicas. |
 | `docs/decisions/ADR-0001-stack-alignment-with-edupay.md` | Propuesta de alineación tecnológica con EduPay. |
 
 ## Cómo continuar
 
-1. Revisar las fuentes y diferencias indicadas en `docs/01-source-analysis.md`.
-2. Validar con Admisión y/o Dirección las contradicciones institucionales pendientes.
-3. Designar al representante formal del colegio para las compuertas y al responsable legal antes del piloto.
-4. Resolver las preguntas bloqueantes restantes de `docs/09-open-questions.md`.
-5. Cerrar G0 mediante aprobación humana explícita y registro del commit aprobado.
-6. Iniciar diseño funcional; la propuesta de stack se evaluará mediante `ADR-0001` en arquitectura, antes de scaffolding.
+1. Iniciar E1 únicamente como diseño funcional.
+2. Resolver los asuntos diferidos a G1 registrados en `docs/09-open-questions.md`.
+3. Validar el formulario, catálogo documental, reglas institucionales y casos de excepción antes de cerrar G1.
+4. Designar al responsable legal/normativo antes de autorizar datos reales para el piloto.
+5. Evaluar `ADR-0001` en arquitectura antes de cualquier scaffolding.
 
-No se debe comenzar scaffolding, seleccionar definitivamente el stack ni implementar una integración con EduPay antes de esa aprobación.
+No se debe comenzar scaffolding, seleccionar definitivamente el stack, usar datos reales ni implementar una integración con EduPay por efecto del cierre de G0.

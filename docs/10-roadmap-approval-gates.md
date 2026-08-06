@@ -6,8 +6,8 @@ El roadmap es secuencial en decisiones, no necesariamente en toda actividad expl
 
 ```mermaid
 flowchart LR
-    E0["E0 Descubrimiento"] --> G0{"G0 Aprobar fundación"}
-    G0 --> E1["E1 Diseño funcional"]
+    E0["E0 Descubrimiento"] --> G0{"G0 Aprobada / cerrada"}
+    G0 --> E1["E1 Diseño funcional — autorizada"]
     E1 --> G1{"G1 Aprobar comportamiento"}
     G1 --> E2["E2 Arquitectura"]
     E2 --> G2{"G2 Aprobar decisiones técnicas"}
@@ -48,20 +48,25 @@ Establecer lenguaje común, alcance, evidencia, requisitos iniciales, riesgos y 
 
 ### G0 — Aprobación de fundación
 
-Evidencia requerida:
+**Estado:** `APPROVED / CLOSED`.
 
-- Propietario funcional/técnico identificado; representante formal del colegio identificado.
-- Alcance y fuera de alcance aceptados.
-- Contradicciones C-001 a C-014 resueltas o diferidas con dueño y fecha; las institucionales requieren colegio.
-- Decisiones D-001 a D-010 aprobadas y decisiones funcionales D-011 a D-024 registradas.
-- Q-001 a Q-004 resueltas; Q-005 requiere completar representante formal.
-- Confirmación de que `ADR-0001` sigue propuesto, sin stack definitivo ni producción.
+- **Aprobación:** `2026-08-06T14:16:00-04:00`.
+- **Commit sustantivo aprobado:** `1d33191d7b0bb9e4d6f2c99dfa9a8baed701a379`.
+- **Aprobador de producto/técnica:** Nicolás Sena.
+- **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor de Colegio Particular Conquistadores.
+- **Fuentes:** SRC-001 a SRC-005.
+- **Decisiones incluidas:** D-001 a D-024.
+- **Contradicciones:** C-009, C-011 y C-014 diferidas a G1; C-010 resuelta; C-013 diferida con hitos.
+- **ADR-0001:** `PROPOSED`.
+- **Etapa autorizada:** E1 — Diseño funcional.
 
-**Responsables actuales:** Nicolás Sena para producto, técnica, integración EduPay y seguridad/privacidad técnica; Admisión y/o Dirección para reglas institucionales. Representante formal del colegio pendiente. Responsable legal/normativo pendiente antes del piloto.
+Registro formal: `docs/approvals/G0-foundation-closure-2026-08-06.md`.
 
-**Estado al 2026-08-06:** BLOQUEADA. Falta representante formal del colegio, resolución/diferimiento institucional de C-009, C-010, C-011, C-013 y C-014, y aprobación explícita del commit documental final.
+El cierre no autoriza implementación, scaffolding, stack definitivo, datos reales ni integración ejecutable. Cambios sustantivos posteriores al commit aprobado requieren nueva revisión.
 
 ## E1 — Diseño funcional
+
+**Estado:** AUTORIZADA. Esta autorización cubre diseño funcional, no implementación.
 
 ### Objetivo
 
@@ -81,6 +86,8 @@ Validar el proceso real con usuarios y convertir requisitos en comportamientos y
 - Criterios de aceptación y trazabilidad actualizada.
 
 ### G1 — Aprobación funcional
+
+**Estado:** NO APROBADA. Requiere resolver sus criterios y asuntos diferidos antes del cierre.
 
 - Preguntas Q-101 a Q-184 resueltas para el piloto.
 - Q-310 resuelta para fijar el momento del handoff.

@@ -6,8 +6,9 @@
 - **Año académico:** 2027.
 - **Fuentes:** `SRC-002`, `SRC-003` y `SRC-004`.
 - **Propietario funcional/técnico:** Nicolás Sena.
-- **Validación institucional:** Admisión y/o Dirección; representante formal pendiente.
-- **Estado:** configuración funcional inicial, pendiente de G1 y contradicciones C-009 a C-014.
+- **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor.
+- **Validación institucional:** Arturo Javier Galleguillos Trigo, con participación de Admisión y/o Dirección.
+- **Estado:** G0 cerrada; E1 autorizada; G1 no aprobada.
 
 Este documento contiene reglas del piloto para configurar sobre el núcleo multiempresa. Ninguna regla debe transformarse en una condición hardcodeada por nombre, ID o dominio de correo de la institución.
 
@@ -28,7 +29,7 @@ Este documento contiene reglas del piloto para configurar sobre el núcleo multi
 | WhatsApp | Diferido |
 | Pago matrícula | Externo a Admisión, mediante portal que consulta EduPay |
 
-La obligatoriedad diagnóstica se aprueba como decisión de producto en `D-015`, pero debe validarse con el colegio por `C-009`.
+La obligatoriedad diagnóstica se aprueba como decisión de producto en `D-015`; su diferencia documental queda diferida por `C-009` y debe validarse antes de cerrar G1.
 
 ## Flujo obligatorio conocido
 
@@ -69,6 +70,7 @@ La obligatoriedad diagnóstica se aprueba como decisión de producto en `D-015`,
 | Administrador institucional | Configura oferta, formularios, requisitos, membresías y permisos delegados | Tenant y alcance institucional |
 | Superadministrador | Opera plataforma | Sin acceso implícito a contenido institucional |
 | Nicolás Sena | Propiedad funcional/técnica e integración EduPay | No reemplaza validación institucional/legal requerida |
+| Arturo Javier Galleguillos Trigo, Sostenedor | Representación formal institucional para proceso y reglas del piloto | Asuntos diferidos conservan sus hitos de G1/piloto |
 
 Las personas concretas, suplencias y delegaciones siguen pendientes.
 
@@ -174,20 +176,29 @@ Debe definirse cuáles requieren aceptación expresa, cuál es el texto/versiona
 
 Estas diferencias deben representarse mediante configuración y versiones, nunca mediante condicionales del tipo “si la institución es Conquistadores”.
 
+## Estado de contradicciones al cerrar G0
+
+| ID | Estado | Hito |
+| --- | --- | --- |
+| C-009 | DIFERIDA A G1 | Validar diferencia sobre evaluación obligatoria antes de aprobar G1; mantener configuración, no hardcode |
+| C-010 | RESUELTA | Etapa 4 corresponde a “Revisión de antecedentes”; no altera el flujo |
+| C-011 | DIFERIDA A G1 | Definir aplicabilidad y años/equivalentes antes de publicar formulario y catálogo 2027 |
+| C-013 | DIFERIDA CON HITOS | Justificación funcional antes de G1; tratamiento, acceso y retención antes de datos reales |
+| C-014 | DIFERIDA A G1 | Resolver canales/postulación asistida auditada; correo sigue como notificación inicial |
+
 ## Decisiones pendientes
 
-1. Representante formal de Admisión/Dirección.
-2. Validación de evaluación diagnóstica obligatoria frente a SRC-002.
-3. Corrección de numeración omitida en SRC-003.
-4. Condición y años de informes de personalidad.
-5. Obligatoriedad, propósito, acceso y retención de datos sensibles.
-6. Portal como canal exclusivo o postulaciones asistidas.
-7. Cupos, reserva, espera, plazos, vencimientos y autorizaciones de excepción.
-8. Confirmación/reprogramación e inasistencia de actividades.
-9. Pautas de entrevista, evaluación y recomendación.
-10. Textos familiares y plantillas de correo.
-11. Aceptación familiar independiente y momento del handoff.
-12. Estado pre-pago y evento de matrícula de EduPay.
+1. Validación de evaluación diagnóstica obligatoria frente a SRC-002 antes de cerrar G1.
+2. Condición y años/equivalentes de informes de personalidad.
+3. Obligatoriedad, propósito, acceso y retención de datos sensibles según los hitos de C-013.
+4. Portal como canal exclusivo o postulaciones asistidas auditadas.
+5. Cupos, reserva, espera, plazos, vencimientos y autorizaciones de excepción.
+6. Confirmación/reprogramación e inasistencia de actividades.
+7. Pautas de entrevista, evaluación y recomendación.
+8. Textos familiares y plantillas de correo.
+9. Aceptación familiar independiente y momento del handoff.
+10. Estado pre-pago y evento de matrícula de EduPay.
+11. Responsable legal/normativo antes de autorizar datos reales para el piloto.
 
 ## Regla de no acoplamiento
 

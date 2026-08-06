@@ -4,7 +4,8 @@
 
 - **Actualizado:** 2026-08-06.
 - **Propietario funcional y técnico:** Nicolás Sena.
-- **Reglas institucionales:** requieren validación de Admisión y/o Dirección de Colegio Particular Conquistadores.
+- **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor de Colegio Particular Conquistadores.
+- **Reglas institucionales:** validadas por el representante formal dentro de las resoluciones o diferimientos registrados; los pendientes de G1 conservan sus hitos.
 - **Legal/normativo:** responsable pendiente antes del piloto.
 
 El repositorio público conserva metadatos y requisitos extraídos. Los PDF originales y cualquier dato personal real permanecen fuera del repositorio.
@@ -102,15 +103,15 @@ Esto crea una fuerte preferencia de alineación, no una adopción definitiva. `A
 
 #### C-009 — Aplicabilidad de evaluación diagnóstica
 
-`SRC-002` permite que entrevista y/o evaluación dependa del nivel, mientras `SRC-004` establece evaluación diagnóstica obligatoria para todos los cursos del piloto. La decisión funcional queda aprobada por Nicolás Sena el 2026-08-06, pero debe ser validada por Admisión/Dirección y reflejada en la documentación institucional.
+`SRC-002` permite que entrevista y/o evaluación dependa del nivel, mientras `SRC-004` establece evaluación diagnóstica obligatoria para todos los cursos del piloto. Estado: **DIFERIDA A G1**. D-015 continúa aprobada; la diferencia debe validarse antes de cerrar G1 y la regla debe representarse mediante configuración, nunca hardcodearse. Responsables: Arturo Javier Galleguillos Trigo (institucional) y Nicolás Sena (producto).
 
 #### C-010 — Numeración de etapas en la ficha
 
-`SRC-003` salta visualmente desde la etapa 3 a la etapa 5 y omite la etapa 4. No se infiere el contenido faltante. El colegio debe confirmar si es un error editorial y entregar una versión corregida.
+`SRC-003` salta visualmente desde la etapa 3 a la etapa 5 y omite la etapa 4. Estado: **RESUELTA**. Se reconoce como inconsistencia de numeración; la etapa 4 corresponde a “Revisión de antecedentes” según el reglamento completo y no altera el flujo aprobado. Registro: Nicolás Sena. Validación institucional: Arturo Javier Galleguillos Trigo.
 
 #### C-011 — Informes de personalidad
 
-`SRC-002` solicita informe de personalidad o desarrollo personal “cuando corresponda”; `SRC-003` solicita específicamente informes de personalidad 2025 y 2026. Debe validarse obligatoriedad por curso, año de procedencia y disponibilidad real.
+`SRC-002` solicita informe de personalidad o desarrollo personal “cuando corresponda”; `SRC-003` solicita específicamente informes de personalidad 2025 y 2026. Estado: **DIFERIDA A G1**. Antes de publicar el formulario y catálogo 2027 se debe definir aplicabilidad por curso y si se exigen ambos años o antecedentes equivalentes. Responsables: Arturo Javier Galleguillos Trigo y Nicolás Sena.
 
 #### C-012 — Antecedentes adicionales
 
@@ -118,19 +119,19 @@ Esto crea una fuerte preferencia de alineación, no una adopción definitiva. `A
 
 #### C-013 — Sensibilidad de la ficha
 
-`SRC-003` captura salud, PIE/NEE, tratamientos e ingreso familiar. Son datos altamente restringidos; el colegio debe justificar propósito, obligatoriedad, roles con acceso y retención de cada campo antes del piloto.
+`SRC-003` captura salud, PIE/NEE, tratamientos e ingreso familiar. Estado: **DIFERIDA CON HITOS**. Antes de G1 se justifican necesidad, obligatoriedad, visibilidad y propósito. Antes de usar datos reales se aprueban fundamento de tratamiento, matriz de acceso, retención, eliminación/anonimización y atención de solicitudes. La ficha histórica no vuelve obligatorio un campo. Responsables: Arturo Javier Galleguillos Trigo; Nicolás Sena en producto/seguridad técnica; legal/normativo pendiente antes del piloto.
 
 #### C-014 — Canal de ingreso
 
-La ficha y el proceso existentes contemplan correo o entrega presencial. Debe definirse si el portal reemplaza completamente esos canales o si personal autorizado creará postulaciones asistidas con evidencia de autoría y consentimiento.
+La ficha y el proceso existentes contemplan correo o entrega presencial. Estado: **DIFERIDA A G1**. Se decidirá si el portal reemplaza esos canales y se evaluará postulación asistida. Si se autoriza, registrará operador, consentimiento/autorización, origen, fecha, institución, evidencia y auditoría. Correo sigue siendo el canal inicial de notificación. Responsables: Arturo Javier Galleguillos Trigo y Nicolás Sena.
 
 ## Datos faltantes
 
 - Copias institucionales aprobadas y control de versión de PEI, reglamentos, protocolos y aranceles a publicar.
-- Representante formal del colegio y responsable legal/normativo.
+- Responsable legal/normativo antes del piloto.
 - Cupos, calendario, plazos de formalización, excepciones y reglas de desistimiento.
 - Política de lista de espera, prioridades, desempates y visibilidad.
-- Confirmación institucional de C-009 a C-014.
+- Cierre en G1 de C-009, C-011 y C-014, y primer hito de C-013.
 - Obligatoriedad, propósito, visibilidad y retención de cada campo/documento.
 - Pautas de entrevista, evaluación y recomendación.
 - Plantillas, remitente, entrega y manejo de fallos de correo.
@@ -139,16 +140,15 @@ La ficha y el proceso existentes contemplan correo o entrega presencial. Debe de
 
 ## Validaciones requeridas con Colegio Conquistadores
 
-1. Designar representante formal para revisión y compuertas.
-2. Validar cobertura, sede y obligatoriedad de evaluación para todo el piloto.
-3. Corregir o explicar la numeración faltante de `SRC-003`.
-4. Resolver “cuando corresponda” frente a informes 2025/2026.
+1. Validar antes de cerrar G1 la obligatoriedad diagnóstica para todo el piloto.
+2. Resolver “cuando corresponda” frente a informes 2025/2026 antes de publicar el catálogo 2027.
+3. Justificar antes de G1 los campos sensibles detallados en C-013.
+4. Resolver canal exclusivo o postulación asistida, con evidencia y auditoría.
 5. Aprobar catálogo de documentos y antecedentes adicionales por curso.
-6. Justificar datos altamente restringidos y aprobar acceso/retención.
-7. Definir canal exclusivo o postulaciones asistidas.
-8. Validar cupos, reservas, plazos, desistimiento, espera y reapertura.
-9. Aprobar estados y mensajes familiares, incluido correo.
-10. Confirmar responsables, pautas y autoridad de recomendación/decisión.
+6. Aprobar acceso, retención y fundamento legal antes de datos reales.
+7. Validar cupos, reservas, plazos, desistimiento, espera y reapertura.
+8. Aprobar estados y mensajes familiares, incluido correo.
+9. Confirmar responsables, pautas y autoridad de recomendación/decisión.
 
 ## Criterio de evidencia futuro
 

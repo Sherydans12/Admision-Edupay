@@ -138,7 +138,8 @@ Validar tareas reales mediante talleres y construir una matriz permiso × alcanc
 | --- | --- | --- |
 | Revisión de antecedentes | Admisión | Personas y reemplazos |
 | Recomendación | Admisión | Pauta, estados y visibilidad detallada |
-| Decisión final | Dirección | Representante formal y delegación |
+| Representación formal institucional | Arturo Javier Galleguillos Trigo, Sostenedor | Delegaciones operativas futuras |
+| Decisión final | Dirección | Personas ejecutoras y delegación |
 | Horarios de entrevista/evaluación | Colegio | Rol operativo concreto y reprogramación |
 | Comunicación inicial | Colegio mediante correo | Remitente, plantillas, proveedor y fallos |
 | Integración EduPay | Nicolás Sena | Contrato y soporte operativo |
