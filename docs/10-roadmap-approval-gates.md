@@ -66,7 +66,9 @@ El cierre no autoriza implementación, scaffolding, stack definitivo, datos real
 
 ## E1 — Diseño funcional
 
-**Estado:** AUTORIZADA. Esta autorización cubre diseño funcional, no implementación.
+**Estado:** AUTORIZADA; **E1-A — Base funcional y paquete de decisiones: `IN_PROGRESS`**. Esta autorización cubre diseño funcional, no implementación.
+
+E1 se divide provisionalmente en E1-A (base y workbook), E1-B (detalle incorporando decisiones humanas) y E1-C (consolidación y evidencia para G1). La división no agrega aprobaciones automáticas. E1-B depende de decisiones humanas registradas sobre `docs/e1/04-functional-decision-workbook.md`; una recomendación o la fusión de E1-A no basta para avanzar asuntos bloqueantes.
 
 ### Objetivo
 
