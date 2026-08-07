@@ -4,12 +4,12 @@
 
 | Campo | Valor |
 | --- | --- |
-| Entrega | E1-A — Base funcional y paquete de decisiones |
-| Estado | `PRODUCT DECISIONS APPROVED / INSTITUTIONAL VALIDATION PENDING` |
+| Entrega | E1-B — Especificación funcional institucional |
+| Estado | `IN PROGRESS` |
 | Compuerta vigente | E1 autorizada; G1 `NO APROBADA` |
-| Base revisada | `main` en `162851c7add2c44cca8840835298e437047b334f` |
+| Base revisada | `main` en `8a7f12bb1bf1f7ca09ff29363ad040c693cc143d` |
 | Naturaleza | Documentación funcional; no autoriza implementación |
-| Registro de aprobación | `docs/approvals/E1-A-functional-decisions-2026-08-06.md` |
+| Registro principal | `docs/e1/07-institutional-validation-baseline.md` |
 | Aprobación consolidada | `2026-08-06T22:09:00-04:00` por Nicolás Sena |
 
 ## Clasificación de la información
@@ -20,7 +20,7 @@
 - **Decisión aprobada de producto:** posición funcional fijada por Nicolás Sena el 2026-08-06T22:09:00-04:00.
 - **Supuesto de trabajo:** interpretación reversible usada para completar el análisis.
 - **Pregunta abierta:** asunto sin resolución o con detalle pendiente.
-- **Validación institucional pendiente:** respuesta que debe confirmar Colegio Conquistadores mediante su representante y los responsables operativos.
+- **Validación institucional registrada:** C-009, C-011, C-013 y C-014 tienen posición institucional/funcional confirmada; sus detalles operativos o legales pendientes conservan sus estados.
 
 Ninguna recomendación de E1-A equivale a aprobación institucional, funcional, legal o arquitectónica.
 
@@ -51,14 +51,14 @@ flowchart LR
     G1 -->|Aprobación humana explícita| E2["E2: arquitectura"]
 ```
 
-## Alcance de E1-A
+## Alcance de E1-B
 
-- Identificar actores, responsabilidades, límites, delegaciones y separaciones de funciones.
-- Documentar recorridos principales, alternativos y excepcionales de familias y personal.
-- Crear casos de uso funcionales con autorización conceptual y aislamiento por tenant.
-- Preparar opciones y recomendaciones para Q-101 a Q-108, Q-120 a Q-124, Q-140 a Q-145, Q-160 a Q-167, Q-180 a Q-184 y Q-310.
-- Relacionar preguntas, contradicciones, decisiones, requisitos, journeys, casos de uso y evidencia.
-- Preparar una reunión de validación con Colegio Conquistadores.
+- Incorporar las respuestas institucionales de C-009, C-011, C-013 y C-014 a actores, journeys, casos de uso, reglas y permisos.
+- Modelar configuración versionada de actividades, intentos, excepciones, reprogramaciones, repeticiones y cierres.
+- Modelar requisitos documentales configurables, equivalencias, exenciones y origen físico excepcional.
+- Separar captura y acceso de PIE/NEE/salud, excluir ingreso familiar del formulario MVP y registrar las dependencias legales pendientes.
+- Formalizar postulación asistida y diferenciar Administrador Institucional Máximo de Superadministrador Global.
+- Mantener trazabilidad a preguntas, contradicciones, decisiones, requisitos, journeys, casos de uso y evidencia.
 
 ## Fuera de alcance
 
@@ -85,7 +85,8 @@ flowchart LR
 | --- | --- | --- |
 | G0 | `APPROVED / CLOSED` | Decisión aprobada; no se reabre |
 | E1 | `AUTORIZADA` para diseño funcional | Decisión aprobada |
-| E1-A | `PRODUCT DECISIONS APPROVED / INSTITUTIONAL VALIDATION PENDING` | Aprobación funcional consolidada; no cierra G1 |
+| E1-A | `CLOSED / PRODUCT DECISIONS RECORDED` | Acta histórica; no cierra G1 |
+| E1-B | `IN PROGRESS` | Validaciones institucionales registradas; detalles pendientes |
 | G1 | `NO APROBADA` | Hecho confirmado |
 | ADR-0001 | `PROPOSED` | Propuesta arquitectónica fuera de alcance |
 | Datos reales | No autorizados | Límite aprobado |
@@ -109,11 +110,11 @@ Esta entrega referencia esas decisiones; no las reemplaza, renumera ni amplía.
 | Comunicaciones y reportes | Q-180 a Q-184 | Decisiones de producto aprobadas; plantillas, valores y procedimiento pendientes |
 | Handoff | Q-310 | Secuencia funcional aprobada; Q-301 a Q-309 y contrato pendientes |
 
-También requieren validación o hito: C-009, C-011 y C-014 antes de G1; la justificación funcional y validación legal posterior de C-013. Q-201/Q-202 y Q-301 a Q-309 siguen pendientes en sus compuertas.
+También requieren trabajo antes de G1: detalles operativos de C-009, C-011 y C-014; validación legal posterior de C-013. Q-201/Q-202 y Q-301 a Q-309 siguen pendientes en sus compuertas.
 
-## Criterios de salida de E1-A
+## Criterios de salida de E1-B
 
-E1-A está documentalmente terminada cuando:
+E1-B está documentalmente en progreso mientras:
 
 1. actores y responsabilidades están identificados;
 2. journeys principales, variantes y excepciones están documentados;
@@ -125,18 +126,19 @@ E1-A está documentalmente terminada cuando:
 8. G1 y ADR-0001 conservan sus estados;
 9. no se introduce código, arquitectura ni datos reales.
 
-La aprobación de producto registrada cumple la parte de decisión de E1-A. Completar la validación institucional pendiente permitirá preparar E1-B; no autoriza iniciarla automáticamente.
+La validación institucional registrada permite iniciar E1-B; no autoriza cerrar G1 automáticamente.
 
-## Bloqueos de E1-B
+## Trabajo pendiente de E1-B
 
-- Validaciones institucionales y detalles operativos para C-009, C-011, C-013 y C-014.
+- Detalles operativos para C-009, C-011 y C-014.
+- Validación legal de C-013 antes de datos reales.
 - Definición de campos y documentos por curso, periodo y condición.
 - Autoridades y delegaciones operativas, incluida separación recomendación/decisión.
 - Reglas de citas, inasistencia, cupos, reservas, lista de espera, vencimiento y reapertura.
 - Proyección familiar, plantillas, reportes y plazos operacionales.
 - Decisión sobre aceptación de vacante y Q-310.
 
-E1-B no se inicia todavía. Cuando se autorice, incorporará las respuestas institucionales como `APPROVED`, `MODIFIED`, `REJECTED` o `PENDING`; los pendientes bloqueantes permanecerán visibles.
+E1-B está iniciada documentalmente. Las respuestas institucionales se incorporan como `INSTITUTIONALLY_VALIDATED` y los detalles restantes como `OPERATIONAL_DETAIL_PENDING` o `LEGAL_VALIDATION_PENDING`; los pendientes bloqueantes para G1 permanecen visibles.
 
 ## Supuestos de trabajo usados
 
@@ -147,4 +149,4 @@ E1-B no se inicia todavía. Cuando se autorice, incorporará las respuestas inst
 
 ## Siguiente compuerta humana
 
-La siguiente acción humana es ejecutar la guía `06-institutional-validation-guide.md` para confirmar C-009, C-011, C-013, C-014 y los detalles operativos. Nicolás Sena ya aprobó la posición funcional de producto; Arturo Javier Galleguillos Trigo y los responsables de Admisión/Dirección deben validar las reglas institucionales. El responsable legal/normativo continúa pendiente para los hitos previos a datos reales. E1-B no se inicia todavía y G1 seguirá `NO APROBADA` hasta completar E1.
+La siguiente acción humana es completar los detalles operativos de E1-B y revisar la matriz funcional con los responsables institucionales. C-013 requiere además responsable legal/normativo antes de datos reales. G1 seguirá `NO APROBADA`; E2/G2 no están autorizadas.

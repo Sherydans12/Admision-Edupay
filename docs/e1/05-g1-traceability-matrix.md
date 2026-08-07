@@ -1,8 +1,10 @@
 # Matriz de trazabilidad G1
 
+La validación institucional de C-009, C-011, C-013 y C-014 está registrada en [`07-institutional-validation-baseline.md`](07-institutional-validation-baseline.md). Esta matriz conserva referencias históricas y agrega el estado E1-B sin cerrar G1.
+
 ## Estado
 
-Matriz de trazabilidad consolidada para responder qué falta, quién decide, qué evidencia se requiere y dónde se consolidará. `E1-A` registra decisiones de producto; `E1-B` incorporará validaciones institucionales; `E1-C` verificará consistencia y preparará la solicitud de G1. Los estados `PROPOSED`, `NEEDS_DECISION` y `PARTIAL` de la tabla histórica muestran el estado previo a la aprobación y no reemplazan el estado consolidado.
+Matriz de trazabilidad consolidada para responder qué falta, quién decide, qué evidencia se requiere y dónde se consolidará. `E1-A` registra decisiones de producto; `E1-B` incorpora validaciones institucionales; `E1-C` verificará consistencia y preparará la solicitud de G1. Los estados `PROPOSED`, `NEEDS_DECISION` y `PARTIAL` de la tabla histórica muestran el estado previo a la validación y no reemplazan el estado consolidado.
 
 ## Estado consolidado de producto
 
@@ -59,15 +61,26 @@ Abreviaturas de aprobación: `NS` Nicolás Sena; `RI` representante instituciona
 | Q-184 | — | NFR-REL/PER/OBS por definir | Todos | Todos los operativos | ADM+DIR+dueños | `NEEDS_DECISION` | SLA funcionales, calendario, dueño y escalamiento | E1-C |
 | Q-310 | C-002/C-006; D-021 a D-024 | FR-INT-005/006/008 | J-FAM-008/010; J-INT-001 | UC-APP-007; UC-INT-001 | NS+RI+ADM+DIR | `NEEDS_DECISION` | Secuencia decisión-oferta-aceptación-handoff aprobada | E1-B |
 
+## Estado E1-B de las contradicciones validadas
+
+| ID | Estado | Impacto trazable | Pendiente para G1 |
+| --- | --- | --- | --- |
+| C-009 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Actividades obligatorias en piloto; configuración versionada, excepciones, reprogramación, repetición y cierre auditados | Catálogo operativo, pautas, responsables, suplencias y cifras |
+| C-011 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Personalidad configurable; último vigente/disponible o equivalente; exención autorizada | Catálogo concreto por curso/nivel y condición |
+| C-013 | `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING` | PIE/NEE progresivos; salud mínima por necesidad; ingreso familiar fuera del formulario MVP; acceso restringido y auditable | Fundamento legal, retención, eliminación/anonimización, titulares y matriz legal |
+| C-014 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Portal oficial, asistencia presencial auditada y digitalización física excepcional al expediente | Personal, suplencias, evidencias y detalle físico |
+
+Estas cuatro contradicciones ya no bloquean conceptualmente el inicio de E1-B. G1 permanece `NO APROBADA`.
+
 ## Contradicciones y vacíos
 
 | ID | Riesgo abierto | Preguntas/UC afectados | Evidencia para cerrar o avanzar | Entrega |
 | --- | --- | --- | --- | --- |
 | C-005 | Señal de disponibilidad puede prometer cupo | Q-103, Q-162; UC-ADM-001/UC-CAP-001 | Política y texto aprobados | E1-B |
-| C-009 | Documento permite variación; D-015 exige evaluación universal | Q-140; UC-ACT-003 | Validación institucional explícita sin hardcode | E1-B |
-| C-011 | “Cuando corresponda” vs informes 2025/2026 | Q-120; UC-DOC-001 | Tabla curso/periodo/condición/equivalente | E1-B |
-| C-013 | Captura sensible sin finalidad/visibilidad aprobadas | Q-104/Q-144/Q-183; formularios/actividades/exportación | Matriz funcional antes de G1; legal/retención antes de datos reales | E1-B y etapas posteriores |
-| C-014 | Canales actuales vs portal | Q-107; UC-ADM-002 | Decisión y protocolo de asistencia | E1-B |
+| C-009 | Detalles de ejecución aún no definidos | Q-140; UC-ACT-003/006 | Catálogo versionado, excepciones, repetición, reprogramación y cierre; validación institucional ya registrada | E1-B |
+| C-011 | Catálogo concreto aún no definido | Q-120; UC-DOC-001/003 | Tabla curso/periodo/condición/equivalente; validación institucional ya registrada | E1-B |
+| C-013 | Legalidad y ciclo de vida aún pendientes | Q-104/Q-144/Q-183; formularios/actividades/exportación | Matriz funcional registrada; legal/retención antes de datos reales | E1-B y etapas posteriores |
+| C-014 | Procedimiento operativo aún no definido | Q-107; UC-ADM-002 | Evidencia de asistencia y origen físico; personal/suplencias pendientes | E1-B |
 | Vacío E1-A-001 | No hay personas/suplentes operativos nominados | Q-121/Q-141/Q-161/Q-167 | Matriz de responsables institucional aprobada | E1-B |
 | Vacío E1-A-002 | No existen cifras de plazos/capacidad | Q-122/Q-163/Q-184 | Valores entregados por autoridad; no estimados por el agente | E1-B/E1-C |
 | Vacío E1-A-003 | No existe pauta de entrevista/evaluación/recomendación | Q-144/Q-160 | Pautas institucionales revisadas y versionadas | E1-B |

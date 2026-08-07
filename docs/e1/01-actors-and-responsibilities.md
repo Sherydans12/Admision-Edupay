@@ -42,6 +42,7 @@ Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar,
 | Evaluador del estudiante | Aplicar evaluación diagnóstica | Registrar asistencia, aplicación y conclusión bajo pauta | Ver datos mínimos y apoyos expresamente autorizados | Usar datos de salud fuera del propósito; decidir o publicar resultado | Menor/evaluación/salud `RESTRICTED/HIGHLY_RESTRICTED` | Evaluaciones asignadas |
 | Dirección | Adoptar decisión final o devolver recomendación | Revisar antecedentes permitidos, justificar decisión/devolución | Aprobar, rechazar o devolver; consultar evidencia necesaria | Alterar evidencia/recomendación histórica; comunicar por cambio intermedio; administrar su permiso | Resumen, recomendación y evidencia `RESTRICTED/HIGHLY_RESTRICTED` | Tenant y oferta bajo autoridad delegada |
 | Administrador institucional | Configurar operación y membresías delegadas | Mantener oferta, formularios, requisitos, plantillas y accesos | Crear/editar configuración; publicar si tiene permiso separado; delegar dentro de límite | Autoelevarse; leer contenido sensible por ser administrador; cambiar versiones publicadas | Configuración `INTERNAL`; membresías `RESTRICTED`; contenido sólo por permiso adicional | Un tenant y scopes delegados |
+| Administrador Institucional Máximo | Administrar o supervisar la operación completa de su institución | Mantener configuración, membresías, operación, documentos, decisiones, auditoría, permisos y categorías restringidas cuando su función lo requiera | Acceder explícitamente a todas las categorías funcionales de su tenant con permiso, propósito y auditoría | Actuar sobre otro tenant; omitir propósito, permiso o auditoría; delegar más allá de su límite | Todas las categorías del tenant según matriz final; restringidas y altamente restringidas con control reforzado | Un único tenant; no es equivalente a administrador institucional normal |
 | Operador de postulación asistida | Ayudar a una familia si C-014 se aprueba | Identificar canal, explicar autoría, transcribir y dejar evidencia | Crear borrador asistido; cargar lo entregado; entregar control o enviar sólo según autorización aprobada | Inventar respuestas; actuar sin autorización; ver otros casos; decidir/revisar | Datos aportados `RESTRICTED/HIGHLY_RESTRICTED`; evidencia de asistencia | Caso puntual y ventana temporal |
 | Encargado de comunicaciones | Preparar mensajes correctos y autorizados | Mantener plantillas, audiencia, horario y seguimiento de fallos | Preparar/aprobar/enviar según separación configurada | Comunicar resultado sin decisión; incluir datos innecesarios; cambiar estado de negocio | Contacto `PERSONAL`; resultado mínimo `RESTRICTED`; plantillas `INTERNAL` | Tenant, propósito y campañas operativas autorizadas |
 | Responsable de cupos | Mantener capacidad, reservas y espera | Registrar ajustes justificados, verificar disponibilidad y promover con control | Definir/ajustar cupos; reservar/liberar; proponer o ejecutar promoción autorizada | Cambiar decisión; sobreofertar; alterar orden sin evidencia | Oferta/capacidad `INTERNAL`; postulante mínimo `RESTRICTED` | Oferta, sede, año y curso asignados |
@@ -64,7 +65,7 @@ Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar,
 
 | Actor | Objetivo | Responsabilidades | Acciones tentativamente permitidas | Acciones prohibidas | Datos mínimos y sensibilidad | Alcance institucional |
 | --- | --- | --- | --- | --- | --- | --- |
-| Superadministrador | Operar tenants y salud de plataforma | Alta/suspensión administrativa, soporte sin contenido y auditoría de plataforma | Gestionar metadatos; iniciar flujo de soporte | Leer contenido institucional por defecto; suplantar; resolver reglas del colegio | Metadatos `INTERNAL`; sin contenido por defecto | Plataforma; tenant explícito para cualquier acción excepcional |
+| Superadministrador Global | Operar la plataforma y soporte transversal | Alta/suspensión administrativa, salud del servicio, metadatos y soporte excepcional | Gestionar metadatos; iniciar una elevación explícita y auditable | Leer contenido institucional sin elevación; acceso silencioso o permanente; resolver reglas del colegio | Metadatos `INTERNAL`; contenido sólo en alcance elevado | Plataforma; cualquier contenido de tenant requiere elevación |
 | Soporte técnico con elevación temporal | Diagnosticar incidente autorizado | Usar ticket, propósito, tiempo y alcance mínimo; dejar auditoría | Acceso puntual aprobado; lectura o corrección mínima si el procedimiento lo permite | Acceso permanente, exploratorio o transversal; exportar; ocultar su intervención | Sólo datos indispensables; puede alcanzar `RESTRICTED` bajo control reforzado | Tenant/recurso/ventana exactos de la elevación |
 | Sistema de correo | Entregar notificaciones operativas | Recibir mensaje minimizado, devolver estado técnico | Procesar destinatario, plantilla renderizada y correlación mínima | Decidir resultado; recibir expediente, salud o notas; afirmar entrega sin evidencia | Contacto y contenido mínimo `PERSONAL/RESTRICTED` | Comunicación de un tenant; proveedor aún no seleccionado |
 | EduPay | Gestionar registro académico/financiero y confirmar resultados propios | Crear/vincular partes, asociación académica y obligaciones según contrato futuro | Recibir handoff mínimo; responder estado técnico/de negocio | Acceder a documentos, salud, evaluación o notas; escribir datos de Admisión; inferir autorización por identificador | Identidad y relación académica mínima `RESTRICTED`; payload pendiente Q-305 | Mapeo contractual de tenant; dominio separado por D-007 |
@@ -74,7 +75,7 @@ Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar,
 
 | Actor | Conflictos y separación de funciones | Delegaciones posibles | Preguntas pendientes | Requisitos | Casos de uso |
 | --- | --- | --- | --- | --- | --- |
-| Superadministrador | Administración global no implica acceso; elevación separada | A operadores de plataforma dentro de alcance | Q-205 diferida | FR-ADM-007; NFR-TEN-003 | UC-AUD-001 |
+| Superadministrador Global | Administración global no implica acceso; elevación separada y temporal | A operadores de plataforma dentro de alcance | Q-205 diferida; `SELF-ELEVATION` aprobada conceptualmente sólo para MVP | FR-ADM-007; NFR-TEN-003 | UC-AUD-001 |
 | Soporte temporal | Solicitante, aprobador y ejecutor deberían separarse cuando el riesgo lo exija | No transferible durante sesión | Q-205 diferida | FR-ADM-007; NFR-SEC-012 | UC-AUD-001 |
 | Sistema de correo | Estado técnico no cambia negocio | Proveedor futuro sujeto a decisión arquitectónica | Q-181; Q-404 diferida | FR-COM-002 a 007 | UC-COM-001 |
 | EduPay | Autoridad académica/financiera, no sobre admisión | Operadores propios fuera de esta matriz | Q-301 a Q-310; sólo Q-310 en E1 | FR-INT-001 a 008 | UC-INT-001 a 005 |
@@ -105,11 +106,18 @@ Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar,
 | Reintentar integración | I | A | — | — | I | — | — | — | I | R/C | C |
 | Exportar información | A | R/C | — | — | C | — | — | — | I si propia | C excepcional | — |
 
+## Reglas E1-B de autorización
+
+- El Administrador Institucional Máximo sólo actúa dentro de su tenant y no convierte su rol en autoridad global.
+- El Superadministrador Global puede acceder a contenido institucional únicamente después de una elevación explícita, tenant-specific, scope-specific, temporal, justificada y auditable.
+- En el MVP, `SELF-ELEVATION` es válida como acción explícita del Superadministrador Global; no es lectura implícita. La elevación registra actor, tenant, motivo, alcance, categorías, inicio, expiración, resultado y auditoría.
+- Evaluador, profesional o rol expresamente autorizado y Administrador Institucional Máximo pueden acceder a PIE/NEE/salud sólo por propósito. Entrevistadores, revisores generales y personal completo de Admisión no acceden automáticamente.
+
 ## Validaciones pendientes
 
 - Confirmar quién ocupa y reemplaza cada actor institucional.
 - Confirmar si entrevista y evaluación son funciones distintas.
 - Aprobar quién puede eximir, ajustar cupos, publicar, exportar y reabrir.
 - Resolver los conflictos cuando una persona acumula roles.
-- Validar el acceso a PIE/NEE, salud, evaluaciones e ingreso familiar por propósito.
+- Validar el acceso operativo a PIE/NEE, salud y evaluaciones por propósito; el ingreso familiar está fuera del formulario MVP y queda separado si existe un proceso financiero.
 - Definir la modalidad de postulación asistida antes de asignar `OP`.

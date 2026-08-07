@@ -8,7 +8,9 @@
 - **Propietario funcional/técnico:** Nicolás Sena.
 - **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor.
 - **Validación institucional:** Arturo Javier Galleguillos Trigo, con participación de Admisión y/o Dirección.
-- **Estado:** G0 cerrada; E1 autorizada; G1 no aprobada.
+- **Estado:** G0 cerrada; E1-B `IN PROGRESS`; G1 no aprobada.
+
+La línea base institucional de E1-B está registrada en [`e1/07-institutional-validation-baseline.md`](e1/07-institutional-validation-baseline.md). Las reglas del piloto se expresan como configuración versionada; no se incorporan condiciones hardcodeadas por institución.
 
 Este documento contiene reglas del piloto para configurar sobre el núcleo multiempresa. Ninguna regla debe transformarse en una condición hardcodeada por nombre, ID o dominio de correo de la institución.
 
@@ -29,7 +31,7 @@ Este documento contiene reglas del piloto para configurar sobre el núcleo multi
 | WhatsApp | Diferido |
 | Pago matrícula | Externo a Admisión, mediante portal que consulta EduPay |
 
-La obligatoriedad diagnóstica se aprueba como decisión de producto en `D-015`; su diferencia documental queda diferida por `C-009` y debe validarse antes de cerrar G1.
+La obligatoriedad de entrevista y evaluación diagnóstica está validada institucionalmente para todos los cursos del piloto. La configuración inicial la marca obligatoria; excepciones, reprogramación, repetición y cierre mantienen historia, motivo y auditoría.
 
 ## Flujo obligatorio conocido
 
@@ -67,8 +69,9 @@ La obligatoriedad diagnóstica se aprueba como decisión de producto en `D-015`;
 | Admisión | Revisa, observa, agenda, consolida y recomienda | No toma decisión final ni publica por recomendación sola |
 | Entrevistador/evaluador | Ejecuta actividad asignada y registra conclusión restringida | Sólo casos y datos necesarios |
 | Dirección | Aprueba, rechaza o devuelve con justificación | No altera evidencia ni recomendación histórica |
-| Administrador institucional | Configura oferta, formularios, requisitos, membresías y permisos delegados | Tenant y alcance institucional |
-| Superadministrador | Opera plataforma | Sin acceso implícito a contenido institucional |
+| Administrador institucional | Configura oferta, formularios, requisitos, membresías y permisos delegados | Tenant y alcance institucional; no es automáticamente Administrador Institucional Máximo |
+| Administrador Institucional Máximo | Administra o supervisa todas las categorías funcionales de su tenant cuando su función lo requiere | Sólo su tenant; permiso, propósito y auditoría |
+| Superadministrador Global | Opera plataforma; para contenido institucional usa elevación explícita | Ningún acceso de lectura implícito; `SELF-ELEVATION` explícita y auditada en MVP |
 | Nicolás Sena | Propiedad funcional/técnica e integración EduPay | No reemplaza validación institucional/legal requerida |
 | Arturo Javier Galleguillos Trigo, Sostenedor | Representación formal institucional para proceso y reglas del piloto | Asuntos diferidos conservan sus hitos de G1/piloto |
 
@@ -92,9 +95,9 @@ El constructor controlado debe representar, sin código arbitrario:
 - personas con quienes vive;
 - cantidad de integrantes del hogar;
 - repitencia;
-- pertenencia actual o anterior a PIE;
-- tratamientos con especialistas;
-- necesidades educativas especiales.
+- PIE/NEE sólo de forma opcional y progresiva cuando permitan preparar apoyos o adecuaciones justificadas;
+- salud/tratamientos sólo ante necesidad funcional concreta, con mínimo detalle;
+- ingreso familiar fuera del formulario MVP y del análisis académico; proceso financiero separado si corresponde.
 
 ### Adultos responsables
 
@@ -103,7 +106,7 @@ El constructor controlado debe representar, sin código arbitrario:
 - apoderado titular cuando no sea madre o padre;
 - apoderado financiero;
 - lugar de trabajo y cargo;
-- ingreso mensual del hogar.
+- no incluir ingreso mensual del hogar en el formulario de admisión MVP.
 
 ### Clasificación
 
@@ -120,8 +123,8 @@ La clasificación no justifica por sí sola la captura. El colegio y el responsa
 | --- | --- | --- |
 | Certificado de nacimiento | SRC-002/SRC-003 | Formato y vigencia |
 | Certificado anual de estudios o informe de notas vigente | SRC-002/SRC-003 | Curso/año aplicable |
-| Informe de personalidad o desarrollo personal | SRC-002 | “Cuando corresponda” |
-| Informes de personalidad 2025 y 2026 | SRC-003 | Resolver C-011 |
+| Informe de personalidad o desarrollo personal | SRC-002 | Configurable por curso/nivel, oferta y condición; último vigente/disponible o equivalente |
+| Exención de informe de personalidad | Validación C-011 | Autorizada, con requisito, actor, motivo, fecha, alcance y auditoría |
 | Informe de notas parciales | SRC-003 | Periodo y aplicabilidad |
 | Ficha completa | SRC-002/SRC-003 | Se satisface mediante snapshot enviado |
 | Antecedentes adicionales | SRC-002 | Catálogo versionado; no hardcodear |
@@ -176,22 +179,22 @@ Debe definirse cuáles requieren aceptación expresa, cuál es el texto/versiona
 
 Estas diferencias deben representarse mediante configuración y versiones, nunca mediante condicionales del tipo “si la institución es Conquistadores”.
 
-## Estado de contradicciones al cerrar G0
+## Estado de contradicciones en E1-B
 
 | ID | Estado | Hito |
 | --- | --- | --- |
-| C-009 | DIFERIDA A G1 | Validar diferencia sobre evaluación obligatoria antes de aprobar G1; mantener configuración, no hardcode |
+| C-009 | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING | Obligatoria para todos; configuración versionada, excepciones, reprogramación, repetición y cierre auditados |
 | C-010 | RESUELTA | Etapa 4 corresponde a “Revisión de antecedentes”; no altera el flujo |
-| C-011 | DIFERIDA A G1 | Definir aplicabilidad y años/equivalentes antes de publicar formulario y catálogo 2027 |
-| C-013 | DIFERIDA CON HITOS | Justificación funcional antes de G1; tratamiento, acceso y retención antes de datos reales |
-| C-014 | DIFERIDA A G1 | Resolver canales/postulación asistida auditada; correo sigue como notificación inicial |
+| C-011 | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING | Catálogo concreto del piloto por curso/nivel, condición, vigencia y equivalencia |
+| C-013 | INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING | Fundamento normativo, textos, retención, eliminación/anonimización y titulares antes de datos reales |
+| C-014 | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING | Personal, suplencias, evidencias y detalle de documentación física |
 
 ## Decisiones pendientes
 
-1. Validación de evaluación diagnóstica obligatoria frente a SRC-002 antes de cerrar G1.
-2. Condición y años/equivalentes de informes de personalidad.
-3. Obligatoriedad, propósito, acceso y retención de datos sensibles según los hitos de C-013.
-4. Portal como canal exclusivo o postulaciones asistidas auditadas.
+1. Detalle de configuración, responsables, pautas, excepciones y cierres de entrevista/evaluación.
+2. Catálogo concreto y equivalentes del informe de personalidad.
+3. Validación legal de C-013: fundamento, retención, eliminación/anonimización y titulares.
+4. Personal, suplencias y evidencias de postulación asistida y documentación física.
 5. Cupos, reserva, espera, plazos, vencimientos y autorizaciones de excepción.
 6. Confirmación/reprogramación e inasistencia de actividades.
 7. Pautas de entrevista, evaluación y recomendación.

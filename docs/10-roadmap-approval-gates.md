@@ -56,7 +56,7 @@ Establecer lenguaje común, alcance, evidencia, requisitos iniciales, riesgos y 
 - **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor de Colegio Particular Conquistadores.
 - **Fuentes:** SRC-001 a SRC-005.
 - **Decisiones incluidas:** D-001 a D-024.
-- **Contradicciones:** C-009, C-011 y C-014 diferidas a G1; C-010 resuelta; C-013 diferida con hitos.
+- **Contradicciones:** C-009, C-011 y C-014 `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING`; C-010 resuelta; C-013 `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
 - **ADR-0001:** `PROPOSED`.
 - **Etapa autorizada:** E1 — Diseño funcional.
 
@@ -66,9 +66,9 @@ El cierre no autoriza implementación, scaffolding, stack definitivo, datos real
 
 ## E1 — Diseño funcional
 
-**Estado:** AUTORIZADA; **E1-A — `PRODUCT DECISIONS APPROVED / INSTITUTIONAL VALIDATION PENDING`**. E1-B no iniciada. Esta autorización cubre diseño funcional, no implementación.
+**Estado:** AUTORIZADA; **E1-A — `CLOSED / PRODUCT DECISIONS RECORDED`**; **E1-B — `IN PROGRESS`**. Esta autorización cubre diseño funcional, no implementación.
 
-E1 se divide provisionalmente en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`; la división no agrega aprobaciones automáticas. E1-B depende de validaciones humanas registradas sobre `docs/e1/04-functional-decision-workbook.md`; esta aprobación no basta para iniciarla.
+E1 se divide provisionalmente en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`; E1-A queda `CLOSED / PRODUCT DECISIONS RECORDED`. E1-B está `IN PROGRESS` y su línea base está en `docs/e1/07-institutional-validation-baseline.md`; la división no agrega aprobaciones automáticas ni permite cerrar G1.
 
 ### Objetivo
 
@@ -91,11 +91,11 @@ Validar el proceso real con usuarios y convertir requisitos en comportamientos y
 
 **Estado:** NO APROBADA. Requiere resolver sus criterios y asuntos diferidos antes del cierre.
 
-La posición funcional de producto para las 33 preguntas objetivo está aprobada por Nicolás Sena, pero G1 permanece `NO APROBADA` porque siguen pendientes las validaciones institucionales, detalles operativos, dependencia legal de C-013 y el contrato Q-301 a Q-309.
+La posición funcional de producto para las preguntas objetivo está aprobada por Nicolás Sena y C-009/C-011/C-013/C-014 ya tienen validación institucional registrada, pero G1 permanece `NO APROBADA` porque siguen pendientes detalles operativos, la validación legal de C-013, catálogos y el contrato Q-301 a Q-309.
 
 - Preguntas Q-101 a Q-184 resueltas para el piloto.
 - Q-310 resuelta para fijar el momento del handoff.
-- Proceso validado por responsables reales.
+- Proceso y reglas institucionales validados; detalles operativos completados.
 - Datos sensibles justificados y minimizados.
 - Casos felices, alternos y excepciones aprobados.
 - Backlog MVP priorizado y fuera de alcance explícito.

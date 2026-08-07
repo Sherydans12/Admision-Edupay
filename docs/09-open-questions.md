@@ -2,7 +2,7 @@
 
 ## Convenciones
 
-- Estados: `ABIERTA`, `PARCIAL`, `PROPOSED`, `APPROVED_PRODUCT`, `INSTITUTIONAL_VALIDATION_PENDING`, `LEGAL_VALIDATION_PENDING`, `OPERATIONAL_DETAIL_PENDING`, `RESUELTA`, `APROBADA`, `DIFERIDA`. `APPROVED_PRODUCT` indica una decisión funcional aprobada por Nicolás Sena; no sustituye validación institucional, legal ni contractual.
+- Estados: `ABIERTA`, `PARCIAL`, `PROPOSED`, `APPROVED_PRODUCT`, `INSTITUTIONALLY_VALIDATED`, `INSTITUTIONAL_VALIDATION_PENDING`, `LEGAL_VALIDATION_PENDING`, `OPERATIONAL_DETAIL_PENDING`, `RESUELTA`, `APROBADA`, `DIFERIDA`. `APPROVED_PRODUCT` indica una decisión funcional aprobada por Nicolás Sena; `INSTITUTIONALLY_VALIDATED` registra la posición institucional/funcional confirmada para el piloto; ninguno sustituye validación legal ni contractual.
 - Resolver una pregunta no elimina su ID: conserva respuesta, fecha, responsable y evidencia.
 - Una decisión del propietario funcional puede requerir además validación institucional, legal o arquitectónica.
 
@@ -44,6 +44,8 @@ Todas fueron aprobadas por Nicolás Sena el 2026-08-06.
 | D-009 | WCAG 2.2 AA como objetivo | APROBADA |
 | D-010 | Uso de ADR para decisiones relevantes | APROBADA |
 
+La precisión operativa E1-B mantiene D-005: el Superadministrador Global sólo accede a contenido de tenant mediante elevación explícita, temporal, específica de tenant y alcance, justificada y auditada. Para el MVP se admite `SELF-ELEVATION`; no es acceso silencioso ni permanente.
+
 ## Decisiones funcionales confirmadas
 
 Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
@@ -54,7 +56,7 @@ Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
 | D-012 | Colegio Conquistadores opera una sede para el piloto | APROBADA; no elimina soporte multi-sede del núcleo |
 | D-013 | Una cuenta familiar administra varios hijos | APROBADA |
 | D-014 | Colegio asigna directamente horarios de entrevista | APROBADA |
-| D-015 | Evaluación diagnóstica obligatoria para todos los postulantes del piloto | APROBADA por producto; diferencia documental diferida a G1 en C-009 |
+| D-015 | Evaluación diagnóstica obligatoria para todos los postulantes del piloto | APROBADA por producto; C-009 validada institucionalmente con detalles operativos pendientes |
 | D-016 | Admisión revisa/recomienda y Dirección toma decisión final | APROBADA |
 | D-017 | Resultado y acciones se notifican inicialmente sólo por correo | APROBADA |
 | D-018 | WhatsApp queda diferido para costo y arquitectura futura | APROBADA/DIFERIDA |
@@ -94,12 +96,12 @@ Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
 | C-006 | Admisión menciona obligación que pertenece a EduPay | D-021/D-022 fijan propiedad; contrato sigue abierto | RESUELTA EN PROPIEDAD |
 | C-007 | Historial inmutable vs eliminación | Matriz de retención/legal pendiente | ABIERTA G2/G5 |
 | C-008 | Perfil reutilizable vs aislamiento tenant | D-002 | RESUELTA |
-| C-009 | SRC-002 permite evaluación según nivel; D-015 la exige para todos | D-015 sigue aprobada; validar diferencia y mantener regla configurable antes de G1 | DIFERIDA A G1 |
+| C-009 | SRC-002 permite evaluación según nivel; D-015 la exige para todos | Entrevista y evaluación son obligatorias para todos los postulantes del piloto; la regla sigue versionada por tenant/proceso/oferta/curso/tipo de actividad, con excepciones, reprogramación, repetición y cierre auditados | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING |
 | C-010 | SRC-003 salta de etapa 3 a 5 | Inconsistencia de numeración; etapa 4 = “Revisión de antecedentes”; no altera flujo | RESUELTA |
-| C-011 | SRC-002 dice informe “cuando corresponda”; SRC-003 pide 2025 y 2026 | Definir aplicabilidad y años/equivalentes antes de publicar formulario/catálogo 2027 | DIFERIDA A G1 |
+| C-011 | SRC-002 dice informe “cuando corresponda”; SRC-003 pide 2025 y 2026 | Requisito configurable; último informe vigente/disponible o equivalente; exención autorizada; no exigir 2025 y 2026 rígidamente | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING |
 | C-012 | SRC-002 permite antecedentes adicionales | Catálogo configurable/versionado; definir contenido | RESUELTA EN DISEÑO, catálogo pendiente |
-| C-013 | SRC-003 pide salud, NEE e ingreso familiar | Justificación funcional antes de G1; tratamiento/acceso/retención antes de datos reales | DIFERIDA CON HITOS |
-| C-014 | Fuentes contemplan correo/presencial frente al portal | Resolver reemplazo o postulación asistida auditada; correo sigue como notificación | DIFERIDA A G1 |
+| C-013 | SRC-003 pide salud, NEE e ingreso familiar | PIE/NEE opcionales y progresivos para apoyos; salud mínima sólo por necesidad funcional; ingreso familiar fuera del formulario MVP; acceso restringido y auditable; legalidad/retención antes de datos reales | INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING |
+| C-014 | Fuentes contemplan correo/presencial frente al portal | Portal como fuente oficial; asistencia presencial por Admisión/Secretaría con evidencia; papel sólo como origen físico digitalizado en expediente oficial | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING |
 
 ## Resoluciones de cierre G0
 
@@ -107,12 +109,11 @@ Registradas por la aprobación de Nicolás Sena del `2026-08-06T14:16:00-04:00`,
 
 ### C-009 — Evaluación diagnóstica
 
-- **Estado:** DIFERIDA A G1.
-- D-015 sigue aprobada: evaluación diagnóstica obligatoria para todos los postulantes del piloto.
-- La diferencia con `SRC-002` debe validarse antes de cerrar G1.
-- La regla se representa mediante configuración del proceso y no se hardcodea.
-- **Responsables:** Arturo Javier Galleguillos Trigo (institucional) y Nicolás Sena (producto).
-- **Fecha límite:** antes de aprobar G1.
+- **Estado:** `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING`.
+- Entrevista y evaluación diagnóstica son obligatorias para todos los postulantes del piloto de 1º básico a 4º medio.
+- La obligatoriedad se configura por tenant, proceso/año, oferta, curso/nivel y tipo de actividad; no se hardcodea.
+- Exenciones, cierres, reprogramaciones y repeticiones requieren autoridad aún no catalogada, motivo e historia auditable.
+- **Registro:** [`e1/07-institutional-validation-baseline.md`](e1/07-institutional-validation-baseline.md).
 
 ### C-010 — Numeración de etapas
 
@@ -124,30 +125,26 @@ Registradas por la aprobación de Nicolás Sena del `2026-08-06T14:16:00-04:00`,
 
 ### C-011 — Informes de personalidad
 
-- **Estado:** DIFERIDA A G1.
-- Se definirá si aplica a todos los cursos o sólo cuando corresponda.
-- Se aclarará si se exigen 2025 y 2026 o antecedentes equivalentes.
-- Debe resolverse antes de publicar el formulario y catálogo documental 2027.
-- **Responsables:** Arturo Javier Galleguillos Trigo y Nicolás Sena.
-- **Fecha límite:** antes de aprobar G1.
+- **Estado:** `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING`.
+- Cada institución configura aplicabilidad por año/proceso, curso/nivel, oferta y condición.
+- Se acepta el último informe vigente/disponible o equivalente del establecimiento anterior; una exención autorizada conserva actor, motivo, fecha, alcance y auditoría.
+- No se exige rígidamente “2025 y 2026”. El catálogo concreto del piloto continúa pendiente.
 
 ### C-013 — Datos sensibles
 
-- **Estado:** DIFERIDA CON HITOS.
-- Antes de aprobar G1 se justifican necesidad, obligatoriedad, visibilidad y propósito de PIE/NEE, especialistas, salud e ingreso mensual familiar.
-- Antes de autorizar datos reales se aprueban fundamento de tratamiento, matriz de acceso, retención, eliminación/anonimización y atención de solicitudes de titulares.
-- La aparición de un campo en la ficha histórica no lo vuelve obligatorio.
-- **Responsables:** Arturo Javier Galleguillos Trigo (institucional), Nicolás Sena (producto y seguridad técnica) y responsable legal/normativo aún por designar antes del piloto.
+- **Estado:** `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
+- PIE/NEE quedan opcionales y progresivos para preparar apoyos; salud/tratamientos sólo se capturan por necesidad funcional concreta y con mínimo detalle.
+- Ingreso familiar queda fuera del formulario MVP y del análisis académico; cualquier proceso financiero será separado.
+- Acceso ordinario limitado por rol expresamente autorizado y Administrador Institucional Máximo cuando corresponda; no es acceso automático de Admisión.
+- Antes de datos reales se mantienen pendientes fundamento normativo, textos, retención, eliminación/anonimización, solicitudes de titulares y validación legal de la matriz final.
 
 ### C-014 — Canales actuales y portal
 
-- **Estado:** DIFERIDA A G1.
-- En G1 se decidirá si el portal reemplaza correo y entrega presencial.
-- Se evaluará postulación asistida por personal autorizado.
-- Toda postulación asistida registrará operador, consentimiento/autorización, origen, fecha, institución, evidencia y auditoría.
-- Correo continúa como canal inicial de notificación.
-- **Responsables:** Arturo Javier Galleguillos Trigo y Nicolás Sena.
-- **Fecha límite:** antes de aprobar G1.
+- **Estado:** `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING`.
+- El portal es la fuente oficial; Admisión y Secretaría pueden asistir presencialmente con el apoderado presente.
+- Se registra operador, rol, tenant, fecha/hora, origen asistido, adulto presente, autorización/consentimiento y acciones.
+- El documento físico, si se acepta excepcionalmente, se digitaliza al requisito correspondiente con origen `PHYSICAL_DOCUMENT`; no crea expediente paralelo.
+- Personal, suplencias y conservación/devolución física continúan pendientes.
 
 ## Preguntas funcionales para G1
 
@@ -160,17 +157,17 @@ Las opciones históricas, decisiones canónicas, impactos y pendientes de Q-101 
 | Q-101 | ¿Puede una familia postular al mismo estudiante a varias sedes, cursos o instituciones? | APPROVED_PRODUCT; detalle operativo pendiente |
 | Q-102 | ¿Qué identifica un duplicado y qué excepciones existen? | APPROVED_PRODUCT; procedimiento de excepción pendiente |
 | Q-103 | ¿Disponibilidad exacta, categórica o sólo convocatoria? | APPROVED_PRODUCT; texto/actualización operativa pendiente |
-| Q-104 | Campos conocidos por SRC-003; falta obligatoriedad por curso, propósito y momento | APPROVED_PRODUCT; INSTITUTIONAL_VALIDATION_PENDING por C-013; LEGAL_VALIDATION_PENDING antes de datos reales |
+| Q-104 | PIE/NEE opcionales/progresivos; salud mínima por necesidad concreta; ingreso familiar fuera del formulario MVP | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-013; LEGAL_VALIDATION_PENDING antes de datos reales |
 | Q-105 | ¿Qué adulto puede editar, enviar, aceptar o desistir? | APPROVED_PRODUCT; evolución colaborativa pendiente |
 | Q-106 | ¿Cómo se verifican RUT, nacimiento y relación con estudiante? | APPROVED_PRODUCT; escalamiento operativo pendiente |
-| Q-107 | ¿El portal reemplaza correo/presencial o habrá postulaciones asistidas? | APPROVED_PRODUCT; INSTITUTIONAL_VALIDATION_PENDING por C-014 |
+| Q-107 | Portal como fuente oficial; postulación asistida presencial por Admisión/Secretaría con evidencia | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-014; OPERATIONAL_DETAIL_PENDING |
 | Q-108 | ¿Idiomas y necesidades adicionales de accesibilidad? | APPROVED_PRODUCT; detalle institucional pendiente |
 
 ### Documentos
 
 | ID | Pregunta/Respuesta parcial | Estado |
 | --- | --- | --- |
-| Q-120 | Catálogo base extraído; faltan formatos, tamaños, vigencias y condiciones por curso | APPROVED_PRODUCT; INSTITUTIONAL_VALIDATION_PENDING por C-011 |
+| Q-120 | Catálogo por curso/proceso/oferta/condición; informe vigente/disponible o equivalente; no 2025/2026 rígidos | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-011; OPERATIONAL_DETAIL_PENDING |
 | Q-121 | ¿Quién revisa cada tipo y quién puede eximir? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
 | Q-122 | ¿Cuántas correcciones y qué plazos? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING; cifras del colegio |
 | Q-123 | ¿Cómo tratar archivos con contraseña, multipágina o firmas? | APPROVED_PRODUCT; catálogo operativo pendiente |
@@ -180,11 +177,11 @@ Las opciones históricas, decisiones canónicas, impactos y pendientes de Q-101 
 
 | ID | Pregunta/Respuesta parcial | Estado |
 | --- | --- | --- |
-| Q-140 | Piloto exige entrevista y evaluación para todos; falta repetición/excepciones y validación C-009 | APPROVED_PRODUCT; INSTITUTIONAL_VALIDATION_PENDING por C-009 |
+| Q-140 | Entrevista y evaluación obligatorias para todos; configuración versionada, excepciones/repetición/cierre auditados | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-009; OPERATIONAL_DETAIL_PENDING |
 | Q-141 | Colegio asigna horarios directamente | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
-| Q-142 | ¿Reprogramación, cancelación, inasistencia y tolerancia? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING; cifras del colegio |
+| Q-142 | No completada → registrar y reprogramar; eximir/cerrar sólo excepcionalmente con motivo y auditoría | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-009; OPERATIONAL_DETAIL_PENDING |
 | Q-143 | ¿Presencial, remota o híbrida; ubicación/enlace? | APPROVED_PRODUCT; modalidad piloto pendiente |
-| Q-144 | ¿Pauta, resultado y confidencialidad detallada? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
+| Q-144 | Pauta y conclusión quedan restringidas; acceso por rol/propósito; excepciones y cierres auditados | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-009/C-013; OPERATIONAL_DETAIL_PENDING; LEGAL_VALIDATION_PENDING para datos reales |
 | Q-145 | ¿Puede corregirse una conclusión y por quién? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
 
 ### Decisión, cupos y espera
@@ -242,6 +239,8 @@ Todas permanecen `ABIERTA`. Q-201/Q-202 requieren responsable legal aún no desi
 
 Q-310 tiene comparación y secuencia funcional propuestas en [`e1/04-functional-decision-workbook.md`](e1/04-functional-decision-workbook.md#q-310--handoff-tras-aprobación-de-dirección-o-tras-aceptación-familiar-explícita). Q-301 a Q-309, incluida Q-309, no fueron modificadas ni resueltas por E1-A.
 
+La validación institucional de C-009, C-011, C-013 y C-014 quedó registrada en [`e1/07-institutional-validation-baseline.md`](e1/07-institutional-validation-baseline.md). Q-301 a Q-309 siguen abiertas y no fueron resueltas por esa validación.
+
 ## Decisiones arquitectónicas diferidas
 
 - **Q-401:** aprobar o rechazar `ADR-0001` para alineación del stack con EduPay.
@@ -262,7 +261,7 @@ Estas preguntas no bloquean G0; deben resolverse en G2 antes de scaffolding o cu
 - Aprobador de producto/técnica: Nicolás Sena.
 - Representante formal institucional: Arturo Javier Galleguillos Trigo, Sostenedor.
 - D-001 a D-024 incluidas en el alcance.
-- C-009, C-011 y C-014 diferidas a G1; C-010 resuelta; C-013 diferida con hitos.
+- C-009, C-011 y C-014: `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING`; C-010 resuelta; C-013: `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
 - E1 — Diseño funcional autorizada.
 - G1 no aprobada.
 - `ADR-0001` permanece `PROPOSED`.

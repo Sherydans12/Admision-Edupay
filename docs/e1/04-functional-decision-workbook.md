@@ -2,7 +2,7 @@
 
 ## Uso y autoridad
 
-Este es el artefacto principal de revisión humana de E1-A. Las opciones A/B/C que siguen se conservan como análisis histórico; la posición canónica aprobada está en el registro siguiente. Las decisiones D-001 a D-024 se heredan aprobadas; las opciones incompatibles con ellas se muestran sólo para explicar el límite y no reabrir G0.
+Este es el artefacto principal de revisión humana de E1-A y su consolidación E1-B. Las opciones A/B/C que siguen se conservan como análisis histórico; la posición canónica aprobada está en el registro y el addendum institucional al final. Las decisiones D-001 a D-024 se heredan aprobadas; las opciones incompatibles con ellas se muestran sólo para explicar el límite y no reabrir G0.
 
 Estados del workbook:
 
@@ -10,6 +10,9 @@ Estados del workbook:
 - `APPROVED_PRODUCT`: decisión funcional aprobada por Nicolás Sena el `2026-08-06T22:09:00-04:00`.
 - `NEEDS_DECISION`: no hay resolución institucional y la elección bloquea detalle posterior.
 - `PARTIAL`: existe una decisión heredada o evidencia parcial, pero faltan reglas operativas.
+- `INSTITUTIONALLY_VALIDATED`: posición institucional/funcional confirmada para el piloto; no elimina pendientes operativos o legales.
+- `OPERATIONAL_DETAIL_PENDING`: faltan personas, cantidades, plazos, pautas, catálogos o procedimientos.
+- `LEGAL_VALIDATION_PENDING`: falta validación normativa antes de datos reales.
 
 La columna mental “impacto multiempresa” siempre exige configuración por tenant/versión y nunca una regla por nombre del colegio. Las fechas límite se expresan por compuerta porque no existen fechas calendario aprobadas.
 
@@ -411,6 +414,35 @@ Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los 
 - **Pregunta al colegio:** “Después de un resultado favorable, ¿la familia debe aceptar la vacante antes de que preparemos sus datos en EduPay, o el colegio necesita iniciar esa preparación inmediatamente?”
 - **Estado histórico:** `NEEDS_DECISION`.
 - **Estado consolidado:** `APPROVED_PRODUCT`; Q-301 a Q-309 y contrato EduPay pendientes.
+
+## Addendum E1-B — Validación institucional incorporada
+
+La respuesta institucional/funcional confirmada por Nicolás Sena el `2026-08-06` se registra como fuente posterior a las recomendaciones históricas del workbook. Este addendum prevalece sobre los textos que todavía describan C-009, C-011, C-013 o C-014 como validación institucional pendiente.
+
+| Contradicción | Estado consolidado | Regla incorporada | Pendiente que permanece |
+| --- | --- | --- | --- |
+| C-009 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Entrevista de apoderado y evaluación diagnóstica obligatorias para todos los cursos del piloto; configuración versionada por tenant/proceso/año/oferta/curso/tipo; excepciones, reprogramación, repetición y cierre con motivo e historia auditable | Personas, suplencias, pautas, modalidades, cantidades, tolerancias y autoridad concreta de cierre |
+| C-011 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Requisito configurable; último informe vigente/disponible o equivalente del establecimiento anterior; exención autorizada con requisito, actor, motivo, fecha, alcance y auditoría; no 2025/2026 rígidos | Catálogo concreto del piloto |
+| C-013 | `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING` | PIE/NEE opcionales y progresivos para apoyos; salud/tratamientos sólo por necesidad funcional concreta; ingreso familiar fuera del formulario MVP; acceso restringido por propósito y auditable | Fundamento normativo, textos, retención, eliminación/anonimización, titulares y matriz legal |
+| C-014 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Portal como fuente oficial; asistencia presencial de Admisión/Secretaría con adulto presente y evidencia; documento físico digitalizado al requisito con origen conceptual `PHYSICAL_DOCUMENT` | Personal, suplencias, evidencias detalladas y conservación/devolución física |
+
+### Reglas funcionales derivadas
+
+- Una actividad no completada se registra y normalmente se reprograma. Exenta, cerrada, no completada y completada son estados distintos.
+- Cada intento de evaluación conserva secuencia, fecha, responsable, estado, motivo de repetición, resultado/conclusión y relación con el intento anterior. No hay reemplazo silencioso.
+- La obligación de entrevista/evaluación se configura por tenant, proceso/año, oferta, curso/nivel y tipo de actividad; no se hardcodea.
+- El Administrador Institucional Máximo es distinto del administrador institucional normal y sólo actúa dentro de su tenant. El Superadministrador Global requiere elevación explícita para contenido institucional; `SELF-ELEVATION` está aprobada conceptualmente para el MVP y siempre es auditable.
+
+### Preguntas actualizadas por la validación
+
+| Pregunta | Estado E1-B | Actualización funcional |
+| --- | --- | --- |
+| Q-104 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-013; `LEGAL_VALIDATION_PENDING` | PIE/NEE progresivos y opcionales; salud mínima por necesidad; ingreso familiar fuera del formulario MVP |
+| Q-107 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-014; `OPERATIONAL_DETAIL_PENDING` | Portal oficial y postulación asistida con adulto presente, operador, origen, consentimiento y acciones |
+| Q-120 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-011; `OPERATIONAL_DETAIL_PENDING` | Informe vigente/disponible o equivalente; aplicabilidad configurable; no años rígidos |
+| Q-140 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-009; `OPERATIONAL_DETAIL_PENDING` | Actividades obligatorias en piloto; excepciones, repetición, reprogramación y cierre auditados |
+| Q-142 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-009; `OPERATIONAL_DETAIL_PENDING` | No completada → registrar y reprogramar; eximir/cerrar sólo excepcionalmente con motivo y auditoría |
+| Q-144 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-009/C-013; pendientes operativos y legales | Resultados y datos sensibles por rol/propósito; no acceso automático de Admisión general |
 
 ## Documentos afectados por pregunta
 

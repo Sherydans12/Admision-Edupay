@@ -8,7 +8,15 @@ Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance
 
 ## Decisiones de producto aplicadas
 
-La aprobación consolidada de E1-A fija para estos journeys: un adulto responsable con cuenta en el MVP; portal como fuente oficial; postulación asistida auditada; captura progresiva y mínima; reserva junto a la oferta; aceptación expresa antes del handoff a EduPay. C-009, C-011, C-013 y C-014, además de los detalles operativos, siguen visibles como validaciones pendientes.
+La aprobación consolidada de E1-A y la validación institucional E1-B fijan para estos journeys: un adulto responsable con cuenta en el MVP; portal como fuente oficial; postulación asistida auditada; captura progresiva y mínima; reserva junto a la oferta; aceptación expresa antes del handoff a EduPay; entrevista y evaluación obligatorias para todos los cursos del piloto mediante configuración versionada; informe de personalidad configurable; ingreso familiar fuera del formulario MVP.
+
+## Reglas institucionales incorporadas en E1-B
+
+- Las actividades tienen configuración versionada por tenant, proceso/año, oferta, curso/nivel y tipo de actividad. Una excepción requiere actor autorizado, motivo y auditoría; eximir o cerrar no equivale a completar. Si no puede completarse, se registra y se reprograma; los intentos conservan secuencia, fecha, responsable, estado, motivo, resultado/conclusión y relación con el intento anterior.
+- Los requisitos documentales pueden exigir el último informe de personalidad vigente/disponible o un equivalente del establecimiento anterior. Una exención autorizada registra requisito, actor, motivo, fecha, alcance y auditoría.
+- PIE/NEE se capturan progresivamente sólo para apoyos justificados; salud/tratamientos sólo por necesidad funcional concreta; no se captura ingreso familiar en el formulario de admisión MVP.
+- Una postulación asistida se realiza en el portal con el apoderado responsable presente y conserva operador, rol, tenant, fecha/hora, origen, autorización/consentimiento y acciones. La documentación física excepcional se digitaliza al requisito correspondiente con origen conceptual `PHYSICAL_DOCUMENT`.
+- El Administrador Institucional Máximo puede operar todas las categorías de su tenant cuando corresponda y con auditoría. El Superadministrador Global requiere elevación explícita para contenido de tenant; `SELF-ELEVATION` es explícita y auditable en el MVP.
 
 ## Journeys de familia
 
@@ -85,10 +93,10 @@ La aprobación consolidada de E1-A fija para estos journeys: un adulto responsab
 - **Objetivo:** conocer fecha, modalidad y acción requerida.
 - **Actor principal:** apoderado postulante. **Secundarios:** Admisión, entrevistador, correo.
 - **Disparador:** colegio asigna horario por D-014. **Precondiciones:** actividad aplicable, persona/agenda autorizada y datos suficientes.
-- **Recorrido principal:** 1) Admisión asigna cita; 2) sistema registra zona horaria y responsable; 3) comunica datos mínimos; 4) familia consulta; 5) confirma si la regla lo exige; 6) asiste; 7) personal registra asistencia y conclusión separadas.
+- **Recorrido principal:** 1) Admisión consulta la configuración versionada; 2) asigna cita; 3) sistema registra zona horaria y responsable; 4) comunica datos mínimos; 5) familia consulta; 6) confirma si la regla lo exige; 7) asiste; 8) personal registra asistencia, conclusión e intento separadas.
 - **Variantes:** confirmación sólo informativa; modalidad presencial/remota/híbrida; recordatorio.
-- **Excepciones:** correo falla; conflicto de agenda; cancelación institucional; familia no confirma o no asiste.
-- **Puntos de decisión:** confirmación, modalidad, tolerancia, recordatorios y efectos de inasistencia.
+- **Excepciones:** correo falla; conflicto de agenda; cancelación institucional; familia no confirma o no asiste; la actividad no puede completarse y se reprograma; una autoridad registra exención o cierre excepcional con motivo y auditoría.
+- **Puntos de decisión:** confirmación, modalidad, tolerancia, recordatorios, repetición, exención, cierre y efectos de inasistencia.
 - **Datos:** identidad mínima, fecha/hora/zona, ubicación o enlace, contacto y estado de cita.
 - **No mostrar:** agenda de terceros, pauta, notas, conclusión o entrevistador innecesario.
 - **Eventos auditables:** `GuardianInterviewScheduled`, confirmación, asistencia, `GuardianInterviewCompleted`.
@@ -103,12 +111,12 @@ La aprobación consolidada de E1-A fija para estos journeys: un adulto responsab
 - **Actor principal:** apoderado postulante o Admisión según origen. **Secundarios:** entrevistador/evaluador, correo.
 - **Disparador:** impedimento familiar o institucional. **Precondiciones:** cita vigente; política permite solicitud/cambio.
 - **Recorrido principal:** 1) actor registra solicitud/motivo mínimo; 2) Admisión evalúa si corresponde; 3) asigna nuevo horario; 4) sistema conserva cita anterior; 5) comunica; 6) familia confirma si aplica.
-- **Variantes:** reprogramación institucional directa; rechazo de solicitud con alternativa; cambio de modalidad.
+- **Variantes:** reprogramación institucional directa; rechazo de solicitud con alternativa; cambio de modalidad; repetición con relación al intento anterior.
 - **Excepciones:** límite de reprogramaciones; ventana cerrada; no hay horarios; inasistencia ya registrada; conflicto de agenda.
 - **Puntos de decisión:** quién aprueba, cantidad, tolerancia, evidencia y efecto sobre continuidad.
 - **Datos:** cita anterior/nueva, origen, motivo codificado, actor y marcas temporales.
 - **No mostrar:** motivos sensibles en correo o agenda compartida; disponibilidad de otras familias.
-- **Eventos auditables:** solicitud, aprobación/rechazo, `GuardianInterviewRescheduled` o equivalente de evaluación.
+- **Eventos auditables:** solicitud, aprobación/rechazo, `GuardianInterviewRescheduled` o equivalente de evaluación, intento repetido, exención y cierre.
 - **Notificaciones:** recepción de solicitud, confirmación/rechazo y nueva cita.
 - **Estado visible:** “Cambio solicitado” o “Cita reprogramada”.
 - **Resultado:** nueva cita vigente o excepción escalada, con historia intacta.
@@ -202,8 +210,8 @@ La aprobación consolidada de E1-A fija para estos journeys: un adulto responsab
 - **Objetivo:** determinar cumplimiento por requisito sin borrar versiones.
 - **Actor principal:** revisor documental. **Secundarios:** Admisión, familia.
 - **Disparador/precondiciones:** archivo seguro listo; tarea asignada y propósito válido.
-- **Recorrido principal:** abrir requisito; autorizar archivo; comparar condición; aceptar/observar/rechazar o solicitar exención; registrar motivo; generar acción si corresponde; cerrar tarea.
-- **Variantes:** varios archivos por requisito, requisito condicional, exención por autoridad distinta. **Excepciones:** cuarentena, contraseña, archivo ilegible, vencido o ajeno al tenant.
+- **Recorrido principal:** abrir requisito; autorizar archivo; comprobar origen y condición; comparar vigencia/equivalencia; aceptar/observar/rechazar o solicitar exención; registrar motivo; generar acción si corresponde; cerrar tarea.
+- **Variantes:** varios archivos por requisito, requisito condicional, informe de personalidad vigente/equivalente, documentación física digitalizada con origen `PHYSICAL_DOCUMENT`, exención por autoridad distinta. **Excepciones:** cuarentena, contraseña, archivo ilegible, vencido o ajeno al tenant.
 - **Decisiones:** Q-120 a Q-124. **Datos:** archivo y metadatos `RESTRICTED`; salud/NEE `HIGHLY_RESTRICTED` sólo si aplica.
 - **No mostrar:** nota interna o dictamen ajeno a la familia.
 - **Auditoría/notificación:** acceso/descarga, dictamen, exención y observación; comunicar sólo motivo accionable.
@@ -214,12 +222,12 @@ La aprobación consolidada de E1-A fija para estos journeys: un adulto responsab
 
 - **Objetivo:** asignar ambas actividades requeridas del piloto sin solapamientos.
 - **Actor principal:** encargado de admisión. **Secundarios:** entrevistador, evaluador, familia, comunicaciones.
-- **Disparador/precondiciones:** documentación suficiente o regla aprobada; D-014 y D-015; recursos autorizados.
-- **Recorrido principal:** verificar aplicabilidad; seleccionar personal/horario/modalidad; crear citas separadas; revisar conflicto; publicar asignación; comunicar; seguir confirmación.
-- **Variantes:** citas el mismo día, reprogramación, excepción aprobada. **Excepciones:** sin disponibilidad, datos de contacto fallidos, C-009 no validada.
+- **Disparador/precondiciones:** configuración versionada de la actividad; D-014 y D-015; recursos autorizados.
+- **Recorrido principal:** verificar aplicabilidad y obligatoriedad; seleccionar personal/horario/modalidad; crear citas separadas; revisar conflicto; publicar asignación; comunicar; seguir confirmación.
+- **Variantes:** citas el mismo día, reprogramación, repetición, excepción aprobada, exención o cierre autorizado. **Excepciones:** sin disponibilidad, datos de contacto fallidos, actividad no completable.
 - **Decisiones:** Q-140 a Q-143 y Q-184. **Datos:** identidad mínima, agenda y apoyos estrictamente necesarios.
 - **No mostrar:** agenda de terceros, pauta o datos sensibles innecesarios.
-- **Auditoría/notificación:** asignación, cambio, cancelación; correos de cita.
+- **Auditoría/notificación:** asignación, cambio, cancelación, excepción, repetición, exención y cierre; correos de cita.
 - **Estado familiar:** “Próximo paso: entrevista/evaluación”. **Resultado:** actividades agendadas o excepción escalada.
 - **Preguntas:** Q-140 a Q-143, Q-181, Q-184.
 
@@ -280,13 +288,13 @@ La aprobación consolidada de E1-A fija para estos journeys: un adulto responsab
 - **Objetivo:** reducir barreras sin ocultar autoría ni crear un canal informal.
 - **Actor principal:** operador asistido. **Secundarios:** familia, administrador, Admisión.
 - **Disparador/precondiciones:** opción B de Q-107 aprobada; operador autorizado; identidad y consentimiento/autorización verificados.
-- **Recorrido principal:** explicar alcance; registrar operador/institución/origen/autorización/fecha; usar el mismo formulario versionado; transcribir datos aportados; permitir revisión del adulto responsable; adjuntar evidencia; enviar sólo si la regla lo permite; entregar acuse/control.
+- **Recorrido principal:** explicar alcance; registrar tenant, operador, rol, origen asistido, fecha/hora, adulto presente y autorización/consentimiento; usar el mismo formulario versionado; transcribir datos aportados; permitir revisión del adulto responsable; cargar antecedentes físicos sólo al requisito correspondiente; adjuntar evidencia; enviar sólo con el adulto presente y autorización aplicable; entregar acuse/control.
 - **Variantes:** familia toma control antes de enviar; asistencia presencial/remota; sólo apoyo de digitación. **Excepciones:** falta de facultad, conflicto, documento inseguro, operador intenta revisar su caso.
 - **Decisiones:** nivel de asistencia, evidencia, envío y control posterior. **Datos:** los mismos del caso más registro de operador/origen.
 - **No mostrar:** casos ajenos ni credenciales de familia; no registrar secretos.
 - **Auditoría/notificación:** creación asistida, cada cambio relevante, entrega de control y envío.
 - **Estado familiar:** “Borrador asistido” o “Postulación recibida”, con autoría clara.
-- **Resultado:** caso trazable o derivación a canal de apoyo, sin correo como repositorio paralelo.
+- **Resultado:** caso trazable o derivación a canal de apoyo, sin correo, planilla, papel o documento suelto como expediente paralelo. El papel físico, si se acepta excepcionalmente, queda representado por el documento digital oficial.
 - **Preguntas:** Q-105 a Q-107/C-014.
 
 ### J-INT-001 — Admisión deriva un caso favorable a EduPay
@@ -308,13 +316,13 @@ La aprobación consolidada de E1-A fija para estos journeys: un adulto responsab
 - **Objetivo:** publicar una configuración institucional coherente, segura y versionada.
 - **Actor principal:** administrador institucional. **Secundarios:** Admisión, revisores, Dirección.
 - **Disparador/precondiciones:** ciclo/oferta en preparación; permisos separados de edición/publicación; decisiones funcionales registradas.
-- **Recorrido principal:** crear versión borrador; configurar secciones/campos/propósito/sensibilidad; añadir requisitos por curso/periodo/condición; validar reglas; previsualizar conceptualmente; solicitar revisión; publicar; conservar versión inmutable.
+- **Recorrido principal:** crear versión borrador; configurar secciones/campos/propósito/sensibilidad; añadir requisitos por curso/periodo/condición; configurar actividades por tenant/proceso/oferta/curso/tipo; validar reglas; previsualizar conceptualmente; solicitar revisión; publicar; conservar versión inmutable.
 - **Variantes:** nueva versión para próxima convocatoria; archivar; distintos cursos. **Excepciones:** campo sensible sin propósito, regla inválida, publicación no autorizada, dependencia circular o requisito contradictorio.
 - **Decisiones:** Q-104, Q-108, Q-120 y C-011/C-013. **Datos:** configuración `INTERNAL`; metadatos de sensibilidad, no respuestas reales.
 - **No mostrar:** datos de postulaciones durante configuración; código/HTML ejecutable.
 - **Auditoría/notificación:** creación, revisión, publicación/archivo y diferencias de versión; aviso interno.
 - **Estado familiar:** sólo ve versión publicada vigente. **Resultado:** formulario/requisitos versionados; publicaciones previas no cambian.
-- **Preguntas:** Q-104, Q-108, Q-120, Q-121.
+- **Preguntas:** Q-104, Q-108, Q-120, Q-121, C-009, C-011, C-013.
 
 ## Relación general entre journeys
 

@@ -6,9 +6,15 @@ Propuesta para revisión. No es una matriz cerrada ni autoriza implementación. 
 
 ## Roles conceptuales
 
-### Superadministrador de plataforma
+### Administrador Institucional Máximo
 
-Administra operación global, tenants y soporte técnico. No obtiene por defecto acceso al contenido de postulaciones. Cualquier acceso excepcional a datos institucionales debe ser temporal, justificado y auditado.
+Es el rol administrativo de mayor autoridad dentro de un tenant. Es distinto del administrador institucional normal. Puede acceder explícitamente a todas las categorías funcionales de su propia institución, incluidas las restringidas y altamente restringidas, cuando su función lo requiera y la acción cumpla tenant, autenticación, permiso, propósito y auditoría. Puede supervisar configuración, membresías, operación, documentos, decisiones, permisos y auditoría según la matriz final.
+
+No tiene autoridad sobre otros tenants. Ningún administrador institucional normal obtiene este alcance por defecto.
+
+### Superadministrador Global de Plataforma
+
+Administra operación global, tenants y soporte técnico. No obtiene por defecto acceso al contenido de postulaciones. Para consultar contenido de un tenant requiere una elevación explícita, temporal, tenant-specific, scope-specific, justificada y auditada. En el MVP puede usar `SELF-ELEVATION`, pero la acción debe registrarse antes del acceso; no existe lectura silenciosa o permanente.
 
 ### Administrador institucional
 
@@ -76,6 +82,7 @@ Leyenda: `P` permitido por rol sujeto a alcance; `C` condicionado/reforzado; `�
 - `application.identity.read`, `application.health.read`, `application.financial.read`
 - `document.metadata.read`, `document.content.read`, `document.review`
 - `interview.schedule`, `interview.conduct`, `assessment.schedule`, `assessment.conduct`
+- `activity.exception`, `activity.reschedule`, `activity.repeat`, `activity.close`
 - `internal_note.create`, `internal_note.restricted.read`
 - `decision.recommend`, `decision.return`, `decision.approve`, `decision.reject`, `result.communicate`, `offer.issue`, `waitlist.manage`
 - `communication.compose`, `communication.approve`, `communication.send`
@@ -83,6 +90,18 @@ Leyenda: `P` permitido por rol sujeto a alcance; `C` condicionado/reforzado; `�
 - `integration.read`, `integration.retry`, `integration.reconcile`
 
 Los nombres son lenguaje de análisis, no API aprobada.
+
+### Reglas adicionales de la validación E1-B
+
+| Capacidad | Administrador institucional normal | Administrador Institucional Máximo | Superadministrador Global |
+| --- | --- | --- | --- |
+| Operar configuración y membresías | Según delegación y scope | Sí, dentro de su tenant | Plataforma; tenant institucional sólo con alcance autorizado |
+| Leer categorías restringidas de su institución | Sólo permiso específico | Sí, cuando la función lo requiera | Sólo después de elevación explícita |
+| Leer PIE/NEE/salud | No por ser administrador | Sólo con propósito y auditoría | Sólo con elevación que incluya categoría y alcance |
+| Actuar sobre otro tenant | No | No | Potencialmente sí, sólo mediante autorización/elevación correspondiente |
+| Autorizar su propia elevación | No | No | Sí en MVP mediante `SELF-ELEVATION` explícita y auditable |
+
+La matriz final deberá agregar permisos por actividad, excepciones, cierre, repetición, origen documental y auditoría. Los nombres de esta tabla son lenguaje funcional.
 
 ## Alcances tentativos
 
@@ -105,7 +124,7 @@ Una persona puede tener más de una membresía, incluso en distintos tenants, pe
 - Ajustar cupos y emitir ofertas podrían requerir doble control.
 - Administrar roles no debe habilitar autoelevación fuera del límite delegado.
 - Exportar datos restringidos puede requerir aprobación o justificación adicional.
-- Acceso excepcional de plataforma requiere control independiente.
+- Acceso excepcional de plataforma requiere elevación explícita, alcance mínimo y auditoría; el control independiente o doble control para categorías concretas queda como propuesta futura multioperador.
 
 ## Ciclo de acceso
 

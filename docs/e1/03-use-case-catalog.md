@@ -4,7 +4,7 @@
 
 Catálogo funcional consolidado. Las fichas conservan asuntos pendientes, pero reflejan las decisiones de producto aprobadas en E1-A. Los IDs son estables y no describen endpoints, pantallas, tablas ni tecnología. “Autoriza” significa evaluación conceptual por identidad, relación/membresía, rol, alcance, tenant, propósito, sensibilidad y estado. Todo caso institucional debe denegar por defecto, resolver el tenant desde el recurso y evitar revelar existencia transversal.
 
-Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RESTRICTED`. Los eventos son nombres tentativos, no contratos.
+Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RESTRICTED`. Los eventos son nombres tentativos, no contratos. Las reglas institucionales de C-009, C-011, C-013 y C-014 se leen junto con [`07-institutional-validation-baseline.md`](07-institutional-validation-baseline.md), que prevalece sobre pendientes históricos de E1-A.
 
 ## Familia e identidad
 
@@ -255,14 +255,14 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** definir requisitos por oferta, curso, periodo y condición; administrador/Admisión. Secundario: revisor.
 - **FR/preguntas:** FR-DOC-001/007/008; Q-120/Q-123.
 - **Precondiciones/disparador:** oferta/configuración en preparación; catálogo base disponible.
-- **Flujo principal:** 1) crea versión de requisito; 2) define propósito, aplicabilidad, periodo/vigencia y obligatoriedad; 3) define formatos/límites conceptuales; 4) asigna revisor/exención; 5) valida/publica con proceso.
-- **Alternativos:** equivalente documental o condición “cuando corresponda”. **Errores:** requisito sin propósito, conflicto C-011, alcance entre tenants.
+- **Flujo principal:** 1) crea versión de requisito; 2) define propósito, aplicabilidad, periodo/vigencia y obligatoriedad; 3) define formatos/límites conceptuales; 4) configura personalidad por institución/año/proceso/curso/oferta/condición; 5) define informe vigente/disponible, equivalencias y exención autorizada; 6) asigna revisor/exención; 7) valida/publica con proceso.
+- **Alternativos:** equivalente documental emitido por establecimiento anterior o condición “cuando corresponda”. **Errores:** requisito sin propósito, conflicto C-011, alcance entre tenants.
 - **Reglas:** no hardcode; documento completo no garantiza vacante; ficha se satisface por snapshot.
 - **Datos leídos/modificados:** catálogo; requisito/versiones `INTERNAL`.
 - **Autorización/tenant:** permiso de configuración/publicación; tenant/oferta coincidentes.
 - **Auditoría/comunicaciones:** versión/publicación; familias ven sólo requisito aplicable.
 - **Postcondición/aceptación:** catálogo puede representar curso, periodo y condición sin ambigüedad.
-- **Pendientes:** Q-120/C-011 y tratamiento de archivos Q-123.
+- **Pendientes:** catálogo concreto del piloto Q-120/C-011 y tratamiento de archivos Q-123.
 
 ### UC-DOC-002 — Revisar documento
 
@@ -283,56 +283,69 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** registrar que un requisito no se exige en un caso; autoridad de exención por definir. Secundarios: revisor/Admisión.
 - **FR/preguntas:** FR-DOC-004/008; Q-121/Q-120.
 - **Precondiciones/disparador:** requisito aplicable con causa excepcional; solicitud fundada.
-- **Flujo principal:** 1) revisa requisito/caso; 2) verifica autoridad; 3) selecciona motivo/evidencia mínima; 4) confirma; 5) marca `EXEMPTED`; 6) conserva historia.
+- **Flujo principal:** 1) revisa requisito/caso; 2) verifica autoridad; 3) selecciona motivo/evidencia mínima; 4) registra actor, fecha y alcance; 5) confirma; 6) marca `EXEMPTED`; 7) conserva historia.
 - **Alternativos:** exención preconfigurada por regla. **Errores:** autoexención no permitida, requisito ya resuelto o fundamento insuficiente.
 - **Reglas:** exención no finge documento; no borra obligación histórica; puede requerir doble control.
 - **Datos leídos/modificados:** requisito/caso; estado/motivo `RESTRICTED`.
 - **Autorización/tenant:** permiso reforzado, scope/tenant y separación del revisor si se decide.
 - **Auditoría/comunicaciones:** solicitud/aprobación/rechazo; informar a familia sólo si necesita saber.
 - **Postcondición/aceptación:** requisito resuelto como exento con autoridad y causa verificables.
-- **Pendientes:** quién exime y cuándo Q-121.
+- **Pendientes:** autoridad concreta, suplencia y alcance operativo Q-121.
 
 ### UC-ACT-003 — Agendar entrevista y evaluación
 
 - **Objetivo/actor:** crear citas institucionales; Admisión. Secundarios: entrevistador/evaluador/familia.
 - **FR/preguntas:** FR-ACT-001/002/007; Q-140 a Q-143.
-- **Precondiciones/disparador:** actividad aplicable y caso listo; colegio asigna horario.
+- **Precondiciones/disparador:** actividad aplicable según configuración versionada por tenant/proceso/oferta/curso/tipo y caso listo; colegio asigna horario.
 - **Flujo principal:** 1) verifica aplicabilidad; 2) elige actividad, responsable, horario, zona/modalidad; 3) valida conflictos; 4) confirma; 5) publica cita; 6) comunica.
-- **Alternativos:** reprogramar conservando anterior; exención aprobada. **Errores:** sin agenda, conflicto, responsable sin scope o C-009 pendiente.
-- **Reglas:** entrevista/evaluación separadas; conclusión distinta de asistencia; regla configurable.
+- **Alternativos:** reprogramar conservando anterior; repetir como nuevo intento; exención o cierre excepcional aprobados. **Errores:** sin agenda, conflicto, responsable sin scope o actividad no completable.
+- **Reglas:** entrevista/evaluación separadas; conclusión distinta de asistencia; obligatoriedad configurable; excepción requiere actor, motivo y auditoría; exención/cierre no equivale a completada.
 - **Datos leídos/modificados:** agenda/caso mínimo; cita/responsable `RESTRICTED`.
 - **Autorización/tenant:** `interview/assessment.schedule`, scope y tenant.
 - **Auditoría/comunicaciones:** creación/cambio/cancelación; correo con datos mínimos.
 - **Postcondición/aceptación:** cita vigente, historia y ausencia de exposición de terceros.
-- **Pendientes:** C-009, modalidad, reprogramación y tolerancia.
+- **Pendientes:** modalidad, responsables, reprogramación, tolerancia y catálogo concreto de cierre.
 
 ### UC-ACT-004 — Registrar asistencia
 
 - **Objetivo/actor:** registrar presencia/inasistencia por actividad; entrevistador/evaluador asignado.
 - **FR/preguntas:** FR-ACT-004; Q-142.
 - **Precondiciones/disparador:** cita vigente; llega hora de actividad.
-- **Flujo principal:** 1) autoriza actividad; 2) selecciona asistencia, inasistencia o cancelación; 3) registra instante/motivo mínimo; 4) confirma; 5) genera tarea según política.
+- **Flujo principal:** 1) autoriza actividad; 2) selecciona asistencia, inasistencia o cancelación/no completada; 3) registra instante/motivo mínimo; 4) confirma; 5) genera reprogramación o tarea según política.
 - **Alternativos:** corrección controlada. **Errores:** actividad equivocada, registro duplicado o actor no asignado.
-- **Reglas:** asistencia no equivale a conclusión; corrección agrega historia; actividades son obligatorias en el piloto y configurables por oferta en el núcleo.
+- **Reglas:** asistencia no equivale a conclusión; corrección agrega historia; actividad no completada se distingue de exenta o cerrada; cada intento conserva secuencia, fecha, responsable, estado, motivo, resultado/conclusión y relación con el intento anterior.
 - **Datos leídos/modificados:** cita; asistencia/razón `RESTRICTED`.
 - **Autorización/tenant:** asignación específica y tenant.
 - **Auditoría/comunicaciones:** registro/corrección; aviso operativo según regla.
 - **Postcondición/aceptación:** estado de asistencia inequívoco y separado del resultado.
-- **Pendientes:** tolerancia, inasistencia y quién corrige.
+- **Pendientes:** tolerancia, reprogramación, repetición, exención/cierre y quién corrige.
 
 ### UC-ACT-005 — Registrar conclusión
 
 - **Objetivo/actor:** cerrar funcionalmente entrevista/evaluación; actor asignado. Secundarios: Admisión/Dirección con acceso permitido.
 - **FR/preguntas:** FR-ACT-004/005; Q-144/Q-145.
 - **Precondiciones/disparador:** actividad realizada; pauta aprobada y actor autorizado.
-- **Flujo principal:** 1) abre pauta mínima; 2) registra observaciones/conclusión; 3) clasifica contenido; 4) confirma; 5) cierra versión; 6) habilita consolidación.
+- **Flujo principal:** 1) abre pauta mínima; 2) vincula el intento y responsable; 3) registra observaciones/conclusión; 4) clasifica contenido; 5) confirma; 6) cierra versión; 7) habilita consolidación.
 - **Alternativos:** borrador antes de enviar; corrección como nueva versión. **Errores:** pauta ausente, actor no asignado, dato excesivo o actividad no realizada.
 - **Reglas:** mínimo necesario; no comunicar a familia por defecto; edición posterior controlada.
 - **Datos leídos/modificados:** pauta/caso mínimo; conclusión `HIGHLY_RESTRICTED`.
 - **Autorización/tenant:** rol, asignación, propósito, sensibilidad y tenant.
 - **Auditoría/comunicaciones:** creación/acceso/corrección; aviso interno de completitud sin contenido.
 - **Postcondición/aceptación:** conclusión versionada y visible sólo a roles autorizados.
-- **Pendientes:** pauta, audiencia, retención y autoridad de corrección.
+- **Pendientes:** pauta, audiencia, retención y autoridad de corrección; el acceso a PIE/NEE/salud requiere propósito y rol expresamente autorizado.
+
+### UC-ACT-006 — Gestionar excepción, repetición o cierre de actividad
+
+- **Objetivo/actor:** registrar una excepción o nuevo intento sin reemplazar la historia; actor institucional autorizado. Secundarios: Admisión, entrevistador/evaluador, Dirección según matriz futura.
+- **FR/preguntas:** FR-ACT-001/004/005; Q-140/Q-142/Q-144/Q-145; C-009.
+- **Precondiciones/disparador:** actividad existente; motivo operativo; actor con autorización vigente.
+- **Flujo principal:** 1) selecciona actividad e intento relacionado; 2) elige reprogramar, repetir, eximir o cerrar según la regla aplicable; 3) registra motivo, actor, fecha, alcance y resultado; 4) crea nuevo intento o estado de excepción sin borrar el anterior; 5) genera tarea/comunicación mínima; 6) audita.
+- **Alternativos:** no completada → reprogramar; repetición vinculada al intento anterior; cierre del proceso/caso sólo cuando corresponda.
+- **Errores:** actor no autorizado, motivo ausente, intento inexistente, cierre incompatible o tenant distinto.
+- **Reglas:** exenta, cerrada, no completada y completada son estados distinguibles; ningún intento anterior se reemplaza silenciosamente.
+- **Datos leídos/modificados:** actividad, intentos, motivo y estado `RESTRICTED/HIGHLY_RESTRICTED` según contenido.
+- **Autorización/tenant:** `activity.exception`, `activity.reschedule`, `activity.repeat` o `activity.close`, tenant, alcance, propósito y auditoría.
+- **Postcondición/aceptación:** historial completo y reconstruible; estado actual explícito; cantidades, tolerancias y autoridad concreta siguen pendientes.
 
 ### UC-DEC-001 — Emitir recomendación
 
@@ -437,14 +450,14 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** ayudar a registrar caso si C-014 se aprueba; operador asistido. Secundario: familia.
 - **FR/preguntas:** FR-APP-003/008; FR-AUD-001/004; Q-107/C-014.
 - **Precondiciones/disparador:** modalidad aprobada, operador/scope vigentes y autorización familiar verificable.
-- **Flujo principal:** 1) explica modalidad; 2) registra operador/origen/evidencia; 3) identifica familia/estudiante sin suplantar; 4) crea borrador con el mismo formulario versionado; 5) transcribe; 6) el adulto responsable revisa o autoriza envío; 7) entrega acuse/control.
+- **Flujo principal:** 1) explica modalidad; 2) registra tenant, operador, rol, origen asistido, fecha/hora, adulto presente, autorización/consentimiento y acciones; 3) identifica familia/estudiante sin suplantar; 4) crea borrador con el mismo formulario versionado; 5) transcribe; 6) digitaliza documentación física excepcional al requisito correspondiente con origen conceptual `PHYSICAL_DOCUMENT`; 7) el adulto responsable revisa y autoriza envío; 8) entrega acuse/control.
 - **Alternativos:** sólo apoyo, sin enviar. **Errores:** falta de consentimiento/facultad, credenciales compartidas, conflicto o dato no aportado.
 - **Reglas:** nunca inventar; autoría de cada acción; operador no revisa/decide su caso.
 - **Datos leídos/modificados:** evidencia y datos aportados; borrador/eventos hasta `HIGHLY_RESTRICTED`.
 - **Autorización/tenant:** rol temporal, caso/tenant y propósito; sin acceso masivo.
 - **Auditoría/comunicaciones:** todas las acciones asistidas; confirmación a familia.
 - **Postcondición/aceptación:** postulación distinguible como asistida y control familiar demostrable.
-- **Pendientes:** aprobación Q-107, evidencia y capacidad de enviar.
+- **Pendientes:** personal, suplencias, reglas de presencia, evidencia detallada y conservación/devolución física.
 
 ### UC-ADM-003 — Exportar reporte autorizado
 
@@ -539,13 +552,13 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** investigar acción/incidente con alcance mínimo; administrador autorizado o soporte temporal. Secundarios: superadministrador/aprobador institucional.
 - **FR/preguntas:** FR-AUD-001 a 004; FR-ADM-007; NFR-SEC-012; Q-205/Q-208 diferidas.
 - **Precondiciones/disparador:** propósito/ticket/incidente válido; actor solicita consulta o elevación.
-- **Flujo principal:** 1) define tenant/recurso/tiempo/propósito; 2) obtiene aprobación requerida; 3) activa acceso mínimo; 4) consulta eventos/dato estrictamente necesario; 5) registra acciones; 6) expira/revoca; 7) revisa resultado.
-- **Alternativos:** sólo metadatos sin elevación. **Errores:** alcance amplio, autoaprobación prohibida, ventana vencida o intento transversal.
-- **Reglas:** superadministrador sin contenido implícito; auditoría no guarda payload sensible completo; denegación no revela existencia.
+- **Flujo principal:** 1) define tenant/recurso/tiempo/propósito; 2) registra motivo, alcance y categorías; 3) obtiene aprobación requerida o activa `SELF-ELEVATION` explícita del Superadministrador Global en MVP; 4) activa acceso mínimo; 5) consulta eventos/dato estrictamente necesario; 6) registra acciones; 7) expira/revoca; 8) revisa resultado.
+- **Alternativos:** sólo metadatos sin elevación. **Errores:** alcance amplio, motivo ausente, ventana vencida o intento transversal.
+- **Reglas:** superadministrador sin contenido implícito; `SELF-ELEVATION` no es acceso silencioso ni permanente; auditoría no guarda payload sensible completo; denegación no revela existencia.
 - **Datos leídos/modificados:** eventos/metadatos y excepcionalmente dato mínimo; elevación/ticket/auditoría `INTERNAL` a `HIGHLY_RESTRICTED`.
 - **Autorización/tenant:** permiso reforzado, aprobación, tenant/recurso/propósito/ventana exactos.
 - **Auditoría/comunicaciones:** la propia consulta/elevación y revocación se auditan; avisos según política futura.
-- **Postcondición/aceptación:** investigación trazable y acceso extinguido; ningún privilegio permanente.
+- **Postcondición/aceptación:** investigación trazable, elevación con actor/tenant/motivo/alcance/categorías/inicio/expiración/resultado y acceso extinguido; ningún privilegio permanente.
 - **Pendientes:** procedimiento/aprobadores/retención Q-205/Q-208.
 
 ## Índice y cobertura
@@ -556,14 +569,14 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 | `UC-APP` | 7 | Borrador, envío, acciones, estado y oferta |
 | `UC-FRM` | 2 | Construcción y publicación controlada |
 | `UC-DOC` | 3 | Requisitos, revisión y exención |
-| `UC-ACT` | 5 | Agenda, confirmación, asistencia y conclusión |
+| `UC-ACT` | 6 | Agenda, confirmación, asistencia, conclusión y excepciones |
 | `UC-DEC` | 3 | Recomendación, devolución y decisión |
 | `UC-CAP` | 4 | Capacidad, espera, promoción y oferta |
 | `UC-COM` | 1 | Comunicación de resultado |
 | `UC-ADM` | 3 | Oferta, asistencia y exportación |
 | `UC-INT` | 5 | Handoff y resiliencia conceptual |
 | `UC-AUD` | 1 | Auditoría y soporte temporal |
-| **Total** | **38** | E1-A |
+| **Total** | **39** | E1-B en progreso |
 
 ## Riesgos transversales pendientes
 
