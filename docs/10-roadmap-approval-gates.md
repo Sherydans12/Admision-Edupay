@@ -66,7 +66,9 @@ El cierre no autoriza implementación, scaffolding, stack definitivo, datos real
 
 ## E1 — Diseño funcional
 
-**Estado:** AUTORIZADA. Esta autorización cubre diseño funcional, no implementación.
+**Estado:** AUTORIZADA; **E1-A — `PRODUCT DECISIONS APPROVED / INSTITUTIONAL VALIDATION PENDING`**. E1-B no iniciada. Esta autorización cubre diseño funcional, no implementación.
+
+E1 se divide provisionalmente en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`; la división no agrega aprobaciones automáticas. E1-B depende de validaciones humanas registradas sobre `docs/e1/04-functional-decision-workbook.md`; esta aprobación no basta para iniciarla.
 
 ### Objetivo
 
@@ -88,6 +90,8 @@ Validar el proceso real con usuarios y convertir requisitos en comportamientos y
 ### G1 — Aprobación funcional
 
 **Estado:** NO APROBADA. Requiere resolver sus criterios y asuntos diferidos antes del cierre.
+
+La posición funcional de producto para las 33 preguntas objetivo está aprobada por Nicolás Sena, pero G1 permanece `NO APROBADA` porque siguen pendientes las validaciones institucionales, detalles operativos, dependencia legal de C-013 y el contrato Q-301 a Q-309.
 
 - Preguntas Q-101 a Q-184 resueltas para el piloto.
 - Q-310 resuelta para fijar el momento del handoff.

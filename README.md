@@ -12,6 +12,8 @@ E1 — Diseño funcional está autorizada. G1 no está aprobada y conserva asunt
 
 Esta autorización permite únicamente continuar el diseño funcional. No autoriza implementación, uso de datos reales, integración ejecutable ni selección definitiva de stack. `ADR-0001` permanece `PROPOSED`.
 
+**E1-A — Decisiones funcionales de producto aprobadas; validación institucional pendiente** en la rama `docs/e1-functional-baseline`, mediante el PR borrador **“E1-A: Define functional baseline and decision pack”** hacia `main`. La aprobación consolidada de Nicolás Sena quedó registrada el `2026-08-06T22:09:00-04:00`; E1-B aún no inicia. Esta entrega continúa sin autorizar implementación, scaffolding, dependencias ni decisiones de arquitectura. Estado y plan: [`docs/e1/00-e1-plan-and-status.md`](docs/e1/00-e1-plan-and-status.md); acta: [`docs/approvals/E1-A-functional-decisions-2026-08-06.md`](docs/approvals/E1-A-functional-decisions-2026-08-06.md).
+
 ## Principios
 
 - Multiempresa desde el diseño, con aislamiento institucional obligatorio.
@@ -43,6 +45,7 @@ Esta autorización permite únicamente continuar el diseño funcional. No autori
 | `docs/approvals/G0-foundation-closure-2026-08-06.md` | Registro formal de aprobación y cierre de G0. |
 | `docs/decisions/ADR-0000-decision-process.md` | Proceso para registrar decisiones arquitectónicas. |
 | `docs/decisions/ADR-0001-stack-alignment-with-edupay.md` | Propuesta de alineación tecnológica con EduPay. |
+| `docs/e1/00-e1-plan-and-status.md` | Plan, alcance, bloqueos y estado de E1-A. |
 
 ## Cómo continuar
 

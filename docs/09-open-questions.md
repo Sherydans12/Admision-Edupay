@@ -2,7 +2,7 @@
 
 ## Convenciones
 
-- Estados: `ABIERTA`, `PARCIAL`, `RESUELTA`, `APROBADA`, `DIFERIDA`.
+- Estados: `ABIERTA`, `PARCIAL`, `PROPOSED`, `APPROVED_PRODUCT`, `INSTITUTIONAL_VALIDATION_PENDING`, `LEGAL_VALIDATION_PENDING`, `OPERATIONAL_DETAIL_PENDING`, `RESUELTA`, `APROBADA`, `DIFERIDA`. `APPROVED_PRODUCT` indica una decisión funcional aprobada por Nicolás Sena; no sustituye validación institucional, legal ni contractual.
 - Resolver una pregunta no elimina su ID: conserva respuesta, fecha, responsable y evidencia.
 - Una decisión del propietario funcional puede requerir además validación institucional, legal o arquitectónica.
 
@@ -151,62 +151,64 @@ Registradas por la aprobación de Nicolás Sena del `2026-08-06T14:16:00-04:00`,
 
 ## Preguntas funcionales para G1
 
+Las opciones históricas, decisiones canónicas, impactos y pendientes de Q-101 a Q-184 están en [`e1/04-functional-decision-workbook.md`](e1/04-functional-decision-workbook.md). La aprobación consolidada de Nicolás Sena se registra en [`approvals/E1-A-functional-decisions-2026-08-06.md`](approvals/E1-A-functional-decisions-2026-08-06.md). `APPROVED_PRODUCT` no significa `RESUELTA` cuando queda validación institucional, legal u operativa.
+
 ### Oferta, formulario y familia
 
 | ID | Pregunta/Respuesta parcial | Estado |
 | --- | --- | --- |
-| Q-101 | ¿Puede una familia postular al mismo estudiante a varias sedes, cursos o instituciones? | ABIERTA |
-| Q-102 | ¿Qué identifica un duplicado y qué excepciones existen? | ABIERTA |
-| Q-103 | ¿Disponibilidad exacta, categórica o sólo convocatoria? | ABIERTA |
-| Q-104 | Campos conocidos por SRC-003; falta obligatoriedad por curso, propósito y momento | PARCIAL |
-| Q-105 | ¿Qué adulto puede editar, enviar, aceptar o desistir? | ABIERTA |
-| Q-106 | ¿Cómo se verifican RUT, nacimiento y relación con estudiante? | ABIERTA |
-| Q-107 | ¿El portal reemplaza correo/presencial o habrá postulaciones asistidas? | ABIERTA; vinculada C-014 |
-| Q-108 | ¿Idiomas y necesidades adicionales de accesibilidad? | ABIERTA; WCAG AA aprobado |
+| Q-101 | ¿Puede una familia postular al mismo estudiante a varias sedes, cursos o instituciones? | APPROVED_PRODUCT; detalle operativo pendiente |
+| Q-102 | ¿Qué identifica un duplicado y qué excepciones existen? | APPROVED_PRODUCT; procedimiento de excepción pendiente |
+| Q-103 | ¿Disponibilidad exacta, categórica o sólo convocatoria? | APPROVED_PRODUCT; texto/actualización operativa pendiente |
+| Q-104 | Campos conocidos por SRC-003; falta obligatoriedad por curso, propósito y momento | APPROVED_PRODUCT; INSTITUTIONAL_VALIDATION_PENDING por C-013; LEGAL_VALIDATION_PENDING antes de datos reales |
+| Q-105 | ¿Qué adulto puede editar, enviar, aceptar o desistir? | APPROVED_PRODUCT; evolución colaborativa pendiente |
+| Q-106 | ¿Cómo se verifican RUT, nacimiento y relación con estudiante? | APPROVED_PRODUCT; escalamiento operativo pendiente |
+| Q-107 | ¿El portal reemplaza correo/presencial o habrá postulaciones asistidas? | APPROVED_PRODUCT; INSTITUTIONAL_VALIDATION_PENDING por C-014 |
+| Q-108 | ¿Idiomas y necesidades adicionales de accesibilidad? | APPROVED_PRODUCT; detalle institucional pendiente |
 
 ### Documentos
 
 | ID | Pregunta/Respuesta parcial | Estado |
 | --- | --- | --- |
-| Q-120 | Catálogo base extraído; faltan formatos, tamaños, vigencias y condiciones por curso | PARCIAL |
-| Q-121 | ¿Quién revisa cada tipo y quién puede eximir? | ABIERTA |
-| Q-122 | ¿Cuántas correcciones y qué plazos? | ABIERTA |
-| Q-123 | ¿Cómo tratar archivos con contraseña, multipágina o firmas? | ABIERTA |
-| Q-124 | ¿Puede la familia eliminar un archivo antes/después de enviar? | ABIERTA |
+| Q-120 | Catálogo base extraído; faltan formatos, tamaños, vigencias y condiciones por curso | APPROVED_PRODUCT; INSTITUTIONAL_VALIDATION_PENDING por C-011 |
+| Q-121 | ¿Quién revisa cada tipo y quién puede eximir? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
+| Q-122 | ¿Cuántas correcciones y qué plazos? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING; cifras del colegio |
+| Q-123 | ¿Cómo tratar archivos con contraseña, multipágina o firmas? | APPROVED_PRODUCT; catálogo operativo pendiente |
+| Q-124 | ¿Puede la familia eliminar un archivo antes/después de enviar? | APPROVED_PRODUCT; Q-202 pendiente |
 
 ### Entrevistas y evaluaciones
 
 | ID | Pregunta/Respuesta parcial | Estado |
 | --- | --- | --- |
-| Q-140 | Piloto exige entrevista y evaluación para todos; falta repetición/excepciones y validación C-009 | PARCIAL |
-| Q-141 | Colegio asigna horarios directamente | RESUELTA por D-014 |
-| Q-142 | ¿Reprogramación, cancelación, inasistencia y tolerancia? | ABIERTA |
-| Q-143 | ¿Presencial, remota o híbrida; ubicación/enlace? | ABIERTA |
-| Q-144 | ¿Pauta, resultado y confidencialidad detallada? | ABIERTA |
-| Q-145 | ¿Puede corregirse una conclusión y por quién? | ABIERTA |
+| Q-140 | Piloto exige entrevista y evaluación para todos; falta repetición/excepciones y validación C-009 | APPROVED_PRODUCT; INSTITUTIONAL_VALIDATION_PENDING por C-009 |
+| Q-141 | Colegio asigna horarios directamente | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
+| Q-142 | ¿Reprogramación, cancelación, inasistencia y tolerancia? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING; cifras del colegio |
+| Q-143 | ¿Presencial, remota o híbrida; ubicación/enlace? | APPROVED_PRODUCT; modalidad piloto pendiente |
+| Q-144 | ¿Pauta, resultado y confidencialidad detallada? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
+| Q-145 | ¿Puede corregirse una conclusión y por quién? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
 
 ### Decisión, cupos y espera
 
 | ID | Pregunta/Respuesta parcial | Estado |
 | --- | --- | --- |
-| Q-160 | Admisión recomienda y Dirección decide; criterios/fundamentos siguen abiertos | PARCIAL |
-| Q-161 | Separación recomendador/aprobador confirmada para piloto | RESUELTA por D-016 |
-| Q-162 | ¿Capacidad total, cupo de admisión o vacante disponible? | ABIERTA |
-| Q-163 | ¿Cuándo se reserva y cuánto dura reserva/oferta? | ABIERTA |
-| Q-164 | ¿Orden, prioridades y desempates de espera? | ABIERTA |
-| Q-165 | ¿La familia ve posición exacta? | ABIERTA |
-| Q-166 | ¿Qué ocurre si acepta varias ofertas? | ABIERTA |
-| Q-167 | ¿Quién puede reabrir rechazo, desistimiento o expiración? | ABIERTA |
+| Q-160 | Admisión recomienda y Dirección decide; criterios/fundamentos siguen abiertos | APPROVED_PRODUCT; pauta y criterios institucionales pendientes |
+| Q-161 | Separación recomendador/aprobador confirmada para piloto | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
+| Q-162 | ¿Capacidad total, cupo de admisión o vacante disponible? | APPROVED_PRODUCT; valores y responsables pendientes |
+| Q-163 | ¿Cuándo se reserva y cuánto dura reserva/oferta? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING; duración del colegio |
+| Q-164 | ¿Orden, prioridades y desempates de espera? | APPROVED_PRODUCT; criterios institucionales pendientes |
+| Q-165 | ¿La familia ve posición exacta? | APPROVED_PRODUCT; texto institucional pendiente |
+| Q-166 | ¿Qué ocurre si acepta varias ofertas? | APPROVED_PRODUCT; política de elección pendiente |
+| Q-167 | ¿Quién puede reabrir rechazo, desistimiento o expiración? | APPROVED_PRODUCT; autoridades concretas pendientes |
 
 ### Comunicaciones y reportes
 
 | ID | Pregunta/Respuesta parcial | Estado |
 | --- | --- | --- |
-| Q-180 | Correo es único canal inicial; WhatsApp diferido | RESUELTA por D-017/D-018 |
-| Q-181 | ¿Plantillas, remitente, horarios y escalamiento por fallo de correo? | ABIERTA |
-| Q-182 | ¿Qué historial se muestra a familia? | ABIERTA |
-| Q-183 | ¿Reportes/exportaciones, periodicidad y audiencia? | ABIERTA |
-| Q-184 | ¿SLA operativos por etapa? | ABIERTA |
+| Q-180 | Correo es único canal inicial; WhatsApp diferido | APPROVED_PRODUCT; procedimiento de fallos pendiente |
+| Q-181 | ¿Plantillas, remitente, horarios y escalamiento por fallo de correo? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
+| Q-182 | ¿Qué historial se muestra a familia? | APPROVED_PRODUCT; textos/proyección pendiente |
+| Q-183 | ¿Reportes/exportaciones, periodicidad y audiencia? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
+| Q-184 | ¿SLA operativos por etapa? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING; valores del colegio |
 
 ## Preguntas de seguridad, legalidad y operación para G2/G5
 
@@ -236,7 +238,9 @@ Todas permanecen `ABIERTA`. Q-201/Q-202 requieren responsable legal aún no desi
 | Q-307 | ¿SLA, reintentos, reconciliación y soporte? | ABIERTA |
 | Q-308 | ¿Oferta expirada o desistimiento durante handoff? | ABIERTA |
 | Q-309 | ¿Qué estado usa EduPay antes del pago y qué evento confirma matrícula? | BLOQUEANTE INTEGRACIÓN |
-| Q-310 | ¿Handoff tras aprobación de Dirección o tras aceptación familiar explícita? | BLOQUEANTE G1 |
+| Q-310 | ¿Handoff tras aprobación de Dirección o tras aceptación familiar explícita? | APPROVED_PRODUCT; secuencia aprobada; Q-301 a Q-309 pendientes |
+
+Q-310 tiene comparación y secuencia funcional propuestas en [`e1/04-functional-decision-workbook.md`](e1/04-functional-decision-workbook.md#q-310--handoff-tras-aprobación-de-dirección-o-tras-aceptación-familiar-explícita). Q-301 a Q-309, incluida Q-309, no fueron modificadas ni resueltas por E1-A.
 
 ## Decisiones arquitectónicas diferidas
 
