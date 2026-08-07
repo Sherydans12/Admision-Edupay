@@ -2,15 +2,29 @@
 
 ## Uso y autoridad
 
-Este es el artefacto principal de revisión humana de E1-A. Todas las recomendaciones son `PROPOSED`: orientan la decisión, pero no la sustituyen. Las decisiones D-001 a D-024 se heredan aprobadas; las opciones incompatibles con ellas se muestran sólo para explicar el límite y no reabrir G0.
+Este es el artefacto principal de revisión humana de E1-A. Las opciones A/B/C que siguen se conservan como análisis histórico; la posición canónica aprobada está en el registro siguiente. Las decisiones D-001 a D-024 se heredan aprobadas; las opciones incompatibles con ellas se muestran sólo para explicar el límite y no reabrir G0.
 
 Estados del workbook:
 
-- `PROPOSED`: existe una recomendación concreta pendiente de aprobación.
+- `PROPOSED`: estado histórico de una recomendación antes de la aprobación consolidada.
+- `APPROVED_PRODUCT`: decisión funcional aprobada por Nicolás Sena el `2026-08-06T22:09:00-04:00`.
 - `NEEDS_DECISION`: no hay resolución institucional y la elección bloquea detalle posterior.
 - `PARTIAL`: existe una decisión heredada o evidencia parcial, pero faltan reglas operativas.
 
 La columna mental “impacto multiempresa” siempre exige configuración por tenant/versión y nunca una regla por nombre del colegio. Las fechas límite se expresan por compuerta porque no existen fechas calendario aprobadas.
+
+## Registro de aprobación consolidada
+
+La aprobación está formalizada en [`E1-A-functional-decisions-2026-08-06.md`](../approvals/E1-A-functional-decisions-2026-08-06.md). Las 33 preguntas objetivo tienen ahora estado `APPROVED_PRODUCT`; los pendientes indicados no reabren la decisión de producto.
+
+| Bloque | Preguntas | Decisión canónica aprobada |
+| --- | --- | --- |
+| Oferta, familia y formulario | Q-101–Q-108 | Una postulación por institución/año/curso; duplicados por estudiante+institución+año+curso; disponibilidad categórica; captura mínima; un adulto responsable; verificación inicial; portal oficial con asistencia; español/móvil/WCAG AA. |
+| Documentos, entrevistas y evaluación | Q-120–Q-145 | Catálogo versionado por curso/periodo/condición; personalidad condicional; revisión/exención por roles; corrección; archivos seguros/multipágina; versiones; actividades obligatorias/configurables; citas asignadas; pautas restringidas y corregibles por versión. |
+| Decisión, cupos y espera | Q-160–Q-167 | Pauta de Admisión y decisión humana separadas; cupos de admisión separados; reserva junto a oferta; espera versionada y promoción humana; sin posición exacta; elección dentro del colegio; reaperturas autorizadas. |
+| Comunicaciones, reportes y handoff | Q-180–Q-184, Q-310 | Correo automático único y portal oficial; plantillas/estados; historial familiar seguro; reportes mínimos/auditados; objetivos por etapa; handoff posterior a aceptación expresa. |
+
+Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los detalles operativos y Q-301 a Q-309 permanecen visibles.
 
 ## Oferta, formulario y familia
 
@@ -19,10 +33,11 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Contexto/fuentes/condicionantes:** SRC-001, D-002, D-013, FR-APP-001/003/004; una cuenta maneja varios hijos y los snapshots se aíslan por tenant. **Situación:** abierta.
 - **Opciones:** A) una postulación total; simple, pero bloquea elección legítima y mezcla tenants. B) permitir una por oferta (tenant+sede+año+curso); flexible y trazable, con riesgo de múltiples ofertas. C) permitir sólo combinaciones habilitadas por cada tenant; flexible, pero más compleja.
 - **Impactos:** familia: B reduce fricción; operación: exige gestionar duplicados/ofertas; multiempresa: cada caso aislado; seguridad: no revelar postulaciones de otro tenant.
-- **Recomendación/razón:** **B**, con política configurable que pueda restringir combinaciones; conserva un núcleo estable y evita que una institución controle casos de otra.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: permitir postulaciones independientes entre instituciones; dentro de una misma institución, año académico y curso/nivel sólo una activa; en el piloto de una sede, una por estudiante/año/curso. Conserva aislamiento y evita duplicados activos sin bloquear postulaciones entre instituciones.
 - **Aprobación/límite/documentos:** Nicolás Sena + representante institucional; antes de E1-B. Afecta journeys J-FAM-001/002, UC-APP-001 y política de ofertas.
 - **Pregunta al colegio:** “¿Una familia puede postular al mismo estudiante a más de un curso u otra sede durante el mismo proceso?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`.
 
 ### Q-102 — ¿Qué identifica un duplicado y qué excepciones existen?
 
@@ -32,7 +47,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **A**, con reapertura o excepción autorizada y auditada; nunca deduplicar automáticamente por nombre/correo/RUT.
 - **Aprobación/límite/documentos:** Nicolás Sena + Admisión; antes de E1-B. Afecta UC-APP-001/003 y J-ADM-001.
 - **Pregunta al colegio:** “¿Cuándo consideran que dos postulaciones son la misma y quién puede autorizar una excepción?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`.
 
 ### Q-103 — ¿Disponibilidad exacta, categórica o sólo convocatoria?
 
@@ -42,7 +58,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**, acompañada de texto “sujeto a revisión y cupos”; permite evolución y reduce interpretación de garantía.
 - **Aprobación/límite/documentos:** responsable de cupos + Dirección + Nicolás Sena; antes de E1-B. Afecta UC-ADM-001/UC-CAP-001 y proyección familiar.
 - **Pregunta al colegio:** “¿Qué información de disponibilidad quieren mostrar: cantidad exacta, una señal general o sólo que la convocatoria está abierta?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`.
 
 ### Q-104 — Campos conocidos por SRC-003; falta obligatoriedad por curso, propósito y momento
 
@@ -59,50 +76,55 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 | Ingreso familiar | Sólo finalidad institucional expresa y separada de decisión académica | Recomendado no obligatorio para admisión hasta justificación | Rol financiero específico; no entrevistador/evaluador por defecto | Después de resultado o en trámite separado si basta | No ejecutar beneficio/segmentación autorizada | Sesgo, discriminación, exposición financiera y abandono |
 
 - **Impactos:** familia: B reduce preguntas invasivas; operación: exige propósito/audiencia por campo; tenant: cada institución configura sin bajar controles; privacidad: acceso por campo, auditoría y retención futura.
-- **Recomendación/razón:** **B** y, para el piloto, dejar estos cinco grupos opcionales/condicionales hasta aprobación de finalidad; separar ingreso familiar del análisis de admisión salvo fundamento institucional expreso.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: captura progresiva y mínima; PIE/NEE opcionales o condicionales para apoyos; no historia clínica general; tratamientos/salud sólo ante necesidad funcional, adaptación o seguridad concreta; ingreso familiar fuera del formulario de admisión MVP y, si corresponde, en trámite financiero separado.
 - **Aprobación/límite/documentos:** representante institucional + Nicolás Sena antes de G1; responsable legal/normativo antes de datos reales. Afecta formulario, permisos, journeys y UC-FRM-001/002.
 - **Pregunta al colegio:** “Para cada dato, ¿qué decisión o apoyo concreto permite, quién necesita verlo y en qué momento? Si no hay una finalidad clara, proponemos no pedirlo.”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `INSTITUTIONAL_VALIDATION_PENDING` y `LEGAL_VALIDATION_PENDING` por C-013.
 
 ### Q-105 — ¿Qué adulto puede editar, enviar, aceptar o desistir?
 
 - **Contexto/fuentes/condicionantes:** FR-ID-003/006, C-002, D-013. Ser madre/padre/titular no otorga automáticamente todas las facultades. **Situación:** abierta.
 - **Opciones:** A) sólo creador de cuenta; simple, frágil y excluyente. B) apoderado principal con adultos invitados y facultades por acción; claro y revocable. C) cualquier adulto declarado; simple, pero alto riesgo de conflicto.
 - **Impactos:** familia: B permite colaboración; operación: requiere resolver disputas; tenant: facultad ligada al caso; seguridad: invitación, revocación y auditoría.
-- **Recomendación/razón:** **B**; en piloto puede iniciarse con un adulto principal, sin presumir facultades adicionales hasta definir invitaciones.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: un único adulto responsable con cuenta en el MVP puede editar, enviar, desistir y aceptar; madre, padre, titular y financiero quedan como información relacionada sin cuentas colaborativas. Invitaciones y coadministración quedan para evolución.
 - **Aprobación/límite/documentos:** representante institucional + Nicolás Sena; antes de E1-B. Afecta UC-FAM-003, UC-APP-003/006/007.
 - **Pregunta al colegio:** “¿Quién puede enviar, aceptar una vacante o desistir, y qué hacemos si dos adultos no están de acuerdo?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`.
 
 ### Q-106 — ¿Cómo se verifican RUT, nacimiento y relación con estudiante?
 
 - **Contexto/fuentes/condicionantes:** FR-ID-004, NFR-SEC-006/007; no usar identificadores como autorización. **Situación:** abierta; mecanismos técnicos quedan fuera de E1.
 - **Opciones:** A) declaración familiar más revisión documental posterior; simple, con riesgo de fraude/error. B) validación externa automática; fuerte, pero proveedor/legal/arquitectura no decididos. C) declaración inicial y escalamiento documental sólo por riesgo/conflicto; equilibrada.
 - **Impactos:** familia: C evita barrera universal; operación: cola de excepciones; tenant: revisión dentro del caso; privacidad: mínima consulta y no enumeración.
-- **Recomendación/razón:** **C** para el piloto funcional; no bloquear el borrador, exigir evidencia antes de acciones críticas cuando la regla lo justifique.
+- **Recomendación/razón:** **C ajustada por aprobación de producto**: correo confirmado, formato formal de RUT, declaración de relación y revisión del certificado de nacimiento; escalar manualmente antes de acciones críticas ante duda/conflicto. No se aprueban registros externos en E1.
 - **Aprobación/límite/documentos:** Nicolás Sena + institución; legal/arquitectura después según mecanismo. Afecta UC-FAM-004 y autorización familiar.
 - **Pregunta al colegio:** “¿Qué evidencia necesitan para confirmar quién puede postular por un estudiante y en qué momento del proceso?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`.
 
 ### Q-107 — ¿El portal reemplaza correo/presencial o habrá postulaciones asistidas?
 
 - **Contexto/fuentes/condicionantes:** C-014; correo continúa como notificación D-017, no necesariamente como ingreso. **Situación:** abierta.
 - **Opciones:** A) portal exclusivo; operación ordenada, pero excluye familias con barreras. B) portal principal con postulación asistida auditada; una fuente de verdad y apoyo controlado, con capacitación. C) coexistencia portal/correo/presencial; accesible, pero duplica trabajo, evidencia y riesgo de pérdida.
 - **Impactos:** familia: B mantiene apoyo; operación: B evita transcripción informal; tenant: operadores por institución; privacidad: registrar operador, autorización, origen y autoría.
-- **Recomendación/razón:** **B** para piloto; correo no debe funcionar como repositorio paralelo de postulaciones/documentos.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: portal como fuente oficial y postulación asistida con el mismo formulario versionado; registrar operador, institución, origen, autorización/consentimiento, fecha y acciones. Correo sólo notifica y no es repositorio paralelo.
 - **Aprobación/límite/documentos:** representante institucional + Nicolás Sena; antes de E1-B/C-014. Afecta J-OPS-001 y UC-ADM-002.
 - **Pregunta al colegio:** “¿Qué familias necesitarán ayuda y qué personal puede ingresar datos con ellas, dejando registro de quién hizo cada acción?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `INSTITUTIONAL_VALIDATION_PENDING` por C-014.
 
 ### Q-108 — ¿Idiomas y necesidades adicionales de accesibilidad?
 
 - **Contexto/fuentes/condicionantes:** D-009, FR-FRM, NFR-UX-001/002. WCAG 2.2 AA está aprobada; idiomas/dispositivos no. **Situación:** abierta.
 - **Opciones:** A) español y accesibilidad AA desde el piloto; foco claro. B) multilingüe completo desde piloto; inclusivo, mayor esfuerzo/contenido. C) español AA más mecanismo de asistencia y arquitectura de contenido traducible; evolutivo.
 - **Impactos:** familia: C cubre base y excepciones; operación: requiere canal de apoyo; tenant: idioma futuro configurable; privacidad: asistencia no debe compartir credenciales.
-- **Recomendación/razón:** **C**; validar español claro, móvil, teclado/lector y necesidades reales antes de agregar idiomas.
+- **Recomendación/razón:** **C ajustada por aprobación de producto**: MVP en español, móvil prioritario, WCAG 2.2 AA, teclado/lector y lenguaje claro; contenido preparado conceptualmente para traducción futura, sin sistema multilingüe completo.
 - **Aprobación/límite/documentos:** Nicolás Sena + institución y usuarios de validación; antes de cerrar G1 para alcance del piloto.
 - **Pregunta al colegio:** “¿Qué barreras de idioma, lectura, visión, movilidad, dispositivo o conectividad enfrentan hoy las familias?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`.
 
 ## Documentos
 
@@ -111,10 +133,11 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Contexto/fuentes/condicionantes:** C-011, FR-DOC-001/007/008, SRC-002/SRC-003. **Situación:** parcial.
 - **Opciones sobre personalidad:** A) exigir 2025 y 2026 a todos; clara, pero contradice “cuando corresponda” y excluye trayectorias distintas. B) un informe vigente o equivalente según curso/periodo/condición; flexible y trazable. C) no exigirlo; simple, pero puede perder antecedente que el colegio justifique.
 - **Impactos:** familia: B admite equivalentes y evita documentos imposibles; operación: reglas por curso/periodo; tenant: catálogo versionado; privacidad: pedir sólo lo necesario.
-- **Recomendación/razón:** **B**; institución debe definir para cada curso cuándo aplica, periodo aceptado, equivalentes y quién exime. Formatos/tamaños se decidirán funcionalmente sin seleccionar almacenamiento.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: catálogo por curso/periodo/condición/versión; nacimiento y antecedentes académicos base cuando correspondan; personalidad condicional; informe vigente o equivalente; no exigir rígidamente 2025 y 2026. Formatos/tamaños se decidirán funcionalmente sin seleccionar almacenamiento.
 - **Aprobación/límite/documentos:** representante institucional + Admisión + Nicolás Sena; antes de E1-B y publicación 2027.
 - **Pregunta al colegio:** “¿Para qué cursos se pide informe de personalidad, de qué periodo y qué documento equivalente aceptan si la familia no tiene 2025 y 2026?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `INSTITUTIONAL_VALIDATION_PENDING` por C-011.
 
 ### Q-121 — ¿Quién revisa cada tipo y quién puede eximir?
 
@@ -124,7 +147,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**, con exenciones de bajo riesgo delegables por regla y sensibles bajo aprobación reforzada.
 - **Aprobación/límite/documentos:** Admisión + Dirección/administrador; antes de E1-B. Afecta RACI, UC-DOC-002/003.
 - **Pregunta al colegio:** “¿Quién revisa cada documento y quién puede aceptar que un requisito no se presente?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ### Q-122 — ¿Cuántas correcciones y qué plazos?
 
@@ -134,7 +158,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**, con al menos una oportunidad y escalamiento humano antes de cerrar por una causa corregible; cifras deben darlas el colegio.
 - **Aprobación/límite/documentos:** Admisión + Dirección; antes de E1-B.
 - **Pregunta al colegio:** “¿Cuánto tiempo tendrá una familia para corregir y cuántos intentos permiten antes de escalar o cerrar?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ### Q-123 — ¿Cómo tratar archivos con contraseña, multipágina o firmas?
 
@@ -144,7 +169,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**; firma visible se trata como contenido, no se valida criptográficamente sin decisión posterior.
 - **Aprobación/límite/documentos:** Nicolás Sena + Admisión; regla funcional antes de E1-B, mecanismo en arquitectura.
 - **Pregunta al colegio:** “¿Qué formatos reciben hoy, aceptan documentos de varias páginas y qué hacen cuando vienen protegidos con contraseña?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`.
 
 ### Q-124 — ¿Puede la familia eliminar un archivo antes/después de enviar?
 
@@ -154,7 +180,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**; ocultar versión sustituida a la familia cuando corresponda, pero conservar según política pendiente.
 - **Aprobación/límite/documentos:** Nicolás Sena + institución; antes de E1-B; retención legal posterior.
 - **Pregunta al colegio:** “¿Una familia puede reemplazar un documento ya enviado y qué evidencia necesitan conservar?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; Q-202 pendiente.
 
 ## Entrevistas y evaluaciones
 
@@ -163,10 +190,11 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Contexto/fuentes/condicionantes:** D-015 aprobada por producto; C-009 diferencia SRC-002 y requiere validación institucional; FR-ACT-001. **Situación:** parcial.
 - **Opciones:** A) evaluación obligatoria universal y fija; coincide con D-015, pero no evoluciona. B) obligatoria para todos en configuración del piloto y configurable por oferta/curso en el núcleo; trazable y multiempresa. C) decisión manual por caso; flexible, inconsistente y riesgosa.
 - **Impactos:** familia: B comunica regla previa; operación: excepciones explícitas; tenant: regla versionada; privacidad: resultado altamente restringido.
-- **Recomendación/razón:** **B**, manteniendo D-015 para piloto hasta que la autoridad confirme o modifique institucionalmente; repetición/exención sólo por regla y actor aprobados.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: entrevista del apoderado y evaluación diagnóstica obligatorias para todos los cursos del piloto; configurables por oferta en el núcleo; repetición/exención sólo por regla, autoridad, motivo y auditoría. C-009 conserva validación institucional.
 - **Aprobación/límite/documentos:** Arturo/representante institucional + Nicolás Sena; antes de G1. Afecta J-ADM-003, UC-ACT-003 y C-009.
 - **Pregunta al colegio:** “¿Confirman entrevista del apoderado y evaluación diagnóstica para todos los cursos? ¿Cuándo se repite o se permite una excepción?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `INSTITUTIONAL_VALIDATION_PENDING` por C-009.
 
 ### Q-141 — Colegio asigna horarios directamente
 
@@ -176,7 +204,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **C**, conservando D-014; la confirmación puede ser acuse, no selección.
 - **Aprobación/límite/documentos:** Admisión + institución; antes de E1-B para detalle.
 - **Pregunta al colegio:** “Al asignar un horario, ¿la familia sólo recibe la cita o debe confirmarla? ¿Puede pedir cambio?”
-- **Estado:** `PARTIAL`.
+- **Estado histórico:** `PARTIAL`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ### Q-142 — ¿Reprogramación, cancelación, inasistencia y tolerancia?
 
@@ -186,7 +215,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**, con al menos solicitud registrada, historial de horarios y revisión humana antes de efecto terminal; cantidades/plazos quedan al colegio.
 - **Aprobación/límite/documentos:** Admisión + Dirección; antes de E1-B.
 - **Pregunta al colegio:** “¿Cuántos cambios se permiten, con cuánta anticipación y qué ocurre ante atraso o inasistencia?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ### Q-143 — ¿Presencial, remota o híbrida; ubicación/enlace?
 
@@ -196,7 +226,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B** a nivel funcional, sin integrar proveedor; el piloto puede seleccionar presencial si el colegio lo confirma.
 - **Aprobación/límite/documentos:** Admisión + entrevistadores/evaluadores; antes de E1-B.
 - **Pregunta al colegio:** “¿Las actividades serán presenciales, remotas o dependerán del caso? ¿Qué información de ubicación debe recibir la familia?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; modalidad concreta pendiente.
 
 ### Q-144 — ¿Pauta, resultado y confidencialidad detallada?
 
@@ -206,7 +237,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**, minimizando texto libre y separando asistencia, pauta, conclusión y recomendación.
 - **Aprobación/límite/documentos:** entrevistadores/evaluadores + Admisión + Dirección; antes de E1-B.
 - **Pregunta al colegio:** “¿Qué debe registrar quien entrevista o evalúa, quién necesita verlo y qué parte, si alguna, se comunica a la familia?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ### Q-145 — ¿Puede corregirse una conclusión y por quién?
 
@@ -216,7 +248,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**; después de decisión final, corrección debe escalar y no cambiar resultado automáticamente.
 - **Aprobación/límite/documentos:** Admisión + Dirección + responsables de actividad; antes de E1-B.
 - **Pregunta al colegio:** “Si una conclusión tiene un error, ¿quién puede corregirla y quién debe aprobar el cambio?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ## Decisión, cupos y espera
 
@@ -228,7 +261,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**; excluir automatización decisoria en piloto y conservar juicio humano separado.
 - **Aprobación/límite/documentos:** Admisión + Dirección + representante institucional; antes de E1-B.
 - **Pregunta al colegio:** “¿Qué antecedentes puede considerar Admisión, cómo fundamenta su recomendación y qué debe revisar Dirección?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; pauta y criterios institucionales pendientes.
 
 ### Q-161 — Separación recomendador/aprobador confirmada para piloto
 
@@ -238,7 +272,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B** para piloto; si se necesita C, requiere aprobación reforzada, motivo y revisión posterior sin alterar D-016 silenciosamente.
 - **Aprobación/límite/documentos:** Dirección + Nicolás Sena; suplencias antes de E1-B.
 - **Pregunta al colegio:** “¿Quién reemplaza a Admisión o Dirección y cómo evitamos que una persona recomiende y decida el mismo caso?”
-- **Estado:** `PARTIAL`.
+- **Estado histórico:** `PARTIAL`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ### Q-162 — ¿Capacidad total, cupo de admisión o vacante disponible?
 
@@ -248,17 +283,19 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B** para Admisión, manteniendo separado el total académico y cualquier confirmación de EduPay.
 - **Aprobación/límite/documentos:** responsable de cupos + Dirección; antes de E1-B.
 - **Pregunta al colegio:** “Cuando hablan de cupos, ¿se refieren a capacidad total del curso o a vacantes reservadas para este proceso?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; valores y responsables pendientes.
 
 ### Q-163 — ¿Cuándo se reserva y cuánto dura reserva/oferta?
 
 - **Contexto/fuentes/condicionantes:** FR-CAP-002/003, Q-310. No hay plazos aprobados. **Situación:** abierta.
 - **Opciones:** A) reservar al decidir favorable; protege oferta, puede inmovilizar cupos. B) reservar al comunicar; alinea experiencia, exige coordinación. C) reservar al aceptar/pagar; maximiza disponibilidad, permite sobreexpectativa.
 - **Impactos:** familia: B reduce resultado favorable sin cupo; operación: vencimiento/liberación claros; tenant: política versionada; seguridad: concurrencia e idempotencia.
-- **Recomendación/razón:** **B**, con reserva atómica antes o junto a emisión de oferta; plazo configurable y advertencias. Duración debe aprobarla el colegio.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: crear la reserva inmediatamente antes o junto a comunicar la oferta favorable; duración configurable; vencimiento, rechazo o desistimiento libera de forma auditable. La duración concreta queda al colegio.
 - **Aprobación/límite/documentos:** cupos + Dirección + Admisión; antes de E1-B.
 - **Pregunta al colegio:** “¿En qué momento apartan la vacante y cuánto tiempo la mantienen mientras la familia responde o formaliza?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ### Q-164 — ¿Orden, prioridades y desempates de espera?
 
@@ -268,37 +305,41 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**, usando sólo criterios aprobados, objetivos y auditables; promoción humana D-008.
 - **Aprobación/límite/documentos:** Dirección + responsable de cupos + representante institucional; antes de E1-B.
 - **Pregunta al colegio:** “¿Cómo ordenan la lista de espera y qué regla usan cuando dos casos quedan en la misma situación?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; criterios institucionales pendientes.
 
 ### Q-165 — ¿La familia ve posición exacta?
 
 - **Contexto/fuentes/condicionantes:** FR-CAP-005, FR-COM-001. **Situación:** abierta.
 - **Opciones:** A) posición exacta; transparente, cambia y puede revelar dinámica. B) categoría/estado sin número; estable, menos detalle. C) sin información de espera; baja transparencia.
 - **Impactos:** familia: B confirma vigencia sin prometer; operación: menos consultas si texto claro; tenant: visibilidad configurable; privacidad: no inferir terceros.
-- **Recomendación/razón:** **B** para piloto, con fecha de última actualización y regla general aprobada; evaluar posición exacta después.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: la familia ve espera activa, fecha de actualización y próximos pasos; no posición numérica exacta en MVP ni datos/dinámica de otros postulantes.
 - **Aprobación/límite/documentos:** Dirección + comunicaciones; antes de E1-B.
 - **Pregunta al colegio:** “¿Quieren mostrar un número exacto o sólo informar que la postulación sigue activa en lista de espera?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`.
 
 ### Q-166 — ¿Qué ocurre si acepta varias ofertas?
 
 - **Contexto/fuentes/condicionantes:** Q-101, FR-COM-006, FR-CAP-002. **Situación:** abierta.
 - **Opciones:** A) permitir y resolver en formalización; flexible, bloquea cupos. B) avisar y exigir elección dentro del mismo tenant, sin afectar otros tenants; reduce reservas. C) impedir globalmente; invade autonomía entre instituciones.
 - **Impactos:** familia: B hace efectos claros; operación: libera cupos; tenant: no compartir decisiones entre instituciones; privacidad: no revelar otra postulación.
-- **Recomendación/razón:** **B** sólo para ofertas del mismo tenant/proceso y según política; entre tenants no coordinar ni exponer.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: dentro del mismo colegio/proceso puede exigirse elegir y liberar ofertas restantes; entre tenants no se comparten ni coordinan ofertas/postulaciones.
 - **Aprobación/límite/documentos:** Dirección/cupos + Nicolás Sena; antes de E1-B.
 - **Pregunta al colegio:** “Si una familia recibe más de una opción dentro del colegio, ¿debe elegir una y cuándo se libera la otra?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; política de elección pendiente.
 
 ### Q-167 — ¿Quién puede reabrir rechazo, desistimiento o expiración?
 
 - **Contexto/fuentes/condicionantes:** FR-AUD-004, flujo conceptual; reapertura no es normal. **Situación:** abierta.
 - **Opciones:** A) nunca; simple, injusto ante error. B) autoridad reforzada por tipo, motivo y nueva versión/efectos; controlado. C) cualquier administrador; rápido, alto riesgo.
 - **Impactos:** familia: B permite corregir excepción legítima; operación: requiere reconciliar cupo/comunicación/integración; tenant: scope estricto; seguridad: doble control y auditoría.
-- **Recomendación/razón:** **B**; rechazo por Dirección, desistimiento por autoridad institucional con evidencia familiar, expiración por responsable designado; nunca borrar estado anterior.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: sólo autoridades definidas reabren, con motivo, evidencia, auditoría y revisión de cupos, comunicaciones e integración; nunca se borra el estado histórico.
 - **Aprobación/límite/documentos:** Dirección + Admisión + cupos; antes de E1-B.
 - **Pregunta al colegio:** “¿Quién puede reabrir un caso cerrado, por qué motivos y qué aprobaciones necesita?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; autoridades concretas pendientes.
 
 ## Comunicaciones y reportes
 
@@ -307,20 +348,22 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Contexto/fuentes/condicionantes:** D-017/D-018 aprobadas, FR-COM-007/008. **Situación:** canal resuelto; usos/fallback pendientes.
 - **Opciones:** A) correo único para todos los mensajes del piloto; coherente. B) correo más avisos manuales fuera del sistema; cubre fallos, pierde trazabilidad. C) WhatsApp desde inicio; contradice diferimiento.
 - **Impactos:** familia: A necesita correo vigente y portal como fuente de estado; operación: seguimiento de fallos; tenant: plantillas propias; privacidad: contenido mínimo.
-- **Recomendación/razón:** **A**, conservando el portal como fuente consultable y un procedimiento interno de fallo sin adoptar otro canal automático.
+- **Recomendación/razón:** **A ajustada por aprobación de producto**: correo es el único canal automático MVP; portal es fuente oficial de estado/acciones/plazos; fallo genera tarea interna; WhatsApp y canales automáticos alternativos siguen diferidos.
 - **Aprobación/límite/documentos:** decisión heredada; Admisión/comunicaciones valida procedimiento antes de E1-B.
 - **Pregunta al colegio:** “Confirmado el correo como canal inicial, ¿qué hace el personal cuando un mensaje rebota o la familia indica que no lo recibió?”
-- **Estado:** `PARTIAL`.
+- **Estado histórico:** `PARTIAL`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; procedimiento de fallos pendiente.
 
 ### Q-181 — ¿Plantillas, remitente, horarios y escalamiento por fallo de correo?
 
 - **Contexto/fuentes/condicionantes:** FR-COM-002/003/005/007; proveedor Q-404 fuera de alcance. **Situación:** abierta.
 - **Opciones:** A) texto libre por operador; rápido, inconsistente. B) plantillas versionadas por propósito con aprobación, ventana y cola de fallos; trazable. C) una plantilla genérica; simple, poco accionable.
 - **Impactos:** familia: B entrega instrucciones claras; operación: responsables por fallo; tenant: contenido/remitente configurado; privacidad: variables permitidas.
-- **Recomendación/razón:** **B**, diferenciando preparado/enviado/entregado/fallido; no decidir proveedor.
+- **Recomendación/razón:** **B ajustada por aprobación de producto**: plantillas por recepción, corrección, cita, reprogramación, resultado, oferta, vencimiento y cierre; estados `PREPARED`, `SENT`, `DELIVERED` sólo con evidencia y `FAILED`; resultado sólo después de decisión final.
 - **Aprobación/límite/documentos:** comunicaciones + Admisión + Dirección para resultados; antes de E1-B.
 - **Pregunta al colegio:** “¿Quién redacta y aprueba cada mensaje, desde qué nombre se envía, en qué horarios y quién atiende los rebotes?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ### Q-182 — ¿Qué historial se muestra a familia?
 
@@ -330,7 +373,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**, con recepción, acciones, respuestas, citas, comunicaciones, oferta/espera y cierre; nunca recomendación o errores técnicos.
 - **Aprobación/límite/documentos:** Admisión + comunicaciones + Dirección; antes de E1-B.
 - **Pregunta al colegio:** “¿Qué hitos necesita recordar una familia y qué información interna nunca debería aparecer?”
-- **Estado:** `PROPOSED`.
+- **Estado histórico:** `PROPOSED`.
+- **Estado consolidado:** `APPROVED_PRODUCT`.
 
 ### Q-183 — ¿Reportes/exportaciones, periodicidad y audiencia?
 
@@ -340,7 +384,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**, privilegiando vistas agregadas y habilitando identificables sólo con propósito/rol/aprobación.
 - **Aprobación/límite/documentos:** Admisión + Dirección + Nicolás Sena/privacidad; alcance funcional antes de E1-B, retención antes de datos reales.
 - **Pregunta al colegio:** “¿Qué decisiones toman con reportes, quién los recibe, con qué frecuencia y qué columnas realmente necesita?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ### Q-184 — ¿SLA operativos por etapa?
 
@@ -350,7 +395,8 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Recomendación/razón:** **B**, iniciando con objetivos operativos, no compromisos técnicos; el colegio debe aportar valores y calendario.
 - **Aprobación/límite/documentos:** Admisión + Dirección + responsables de cada etapa; antes de E1-C/G1.
 - **Pregunta al colegio:** “¿En cuánto tiempo esperan revisar, pedir correcciones, asignar citas, decidir y responder, y quién actúa cuando se supera?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `OPERATIONAL_DETAIL_PENDING`.
 
 ## Momento funcional del handoff
 
@@ -359,11 +405,12 @@ La columna mental “impacto multiempresa” siempre exige configuración por te
 - **Contexto/fuentes/condicionantes:** D-021 a D-024, FR-INT-005/006/008, C-002. EduPay necesita estudiante y asociación académica antes de obligaciones. El mecanismo/API y Q-301 a Q-309 quedan fuera de E1-A. **Situación:** bloqueante G1.
 - **Opciones:** A) inmediatamente después de decisión favorable; adelanta preparación y reduce espera, pero transfiere casos que podrían rechazar/no formalizar y exige compensación. B) después de aceptación expresa de oferta; prueba intención, reduce trabajo/transferencia, agrega una acción/plazo. C) después del pago o formalización; máxima certeza, pero puede ser circular porque EduPay necesita crear/vincular estudiante/asociación para generar obligaciones y permitir pago.
 - **Impactos:** familia: B explica un paso claro antes de matrícula; operación: requiere seguimiento de oferta/vencimiento; tenant: regla contractual/configurable, no global por colegio; privacidad: B minimiza transferencias innecesarias; seguridad: evento idempotente y separado de matrícula.
-- **Recomendación/razón:** **B** para el piloto. Secuencia funcional propuesta: 1) Admisión recomienda; 2) Dirección decide favorable; 3) se reserva/emitir oferta; 4) se comunica; 5) adulto facultado acepta dentro de plazo; 6) se crea handoff; 7) EduPay crea/vincula partes y asociación académica; 8) EduPay genera obligaciones; 9) familia paga fuera de Admisión; 10) EduPay confirma el hecho contractual futuro. C se descarta como disparador porque puede impedir la preparación necesaria para el pago; A queda como evolución configurable si el costo/privacidad se justifican.
+- **Recomendación/razón:** **B aprobada por producto**. Secuencia: Admisión recomienda; Dirección decide favorable; se reserva/emite oferta; se comunica plazo; el adulto único facultado acepta; Admisión crea handoff; EduPay crea/vincula estudiante, adulto y asociación; EduPay genera obligaciones; familia paga fuera de Admisión; EduPay comunica estados posteriores. Si se rechaza/desiste/vence, se libera reserva y no se inicia handoff. C no es disparador porque puede impedir la preparación necesaria para el pago; Q-301 a Q-309 siguen abiertas.
 - **Riesgos:** aceptación duplicada/vencida, reserva inmovilizada, desistimiento durante handoff, divergencia y significado futuro de matrícula. Mitigar funcionalmente con hitos separados, confirmación humana, plazos, idempotencia y estado técnico distinto del negocio.
 - **Aprobación/límite/documentos:** Nicolás Sena + representante institucional + Admisión/Dirección; antes de E1-B para fijar journey. Propietarios de ambos dominios resolverán contrato/Q-301 a Q-309 antes de integración.
 - **Pregunta al colegio:** “Después de un resultado favorable, ¿la familia debe aceptar la vacante antes de que preparemos sus datos en EduPay, o el colegio necesita iniciar esa preparación inmediatamente?”
-- **Estado:** `NEEDS_DECISION`.
+- **Estado histórico:** `NEEDS_DECISION`.
+- **Estado consolidado:** `APPROVED_PRODUCT`; Q-301 a Q-309 y contrato EduPay pendientes.
 
 ## Documentos afectados por pregunta
 

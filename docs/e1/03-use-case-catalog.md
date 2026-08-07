@@ -2,7 +2,7 @@
 
 ## Estado y reglas
 
-Catálogo `PROPOSED`. Los IDs son estables y no describen endpoints, pantallas, tablas ni tecnología. “Autoriza” significa evaluación conceptual por identidad, relación/membresía, rol, alcance, tenant, propósito, sensibilidad y estado. Todo caso institucional debe denegar por defecto, resolver el tenant desde el recurso y evitar revelar existencia transversal.
+Catálogo funcional consolidado. Las fichas conservan asuntos pendientes, pero reflejan las decisiones de producto aprobadas en E1-A. Los IDs son estables y no describen endpoints, pantallas, tablas ni tecnología. “Autoriza” significa evaluación conceptual por identidad, relación/membresía, rol, alcance, tenant, propósito, sensibilidad y estado. Todo caso institucional debe denegar por defecto, resolver el tenant desde el recurso y evitar revelar existencia transversal.
 
 Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RESTRICTED`. Los eventos son nombres tentativos, no contratos.
 
@@ -12,7 +12,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 
 - **Objetivo/actor:** crear una identidad verificable; apoderado postulante. Secundario: sistema de correo.
 - **FR/preguntas:** FR-ID-001; FR-COM-003; Q-105/Q-106.
-- **Precondiciones/disparador:** no requiere sesión; la persona elige registrarse.
+- **Precondiciones/disparador:** no requiere sesión; la persona elige registrarse. El MVP vincula una sola cuenta al adulto responsable.
 - **Flujo principal:** 1) aporta canal mínimo; 2) recibe desafío; 3) verifica; 4) acepta condiciones aplicables; 5) obtiene cuenta sin membresía institucional.
 - **Alternativos:** canal ya asociado produce respuesta no enumerativa y recuperación segura. **Errores:** desafío vencido/usado, abuso o canal no disponible.
 - **Reglas:** mensajes uniformes; canal no es identificador público; aceptación versionada.
@@ -43,7 +43,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** cuenta verificada; actor abre grupo o invita/corrige un miembro.
 - **Flujo principal:** 1) consulta grupo autorizado; 2) agrega/actualiza relación; 3) declara rol titular/financiero; 4) registra evidencia requerida; 5) confirma cambio.
 - **Alternativos:** una persona ocupa varios roles; invitación futura. **Errores:** conflicto de autoridad, duplicado, revocación o dato sensible injustificado.
-- **Reglas:** relación declarada no concede por sí sola facultad; instantáneas enviadas no cambian.
+- **Reglas:** relación declarada no concede por sí sola facultad; instantáneas enviadas no cambian; un único adulto responsable usa la cuenta; no se crean cuentas colaborativas en el MVP.
 - **Datos leídos/modificados:** perfiles/relaciones globales; facultades y contacto. **Clasificación:** `PERSONAL/RESTRICTED`, finanzas `HIGHLY_RESTRICTED`.
 - **Autorización/tenant:** relación familiar vigente; instituciones no consultan perfil global directamente.
 - **Auditoría/comunicaciones:** alta, cambio, invitación/revocación; aviso a afectados cuando se apruebe.
@@ -57,7 +57,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** cuenta verificada; familia inicia registro.
 - **Flujo principal:** 1) aporta identificación mínima; 2) declara relación/facultad; 3) revisa propósito; 4) confirma; 5) el sistema crea perfil global familiar.
 - **Alternativos:** estudiante ya registrado requiere resolución segura. **Errores:** duplicado probable, falta de facultad o dato inválido.
-- **Reglas:** no emparejar automáticamente por RUT/nombre; datos sensibles se capturan en etapa/propósito aprobados.
+- **Reglas:** correo confirmado, formato RUT, relación declarada y certificado de nacimiento; no emparejar automáticamente por nombre/correo/RUT; escalar dudas antes de acciones críticas; sin registros externos en E1.
 - **Datos leídos/modificados:** catálogos mínimos; perfil/relación. **Clasificación:** menor `RESTRICTED`.
 - **Autorización/tenant:** relación autorizada; no pertenece a tenant hasta snapshot de postulación.
 - **Auditoría/comunicaciones:** creación, corrección y conflicto; confirmación sin datos excesivos.
@@ -73,7 +73,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** cuenta/relación vigentes, oferta publicada; familia elige “postular”.
 - **Flujo principal:** 1) autoriza estudiante; 2) valida oferta/ventana; 3) aplica política de duplicados; 4) fija versiones; 5) crea borrador.
 - **Alternativos:** reutilizar borrador existente; varias instituciones según Q-101. **Errores:** oferta cerrada, duplicado no permitido o tenant incoherente.
-- **Reglas:** oferta identificada por tenant/sede/año/curso; crear no garantiza cupo.
+- **Reglas:** oferta identificada por tenant/sede/año/curso; una activa por estudiante/institución/año/curso; instituciones distintas pueden tener postulaciones independientes; crear no garantiza cupo.
 - **Datos leídos/modificados:** oferta/configuración y perfiles; borrador/versiones. **Clasificación:** `RESTRICTED`.
 - **Autorización/tenant:** relación con estudiante y oferta pública; borrador anclado a un solo tenant.
 - **Auditoría/comunicaciones:** `ApplicationDraftCreated`; confirmación de inicio opcional.
@@ -101,7 +101,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** borrador, oferta abierta y configuración válida; actor confirma envío.
 - **Flujo principal:** 1) reautoriza; 2) valida campos, requisitos y consentimientos; 3) verifica versión/ventana/duplicado; 4) muestra resumen; 5) confirma; 6) congela snapshot; 7) emite acuse.
 - **Alternativos:** requisito condicional/exento. **Errores:** archivo no seguro, dato faltante, carrera de cierre o doble envío.
-- **Reglas:** idempotencia conceptual; instantánea no cambia al editar perfil; envío no garantiza vacante.
+- **Reglas:** idempotencia conceptual; instantánea no cambia al editar perfil; ingreso familiar no pertenece al formulario de admisión MVP; envío no garantiza vacante.
 - **Datos leídos/modificados:** borrador, configuración y documentos; postulación enviada/snapshot/evento. **Clasificación:** hasta `HIGHLY_RESTRICTED`.
 - **Autorización/tenant:** facultad Q-105; todas las referencias del mismo tenant.
 - **Auditoría/comunicaciones:** `ApplicationSubmitted`, actor/versión/instante; acuse por correo.
@@ -313,7 +313,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** cita vigente; llega hora de actividad.
 - **Flujo principal:** 1) autoriza actividad; 2) selecciona asistencia, inasistencia o cancelación; 3) registra instante/motivo mínimo; 4) confirma; 5) genera tarea según política.
 - **Alternativos:** corrección controlada. **Errores:** actividad equivocada, registro duplicado o actor no asignado.
-- **Reglas:** asistencia no equivale a conclusión; corrección agrega historia.
+- **Reglas:** asistencia no equivale a conclusión; corrección agrega historia; actividades son obligatorias en el piloto y configurables por oferta en el núcleo.
 - **Datos leídos/modificados:** cita; asistencia/razón `RESTRICTED`.
 - **Autorización/tenant:** asignación específica y tenant.
 - **Auditoría/comunicaciones:** registro/corrección; aviso operativo según regla.
@@ -425,7 +425,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** decisión favorable final, capacidad disponible, política/vigencia aprobadas; responsable emite oferta.
 - **Flujo principal:** 1) autoriza decisión/caso; 2) verifica o crea reserva consistente; 3) fija condiciones y vencimiento aprobados; 4) confirma oferta; 5) habilita comunicación; 6) espera respuesta o regla de expiración.
 - **Alternativos:** oferta nacida de promoción de espera. **Errores:** cupo concurrente, decisión no final, oferta previa vigente o condiciones sin aprobar.
-- **Reglas:** oferta no equivale a aceptación, pago ni matrícula; una unidad de capacidad no sostiene ofertas incompatibles según política.
+- **Reglas:** oferta no equivale a aceptación, pago ni matrícula; reserva se crea junto a la comunicación favorable; una unidad de capacidad no sostiene ofertas incompatibles según política.
 - **Datos leídos/modificados:** decisión/capacidad/reserva; oferta/condiciones/vigencia `RESTRICTED`.
 - **Autorización/tenant:** `offer.issue` conceptual, scope de oferta/tenant y separación respecto de decisión.
 - **Auditoría/comunicaciones:** emisión, reserva, vencimiento/cancelación; comunicación mediante UC-COM-001.
@@ -437,7 +437,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** ayudar a registrar caso si C-014 se aprueba; operador asistido. Secundario: familia.
 - **FR/preguntas:** FR-APP-003/008; FR-AUD-001/004; Q-107/C-014.
 - **Precondiciones/disparador:** modalidad aprobada, operador/scope vigentes y autorización familiar verificable.
-- **Flujo principal:** 1) explica modalidad; 2) registra operador/origen/evidencia; 3) identifica familia/estudiante sin suplantar; 4) crea borrador; 5) transcribe; 6) familia revisa o autoriza envío; 7) entrega acuse/control.
+- **Flujo principal:** 1) explica modalidad; 2) registra operador/origen/evidencia; 3) identifica familia/estudiante sin suplantar; 4) crea borrador con el mismo formulario versionado; 5) transcribe; 6) el adulto responsable revisa o autoriza envío; 7) entrega acuse/control.
 - **Alternativos:** sólo apoyo, sin enviar. **Errores:** falta de consentimiento/facultad, credenciales compartidas, conflicto o dato no aportado.
 - **Reglas:** nunca inventar; autoría de cada acción; operador no revisa/decide su caso.
 - **Datos leídos/modificados:** evidencia y datos aportados; borrador/eventos hasta `HIGHLY_RESTRICTED`.
@@ -469,7 +469,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** decisión favorable y condición A/B/C de Q-310 satisfecha; contrato futuro vigente.
 - **Flujo principal:** 1) verifica hito de negocio; 2) resuelve tenant/referencias; 3) minimiza datos; 4) crea intención/correlación/idempotencia; 5) entrega al borde; 6) registra estado técnico.
 - **Alternativos:** partes ya vinculadas. **Errores:** referencia faltante, identidad conflictiva, payload incompatible o handoff previo.
-- **Reglas:** sin tablas compartidas; RUT/correo no son idempotencia; entrega no es matrícula.
+- **Reglas:** sin tablas compartidas; handoff sólo después de aceptación expresa; RUT/correo no son idempotencia; entrega no es matrícula.
 - **Datos leídos/modificados:** decisión/oferta/identidad mínima; intención/sync `RESTRICTED`; excluye salud, NEE, documentos y notas.
 - **Autorización/tenant:** permiso `integration` conceptual; mapeo autorizado del tenant y recurso.
 - **Auditoría/comunicaciones:** creación/emisión/rechazo; familia ve sólo próximo paso, no payload.

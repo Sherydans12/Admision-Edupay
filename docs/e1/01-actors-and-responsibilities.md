@@ -6,6 +6,10 @@ Este documento es `PROPOSED`. Describe capacidades funcionales, no cargos, contr
 
 Sensibilidad: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED` y `HIGHLY_RESTRICTED`, según `docs/06-multitenancy-security.md`.
 
+## Límite funcional aprobado para el MVP familiar
+
+Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar, desistir y aceptar la vacante. Madre, padre, apoderado titular y apoderado financiero pueden registrarse como información relacionada, pero no tienen cuentas colaborativas en el MVP. Invitaciones, coadministración y resolución de conflictos quedan para una evolución posterior. Esta regla no elimina el análisis de facultades institucionales ni convierte un identificador en autorización.
+
 ## Actores externos
 
 | Actor | Objetivo | Responsabilidades | Acciones tentativamente permitidas | Acciones prohibidas | Datos mínimos y sensibilidad | Alcance institucional |

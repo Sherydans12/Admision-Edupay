@@ -6,6 +6,10 @@ Todos los journeys están `PROPOSED` y requieren validación. Describen experien
 
 Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance y propósito; snapshots al enviar; historial antes que sobreescritura; correo como único canal inicial aprobado por D-017; ningún identificador del cliente concede acceso.
 
+## Decisiones de producto aplicadas
+
+La aprobación consolidada de E1-A fija para estos journeys: un adulto responsable con cuenta en el MVP; portal como fuente oficial; postulación asistida auditada; captura progresiva y mínima; reserva junto a la oferta; aceptación expresa antes del handoff a EduPay. C-009, C-011, C-013 y C-014, además de los detalles operativos, siguen visibles como validaciones pendientes.
+
 ## Journeys de familia
 
 ### J-FAM-001 — Familia crea cuenta, registra un hijo y envía una postulación
@@ -13,8 +17,8 @@ Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance
 - **Objetivo:** completar por primera vez una postulación válida y recibir acuse.
 - **Actor principal:** apoderado postulante. **Secundarios:** estudiante, otros adultos declarados, sistema de correo.
 - **Disparador:** convocatoria publicada. **Precondiciones:** oferta vigente; canal verificable; formulario/requisitos publicados.
-- **Recorrido principal:** 1) crea y verifica cuenta; 2) declara grupo y facultad; 3) registra estudiante; 4) elige oferta; 5) completa formulario por pasos; 6) aporta documentos/consentimientos aplicables; 7) revisa resumen; 8) envía; 9) recibe acuse.
-- **Variantes:** reutiliza perfil existente; madre/padre/titular coinciden; requisito condicional no aplica; varios adultos según Q-105.
+- **Recorrido principal:** 1) el adulto responsable crea y verifica cuenta; 2) declara información relacionada sin crear cuentas colaborativas; 3) registra estudiante; 4) elige oferta; 5) completa formulario por pasos; 6) aporta documentos/consentimientos aplicables; 7) revisa resumen; 8) envía; 9) recibe acuse.
+- **Variantes:** reutiliza perfil existente; madre/padre/titular/financiero quedan relacionados; requisito condicional no aplica; colaboración queda fuera del MVP.
 - **Excepciones:** cuenta ya existente sin revelación indebida; oferta cerrada; duplicado según Q-102; archivo no seguro; validación pendiente; envío concurrente.
 - **Puntos de decisión:** oferta/duplicado permitido; campos/requisitos aplicables; facultad para enviar; confirmación final.
 - **Datos:** identidad, relación, estudiante, oferta, respuestas, documentos y consentimientos; snapshot institucional al enviar.
@@ -31,7 +35,7 @@ Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance
 - **Actor principal:** apoderado postulante. **Secundarios:** estudiantes y adultos autorizados.
 - **Disparador:** existe más de un estudiante o postulación. **Precondiciones:** relaciones autorizadas y sesión vigente.
 - **Recorrido principal:** 1) consulta resumen familiar; 2) selecciona un hijo; 3) ve postulaciones propias y próximos pasos; 4) inicia o continúa una; 5) vuelve al resumen; 6) atiende acciones por caso.
-- **Variantes:** hermanos postulan a cursos/instituciones distintos; un hijo tiene varias ofertas si se aprueba; distintos adultos tienen facultades diferentes.
+- **Variantes:** hermanos postulan a cursos/instituciones distintos; un hijo tiene varias ofertas según política; otros adultos sólo constan como información relacionada en el MVP.
 - **Excepciones:** relación revocada; postulación ya enviada; conflicto de edición; tenant u oferta no accesible.
 - **Puntos de decisión:** Q-101/Q-102; quién puede actuar; prioridad de tareas y vencimientos.
 - **Datos:** perfiles familiares globales y snapshots separados por postulación/tenant.
@@ -132,7 +136,7 @@ Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance
 - **Objetivo:** conocer una decisión autorizada y completar la acción posterior correcta.
 - **Actor principal:** apoderado postulante. **Secundarios:** Dirección, Admisión, comunicaciones, cupos, EduPay futuro.
 - **Disparador:** decisión favorable de Dirección y acción de comunicación autorizada. **Precondiciones:** decisión final registrada; política de cupo/oferta aplicable.
-- **Recorrido principal:** 1) Dirección decide; 2) cupo/espera se resuelve; 3) Admisión autoriza comunicación; 4) familia recibe resultado y condiciones; 5) responde oferta si se aprueba; 6) se inicia handoff en momento Q-310.
+- **Recorrido principal:** 1) Dirección decide; 2) se reserva y emite oferta; 3) Admisión autoriza comunicación; 4) familia recibe resultado y condiciones; 5) el adulto responsable acepta expresamente; 6) se inicia handoff; 7) EduPay continúa su propio ciclo.
 - **Variantes:** favorable con oferta inmediata; favorable con paso de aceptación; acción externa de formalización.
 - **Excepciones:** cupo ya no disponible, comunicación fallida, oferta expirada, respuesta duplicada, divergencia de handoff.
 - **Puntos de decisión:** reserva, vigencia, aceptación explícita, Q-310 y efecto de no formalizar.
@@ -150,7 +154,7 @@ Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance
 - **Actor principal:** apoderado postulante. **Secundarios:** Dirección, Admisión, responsable de cupos.
 - **Disparador:** decisión/regla de capacidad lleva a espera. **Precondiciones:** política versionada y decisión autorizada.
 - **Recorrido principal:** 1) se registra ingreso y criterio; 2) se comunica condición y vigencia; 3) familia consulta estado; 4) responsable revisa ante cupo; 5) promoción requiere confirmación humana por D-008; 6) se emite oferta o cierra.
-- **Variantes:** posición visible o no; prioridades/desempates aprobados; familia desiste.
+- **Variantes:** cambios de política quedan para evolución; prioridades/desempates aprobados; familia desiste. En el MVP no se muestra posición numérica exacta.
 - **Excepciones:** empate, ajuste de cupo, cierre de lista, comunicación fallida, promoción concurrente.
 - **Puntos de decisión:** orden, visibilidad, promoción, plazo y respuesta.
 - **Datos:** entrada, política, razón/orden interno, cupo y comunicaciones.
@@ -166,7 +170,7 @@ Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance
 - **Objetivo:** cerrar correctamente y liberar capacidad cuando corresponda.
 - **Actor principal:** apoderado postulante o regla de expiración. **Secundarios:** Admisión, cupos, comunicaciones, EduPay si handoff iniciado.
 - **Disparador:** desistimiento explícito o vencimiento de regla publicada. **Precondiciones:** postulación no terminal; autoridad o reloj válido.
-- **Recorrido principal:** 1) familia solicita desistir o vence plazo; 2) sistema explica efectos/solicita confirmación; 3) registra actor o regla; 4) libera reserva si aplica; 5) comunica cierre; 6) coordina consecuencia futura con EduPay sólo por contrato.
+- **Recorrido principal:** 1) familia solicita desistir o vence plazo; 2) sistema explica efectos/solicita confirmación; 3) registra actor o regla; 4) libera reserva si aplica; 5) comunica cierre; 6) no inicia handoff si se rechaza/desiste/vence; 7) coordina sólo una consecuencia futura con EduPay por contrato.
 - **Variantes:** desistimiento de borrador, espera u oferta; excepción institucional antes del vencimiento; reapertura extraordinaria.
 - **Excepciones:** acción concurrente con aceptación/pago; actor sin facultad; reloj o regla incorrecta; integración en curso.
 - **Puntos de decisión:** plazos, excepción, reapertura, compensación y quién autoriza.
@@ -263,7 +267,7 @@ Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance
 - **Objetivo:** evitar sobreoferta y promover de forma reproducible.
 - **Actor principal:** responsable de cupos. **Secundarios:** Admisión, Dirección, familia.
 - **Disparador/precondiciones:** capacidad aprobada; política versionada; decisión relevante.
-- **Recorrido principal:** registrar capacidad/ajustes; consultar disponibilidad; crear/liberar reserva; ordenar espera por política; seleccionar candidato; confirmar humanamente D-008; promover y emitir oferta; auditar.
+- **Recorrido principal:** registrar capacidad/ajustes; consultar disponibilidad; ordenar espera por política; seleccionar candidato; confirmar humanamente D-008; crear reserva junto a la emisión de oferta; comunicar; liberar por vencimiento/rechazo/desistimiento; auditar.
 - **Variantes:** cupo agregado/retirado, empate, oferta expirada, desistimiento. **Excepciones:** concurrencia, criterio no definido, orden alterado, reserva huérfana.
 - **Decisiones:** Q-162 a Q-167. **Datos:** capacidad interna y postulación mínima.
 - **No mostrar:** lista completa, datos de otras familias, posición no aprobada.
@@ -276,7 +280,7 @@ Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance
 - **Objetivo:** reducir barreras sin ocultar autoría ni crear un canal informal.
 - **Actor principal:** operador asistido. **Secundarios:** familia, administrador, Admisión.
 - **Disparador/precondiciones:** opción B de Q-107 aprobada; operador autorizado; identidad y consentimiento/autorización verificados.
-- **Recorrido principal:** explicar alcance; registrar origen y autorización; crear borrador; transcribir datos aportados; permitir revisión familiar; adjuntar evidencia; enviar sólo si la regla lo permite; entregar acuse.
+- **Recorrido principal:** explicar alcance; registrar operador/institución/origen/autorización/fecha; usar el mismo formulario versionado; transcribir datos aportados; permitir revisión del adulto responsable; adjuntar evidencia; enviar sólo si la regla lo permite; entregar acuse/control.
 - **Variantes:** familia toma control antes de enviar; asistencia presencial/remota; sólo apoyo de digitación. **Excepciones:** falta de facultad, conflicto, documento inseguro, operador intenta revisar su caso.
 - **Decisiones:** nivel de asistencia, evidencia, envío y control posterior. **Datos:** los mismos del caso más registro de operador/origen.
 - **No mostrar:** casos ajenos ni credenciales de familia; no registrar secretos.
@@ -290,7 +294,7 @@ Reglas comunes: autorización resuelta por identidad, relación, tenant, alcance
 - **Objetivo:** iniciar un handoff controlado en el momento funcional aprobado.
 - **Actor principal:** Admisión. **Secundarios:** familia, Dirección, EduPay, soporte de integración.
 - **Disparador/precondiciones:** decisión favorable; Q-310 cumplida; referencia de tenant/oferta válida; contrato futuro aprobado.
-- **Recorrido principal:** verificar hito; preparar mínimo funcional; registrar intención/correlación; entregar a borde futuro; consultar estado; recibir confirmación; proyectar sin confundir entrega con matrícula.
+- **Recorrido principal:** verificar aceptación expresa; preparar mínimo funcional; registrar intención/correlación; entregar a borde futuro; consultar estado; recibir confirmación; proyectar sin confundir entrega con matrícula.
 - **Variantes:** tras decisión, aceptación o formalización según Q-310; vinculación existente. **Excepciones:** conflicto de identidad, rechazo, timeout, duplicado, desistimiento durante proceso.
 - **Decisiones:** Q-310 en E1; Q-301 a Q-309 quedan para integración. **Datos:** identidad/relación académica mínimas; nunca salud, NEE, documentos o notas.
 - **No mostrar:** payload, referencias técnicas, reintentos o errores internos.

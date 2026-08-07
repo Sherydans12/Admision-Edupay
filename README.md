@@ -12,7 +12,7 @@ E1 — Diseño funcional está autorizada. G1 no está aprobada y conserva asunt
 
 Esta autorización permite únicamente continuar el diseño funcional. No autoriza implementación, uso de datos reales, integración ejecutable ni selección definitiva de stack. `ADR-0001` permanece `PROPOSED`.
 
-**E1-A — Base funcional y paquete de decisiones está en progreso** en la rama `docs/e1-functional-baseline`, mediante el PR borrador **“E1-A: Define functional baseline and decision pack”** hacia `main`. Su objetivo es documentar actores, journeys, casos de uso, opciones funcionales, trazabilidad y validación institucional. Esta entrega prohíbe implementación, scaffolding, dependencias y decisiones de arquitectura. Estado y plan: [`docs/e1/00-e1-plan-and-status.md`](docs/e1/00-e1-plan-and-status.md).
+**E1-A — Decisiones funcionales de producto aprobadas; validación institucional pendiente** en la rama `docs/e1-functional-baseline`, mediante el PR borrador **“E1-A: Define functional baseline and decision pack”** hacia `main`. La aprobación consolidada de Nicolás Sena quedó registrada el `2026-08-06T22:09:00-04:00`; E1-B aún no inicia. Esta entrega continúa sin autorizar implementación, scaffolding, dependencias ni decisiones de arquitectura. Estado y plan: [`docs/e1/00-e1-plan-and-status.md`](docs/e1/00-e1-plan-and-status.md); acta: [`docs/approvals/E1-A-functional-decisions-2026-08-06.md`](docs/approvals/E1-A-functional-decisions-2026-08-06.md).
 
 ## Principios
 

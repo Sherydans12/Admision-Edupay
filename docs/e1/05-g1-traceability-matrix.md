@@ -2,7 +2,11 @@
 
 ## Estado
 
-Matriz `PROPOSED` para responder qué falta, quién decide, qué evidencia se requiere y dónde se consolidará. `E1-A` prepara opciones; `E1-B` incorpora decisiones; `E1-C` verifica consistencia y prepara la solicitud de G1. Ninguna fila `PROPOSED`, `NEEDS_DECISION` o `PARTIAL` satisface por sí sola un criterio de salida.
+Matriz de trazabilidad consolidada para responder qué falta, quién decide, qué evidencia se requiere y dónde se consolidará. `E1-A` registra decisiones de producto; `E1-B` incorporará validaciones institucionales; `E1-C` verificará consistencia y preparará la solicitud de G1. Los estados `PROPOSED`, `NEEDS_DECISION` y `PARTIAL` de la tabla histórica muestran el estado previo a la aprobación y no reemplazan el estado consolidado.
+
+## Estado consolidado de producto
+
+Las 33 preguntas objetivo tienen estado `APPROVED_PRODUCT` por aprobación de Nicolás Sena el `2026-08-06T22:09:00-04:00`: Q-101–Q-108, Q-120–Q-124, Q-140–Q-145, Q-160–Q-167, Q-180–Q-184 y Q-310. Permanecen como pendientes de validación o detalle: C-009, C-011, C-013, C-014; cifras/responsables/pautas/plantillas; y Q-301 a Q-309. La aprobación de producto no satisface por sí sola los criterios de G1.
 
 ## Criterios de salida de G1
 

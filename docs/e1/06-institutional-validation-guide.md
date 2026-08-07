@@ -2,14 +2,14 @@
 
 ## Propósito
 
-Esta guía permite revisar E1-A en una reunión con Arturo Javier Galleguillos Trigo, personal de Admisión, Dirección y quienes realizarán entrevistas o evaluaciones. No contiene respuestas atribuidas al colegio. Las recomendaciones BaseLogic/EduPay son propuestas de producto y deben aprobarse, modificarse, rechazarse o dejarse pendientes.
+Esta guía permite revisar E1-A en una reunión con Arturo Javier Galleguillos Trigo, personal de Admisión, Dirección y quienes realizarán entrevistas o evaluaciones. No contiene respuestas atribuidas al colegio. La posición funcional de producto de BaseLogic/EduPay ya fue aprobada por Nicolás Sena; la reunión debe validar reglas institucionales y completar detalles operativos, no volver a votar esas decisiones de producto.
 
 No registrar en esta guía datos personales de familias, estudiantes o trabajadores. Usar ejemplos sintéticos y mencionar cargos, no información de contacto.
 
 ## Resultado esperado de la reunión
 
-- Confirmar si los recorridos reflejan la operación real.
-- Resolver o asignar dueño/fecha a las preguntas que bloquean E1-B.
+- Confirmar si los recorridos aprobados reflejan la operación real.
+- Resolver o asignar dueño/fecha a las validaciones y detalles que bloquean E1-B.
 - Distinguir decisión de producto, validación institucional y asunto legal posterior.
 - Registrar desacuerdos sin forzar una respuesta.
 - Mantener G1 `NO APROBADA` hasta completar E1.
@@ -24,6 +24,10 @@ No registrar en esta guía datos personales de familias, estudiantes o trabajado
 | Entrevistadores/evaluadores | Pautas, datos mínimos, asistencia y correcciones |
 | Nicolás Sena | Producto, trazabilidad, seguridad técnica e integración EduPay |
 | Responsable legal/normativo | Pendiente; necesario antes de datos reales para tratamiento/retención, no para inventar respuestas en esta reunión |
+
+## Decisiones de producto que no se reabren en esta reunión
+
+Quedan fijadas para el MVP: disponibilidad categórica; un adulto responsable con cuenta; portal como fuente oficial y postulación asistida; captura mínima; catálogo documental versionado; actividades obligatorias en el piloto y configurables en el núcleo; reserva junto a oferta; promoción humana de espera; historial familiar seguro; correo automático único; y handoff a EduPay después de aceptación expresa. Si el colegio necesita una excepción o cambio, registrar `MODIFICADO` o `PENDIENTE` con impacto y responsable, sin presentarlo como una decisión ya aprobada.
 
 ## Cómo registrar cada tema
 
@@ -42,119 +46,119 @@ Una conversación sin registro no cuenta como aprobación.
 
 - **Por qué se pregunta:** “cupo” puede significar capacidad total, cupo del proceso o vacante disponible; una confusión puede producir sobreoferta.
 - **Recomendación BaseLogic/EduPay:** administrar cupos del proceso por curso; mostrar disponibilidad categórica; reservar al emitir oferta; mantener matrícula separada.
-- **Preguntas:** ¿qué significa cupo para el colegio?, ¿quién lo fija/ajusta?, ¿qué se muestra a familias?, ¿cuándo se reserva y libera?
+- **Preguntas de validación:** ¿qué valores de cupo de admisión y qué responsables deben configurarse?, ¿qué texto categórico usa el colegio?, ¿qué duración concreta tendrá la reserva?
 - **Trazabilidad:** Q-103, Q-162, Q-163; UC-CAP-001.
 
 ### 2. Formulario
 
 - **Por qué se pregunta:** la ficha histórica no determina qué debe ser obligatorio hoy.
 - **Recomendación:** formulario por pasos, versionado, campos por finalidad y curso, sin pedir información “por si acaso”.
-- **Preguntas:** ¿qué campos necesita cada curso?, ¿cuáles son obligatorios/condicionales?, ¿quién revisa antes de publicar?
+- **Preguntas de validación:** ¿qué campos concretos necesita cada curso?, ¿qué condiciones/periodos aplican?, ¿quién revisa el borrador antes de publicar?
 - **Trazabilidad:** Q-104, Q-108; UC-FRM-001/002.
 
 ### 3. Documentos
 
 - **Por qué se pregunta:** SRC-002 dice “cuando corresponda” y SRC-003 pide informes 2025/2026.
 - **Recomendación:** catálogo por curso, periodo y condición; aceptar equivalentes definidos; conservar versiones y exenciones justificadas.
-- **Preguntas:** ¿qué documento aplica a qué curso?, ¿qué vigencia/equivalente?, ¿quién revisa/exime?, ¿plazos/intentos?
+- **Preguntas de validación:** ¿qué curso/periodo/equivalente se registra?, ¿quién ocupa cada rol de revisión/exención?, ¿qué formatos, plazos e intentos concretos se usarán?
 - **Trazabilidad:** Q-120 a Q-124, C-011; UC-DOC-001 a 003.
 
 ### 4. Información sensible
 
 - **Por qué se pregunta:** PIE, NEE, tratamientos, salud e ingreso familiar pueden causar daño si se piden sin finalidad o se muestran a roles amplios.
 - **Recomendación:** captura progresiva, opcional/condicional hasta justificar; acceso por propósito; separar ingreso familiar de decisión académica por defecto.
-- **Preguntas por cada dato:** ¿para qué se usa?, ¿es obligatorio?, ¿quién lo ve?, ¿cuándo se pide?, ¿qué pasa si no se entrega?
+- **Preguntas de validación por cada dato:** ¿qué finalidad institucional concreta se confirma?, ¿quién queda autorizado?, ¿en qué etapa se captura?, ¿qué detalle debe revisar el responsable legal antes de datos reales?
 - **Trazabilidad:** Q-104, C-013; UC-FRM-001/UC-ACT-005/UC-ADM-003.
 
 ### 5. Entrevista del apoderado
 
 - **Por qué se pregunta:** se confirma la actividad, pero faltan pauta, modalidad y excepciones.
 - **Recomendación:** cita asignada por colegio, pauta estructurada, datos mínimos y conclusión restringida.
-- **Preguntas:** ¿objetivo/pauta?, ¿quién entrevista?, ¿modalidad?, ¿qué se registra?, ¿quién lo ve?
+- **Preguntas de validación:** ¿quién ocupa/suple el rol?, ¿qué pauta y modalidad concreta usará el colegio?, ¿qué conclusión necesita registrar y quién la revisa?
 - **Trazabilidad:** Q-141 a Q-145; UC-ACT-003 a 005.
 
 ### 6. Evaluación diagnóstica
 
 - **Por qué se pregunta:** D-015 la exige para todo el piloto, mientras una fuente permite variación; C-009 sigue pendiente.
 - **Recomendación:** mantenerla configurable; para el piloto marcarla obligatoria sólo después de confirmación institucional expresa; definir repetición/exención.
-- **Preguntas:** ¿aplica a todos los cursos?, ¿qué objetivo/pauta tiene?, ¿cuándo se repite o exime?, ¿quién accede a la conclusión?
+- **Preguntas de validación C-009:** ¿qué pauta, repetición y exención concreta se aplicará?, ¿quién accede a la conclusión?, ¿qué redacción institucional confirma la obligatoriedad del piloto?
 - **Trazabilidad:** Q-140, Q-144/Q-145, C-009; UC-ACT-003/005.
 
 ### 7. Reprogramaciones e inasistencias
 
 - **Por qué se pregunta:** hoy no hay límites, tolerancia ni efecto aprobados.
 - **Recomendación:** solicitud registrada, historial de horarios y revisión humana antes de cerrar un caso por inasistencia.
-- **Preguntas:** ¿cuántos cambios?, ¿anticipación/tolerancia?, ¿quién aprueba?, ¿qué ocurre al no asistir?
+- **Preguntas de detalle:** ¿cuántos cambios, anticipación y tolerancia se configuran?, ¿quién revisa la primera inasistencia?, ¿qué tarea se crea?
 - **Trazabilidad:** Q-142/Q-143; UC-ACT-002/004.
 
 ### 8. Recomendación de Admisión
 
 - **Por qué se pregunta:** recomendar no es decidir; se necesita una pauta consistente.
 - **Recomendación:** pauta versionada, fundamento permitido, versión cerrada al enviar y devolución trazable.
-- **Preguntas:** ¿qué antecedentes considera?, ¿quién recomienda/suple?, ¿qué fundamento registra?, ¿qué nunca debe incluir?
+- **Preguntas de detalle:** ¿qué pauta/versiones y antecedentes autorizados se usarán?, ¿quién recomienda/suple?, ¿qué fundamento y campos restringidos se registran?
 - **Trazabilidad:** Q-160/Q-161; UC-DEC-001.
 
 ### 9. Decisión de Dirección
 
 - **Por qué se pregunta:** la autoridad y las excepciones deben quedar claras.
 - **Recomendación:** Dirección aprueba, rechaza o devuelve; no edita la recomendación; suplente formal y sin autoaprobación.
-- **Preguntas:** ¿quién decide/suple?, ¿qué justificación exige?, ¿se requiere doble control?, ¿quién puede reabrir?
+- **Preguntas de detalle:** ¿qué personas/suplentes ocupan Dirección?, ¿qué justificación y doble control se aplican?, ¿quién recibe solicitudes de reapertura?
 - **Trazabilidad:** Q-160/Q-161/Q-167; UC-DEC-002/003.
 
 ### 10. Comunicación de resultados
 
 - **Por qué se pregunta:** una decisión no debe enviarse antes de autorización ni confundirse envío con entrega.
 - **Recomendación:** plantillas versionadas por resultado, aprobación previa, correo mínimo y cola de fallos.
-- **Preguntas:** ¿quién redacta/aprueba/envía?, ¿qué texto/variables?, ¿remitente/horario?, ¿qué se hace ante rebote?
+- **Preguntas de detalle:** ¿quién redacta/aprueba/envía cada plantilla?, ¿qué variables y remitente se autorizan?, ¿qué horario y tarea se usan ante rebote?
 - **Trazabilidad:** Q-180/Q-181; UC-COM-001.
 
 ### 11. Lista de espera
 
 - **Por qué se pregunta:** orden, desempate y visibilidad afectan equidad y cupos.
 - **Recomendación:** política explícita/versionada, posición no exacta en piloto y promoción con confirmación humana.
-- **Preguntas:** ¿criterios/desempate?, ¿familia ve posición?, ¿quién confirma promoción?, ¿cuándo cierra?
+- **Preguntas de validación:** ¿qué criterios/desempate institucional se versionan?, ¿qué fecha de actualización se muestra?, ¿quién confirma promoción y cuándo cierra?
 - **Trazabilidad:** Q-164/Q-165; D-008; UC-CAP-002/003.
 
 ### 12. Desistimiento y vencimiento
 
 - **Por qué se pregunta:** cerrar puede liberar cupo y afectar un handoff.
 - **Recomendación:** confirmación explícita, regla/plazo versionados, motivo, liberación y reapertura sólo excepcional.
-- **Preguntas:** ¿qué plazos vencen?, ¿qué avisos previos?, ¿quién autoriza excepción/reapertura?, ¿qué efecto tiene no formalizar?
+- **Preguntas de detalle:** ¿qué plazos y avisos previos configura el colegio?, ¿quién autoriza excepción/reapertura?, ¿qué evidencia se conserva al no formalizar?
 - **Trazabilidad:** Q-163/Q-167; UC-APP-006.
 
 ### 13. Postulación asistida
 
 - **Por qué se pregunta:** portal exclusivo puede excluir; correo/papel paralelo reduce trazabilidad.
 - **Recomendación:** portal principal con operador asistido autorizado, registro de origen/consentimiento/autoría y revisión familiar.
-- **Preguntas:** ¿quién necesita apoyo?, ¿qué personal lo presta?, ¿puede enviar?, ¿qué evidencia se conserva?
+- **Preguntas de validación C-014:** ¿qué personal prestará apoyo?, ¿cómo se verifica autorización?, ¿podrá enviar con el adulto presente?, ¿qué evidencia institucional se conservará?
 - **Trazabilidad:** Q-107/C-014; UC-ADM-002.
 
 ### 14. Aceptación de vacante
 
 - **Por qué se pregunta:** decisión favorable, oferta, aceptación y matrícula no son equivalentes.
 - **Recomendación:** respuesta expresa por adulto facultado, con condiciones/plazo y efecto claro sobre reserva.
-- **Preguntas:** ¿se exige aceptar?, ¿quién puede hacerlo?, ¿cuánto dura?, ¿qué ocurre con múltiples ofertas?
+- **Preguntas de detalle:** ¿qué texto y plazo tendrá la aceptación?, ¿cómo se identifica al adulto responsable?, ¿qué regla libera ofertas restantes dentro del colegio?
 - **Trazabilidad:** Q-105/Q-163/Q-166; UC-APP-007.
 
 ### 15. Momento de derivación a EduPay
 
 - **Por qué se pregunta:** derivar demasiado pronto transfiere datos/trabajo innecesario; derivar después del pago puede impedir que EduPay genere obligaciones.
 - **Recomendación:** decisión favorable → oferta/reserva → aceptación familiar → handoff → asociación académica/obligaciones en EduPay → pago externo → confirmación futura.
-- **Preguntas:** ¿aceptación antes del handoff?, ¿qué pasa si desiste/vencer durante el proceso?, ¿quién atiende divergencias?
+- **Preguntas de detalle:** ¿quién monitorea aceptación, vencimiento y liberación?, ¿quién atiende una divergencia mientras Q-301 a Q-309 siguen pendientes?
 - **Trazabilidad:** Q-310; UC-INT-001 a 005. No define API.
 
 ### 16. Reportes
 
 - **Por qué se pregunta:** exportar más datos de los necesarios aumenta riesgo y trabajo.
 - **Recomendación:** catálogo por propósito/audiencia, métricas agregadas por defecto y exportación identificable temporal/auditada sólo si se justifica.
-- **Preguntas:** ¿qué decisión soporta cada reporte?, ¿columnas?, ¿audiencia/frecuencia?, ¿requiere identificadores?
+- **Preguntas de detalle:** ¿qué reportes y columnas mínimas necesita cada audiencia?, ¿frecuencia?, ¿qué exportaciones requieren justificación identificable?
 - **Trazabilidad:** Q-183; UC-ADM-003.
 
 ### 17. Plazos operacionales
 
 - **Por qué se pregunta:** sin tiempos por etapa no se pueden gestionar expectativas ni escalamiento.
 - **Recomendación:** objetivos por revisión, corrección, cita, recomendación, decisión, comunicación, oferta y espera, con dueño y calendario institucional.
-- **Preguntas:** ¿tiempo objetivo por etapa?, ¿días/horarios hábiles?, ¿recordatorios?, ¿quién actúa al vencer?
+- **Preguntas de detalle:** ¿qué valores objetivo, calendario y recordatorios define el colegio?, ¿quién actúa al vencer cada objetivo?
 - **Trazabilidad:** Q-122/Q-142/Q-163/Q-181/Q-184.
 
 ## Registro de decisiones de la reunión
