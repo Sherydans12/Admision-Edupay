@@ -23,7 +23,7 @@ Las 33 preguntas objetivo tienen estado `APPROVED_PRODUCT` por aprobación de Ni
 
 Abreviaturas de aprobación: `NS` Nicolás Sena; `RI` representante institucional; `ADM` Admisión; `DIR` Dirección; `CUP` responsable de cupos; `ACT` entrevistadores/evaluadores; `COM` comunicaciones. “Evidencia” implica respuesta fechada, responsable y resultado `APPROVED/MODIFIED/REJECTED/PENDING`.
 
-| Q | C / D relacionada | FR/NFR | Journeys | Casos de uso | Aprueba | Estado | Evidencia necesaria | Entrega |
+| Q | C / D relacionada | FR/NFR | Journeys | Casos de uso | Aprueba | Estado previo a aprobación | Evidencia necesaria | Entrega |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Q-101 | D-002/D-013 | FR-APP-001/003/004 | J-FAM-001/002; J-ADM-001 | UC-APP-001 | NS+RI | `PROPOSED` | Combinaciones permitidas por estudiante/oferta | E1-B |
 | Q-102 | D-002/D-003 | FR-APP-004 | J-FAM-001/003; J-ADM-001 | UC-APP-001/003 | NS+ADM | `PROPOSED` | Clave funcional de duplicado y excepciones | E1-B |
