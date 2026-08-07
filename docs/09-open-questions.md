@@ -169,7 +169,7 @@ Las opciones históricas, decisiones canónicas, impactos y pendientes de Q-101 
 | --- | --- | --- |
 | Q-120 | Catálogo por curso/proceso/oferta/condición; informe vigente/disponible o equivalente; no 2025/2026 rígidos | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-011; OPERATIONAL_DETAIL_PENDING |
 | Q-121 | ¿Quién revisa cada tipo y quién puede eximir? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
-| Q-122 | ¿Cuántas correcciones y qué plazos? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING; cifras del colegio |
+| Q-122 | ¿Cuántas correcciones y qué plazos? | APPROVED_PRODUCT; `DEFINED_FOR_PILOT` para plazo de 3 días hábiles; cantidad de correcciones y escalamiento pendientes |
 | Q-123 | ¿Cómo tratar archivos con contraseña, multipágina o firmas? | APPROVED_PRODUCT; catálogo operativo pendiente |
 | Q-124 | ¿Puede la familia eliminar un archivo antes/después de enviar? | APPROVED_PRODUCT; Q-202 pendiente |
 
@@ -177,10 +177,10 @@ Las opciones históricas, decisiones canónicas, impactos y pendientes de Q-101 
 
 | ID | Pregunta/Respuesta parcial | Estado |
 | --- | --- | --- |
-| Q-140 | Entrevista y evaluación obligatorias para todos; configuración versionada, excepciones/repetición/cierre auditados | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-009; OPERATIONAL_DETAIL_PENDING |
-| Q-141 | Colegio asigna horarios directamente | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
-| Q-142 | No completada → registrar y reprogramar; eximir/cerrar sólo excepcionalmente con motivo y auditoría | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-009; OPERATIONAL_DETAIL_PENDING |
-| Q-143 | ¿Presencial, remota o híbrida; ubicación/enlace? | APPROVED_PRODUCT; modalidad piloto pendiente |
+| Q-140 | Entrevista y evaluación obligatorias para todos; configuración versionada, excepciones/repetición/cierre auditados | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-009; `DEFINED_FOR_PILOT`; ejecutores, duración y pauta pendientes |
+| Q-141 | Colegio asigna horarios directamente | APPROVED_PRODUCT; `DEFINED_FOR_PILOT` para asignación; ejecutores, duración y suplencias pendientes |
+| Q-142 | No completada → registrar y reprogramar; eximir/cerrar sólo excepcionalmente con motivo y auditoría | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-009; `DEFINED_FOR_PILOT` para 2 reprogramaciones y 15 minutos; autoridad concreta de cierre pendiente |
+| Q-143 | ¿Presencial, remota o híbrida; ubicación/enlace? | APPROVED_PRODUCT; `DEFINED_FOR_PILOT` presencial en MVP; ubicación, duración y modalidad futura pendientes |
 | Q-144 | Pauta y conclusión quedan restringidas; acceso por rol/propósito; excepciones y cierres auditados | APPROVED_PRODUCT; INSTITUTIONALLY_VALIDATED por C-009/C-013; OPERATIONAL_DETAIL_PENDING; LEGAL_VALIDATION_PENDING para datos reales |
 | Q-145 | ¿Puede corregirse una conclusión y por quién? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
 
@@ -191,9 +191,9 @@ Las opciones históricas, decisiones canónicas, impactos y pendientes de Q-101 
 | Q-160 | Admisión recomienda y Dirección decide; criterios/fundamentos siguen abiertos | APPROVED_PRODUCT; pauta y criterios institucionales pendientes |
 | Q-161 | Separación recomendador/aprobador confirmada para piloto | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
 | Q-162 | ¿Capacidad total, cupo de admisión o vacante disponible? | APPROVED_PRODUCT; valores y responsables pendientes |
-| Q-163 | ¿Cuándo se reserva y cuánto dura reserva/oferta? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING; duración del colegio |
-| Q-164 | ¿Orden, prioridades y desempates de espera? | APPROVED_PRODUCT; criterios institucionales pendientes |
-| Q-165 | ¿La familia ve posición exacta? | APPROVED_PRODUCT; texto institucional pendiente |
+| Q-163 | ¿Cuándo se reserva y cuánto dura reserva/oferta? | APPROVED_PRODUCT; `DEFINED_FOR_PILOT` para reserva/oferta y plazo de 3 días hábiles; calendario institucional pendiente |
+| Q-164 | ¿Orden, prioridades y desempates de espera? | APPROVED_PRODUCT; `DEFINED_FOR_PILOT` para orden de ingreso; prioridades y desempates pendientes |
+| Q-165 | ¿La familia ve posición exacta? | APPROVED_PRODUCT; `DEFINED_FOR_PILOT` no muestra posición exacta; texto institucional pendiente |
 | Q-166 | ¿Qué ocurre si acepta varias ofertas? | APPROVED_PRODUCT; política de elección pendiente |
 | Q-167 | ¿Quién puede reabrir rechazo, desistimiento o expiración? | APPROVED_PRODUCT; autoridades concretas pendientes |
 
@@ -206,6 +206,26 @@ Las opciones históricas, decisiones canónicas, impactos y pendientes de Q-101 
 | Q-182 | ¿Qué historial se muestra a familia? | APPROVED_PRODUCT; textos/proyección pendiente |
 | Q-183 | ¿Reportes/exportaciones, periodicidad y audiencia? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING |
 | Q-184 | ¿SLA operativos por etapa? | APPROVED_PRODUCT; OPERATIONAL_DETAIL_PENDING; valores del colegio |
+
+## Addendum E1-B — Detalle operativo definido para el piloto
+
+`DEFINED_FOR_PILOT` identifica una regla inicial del piloto sin convertirla en un valor fijo del núcleo ni cerrar G1. Las definiciones completas están en [`e1/08-pilot-operational-rules.md`](e1/08-pilot-operational-rules.md) y [`e1/09-pilot-configuration-matrix.md`](e1/09-pilot-configuration-matrix.md).
+
+| ID/tema | Estado E1-B | Definición del piloto |
+| --- | --- | --- |
+| Responsables | `DEFINED_FOR_PILOT` | Administrador Institucional Máximo: Arturo Javier Galleguillos Trigo, Sostenedor; Responsable de Admisión: Roxana Henríquez; Secretaría como apoyo operativo |
+| Q-121 | `DEFINED_FOR_PILOT`; OPERATIONAL_DETAIL_PENDING | Validación definitiva por Responsable de Admisión o revisor autorizado; Secretaría sólo recepción/carga por defecto |
+| Q-122 | `DEFINED_FOR_PILOT` | Corrección documental: 3 días hábiles, configurable; requisito, portal, correo y límite visible |
+| Q-140/Q-141/Q-143 | `DEFINED_FOR_PILOT`; OPERATIONAL_DETAIL_PENDING | Entrevista/evaluación obligatorias y presenciales en MVP; horario asignado; ejecutores y duración pendientes |
+| Q-142 | `DEFINED_FOR_PILOT`; OPERATIONAL_DETAIL_PENDING | 2 reprogramaciones normales y 15 minutos de tolerancia; familia solicita con motivo; Admisión/Secretaría asignan |
+| Q-144/Q-145 | `DEFINED_FOR_PILOT`; OPERATIONAL_DETAIL_PENDING | Resultado simple interno y comentario opcional; no visible a familia; repetición y corrección versionadas |
+| Q-160/Q-161 | `DEFINED_FOR_PILOT`; OPERATIONAL_DETAIL_PENDING | Recomendación con opciones internas y fundamento obligatorio; recomendador no decide; suplencias pendientes |
+| Q-162/Q-163 | `DEFINED_FOR_PILOT`; OPERATIONAL_DETAIL_PENDING | Cupos manuales configurables; `APROBADO` crea reserva/oferta; aceptación 3 días hábiles; ajustes auditados |
+| Q-164/Q-165/Q-166 | `DEFINED_FOR_PILOT`; OPERATIONAL_DETAIL_PENDING | Orden de ingreso por defecto; no posición familiar; prioridades concretas pendientes; ofertas del mismo colegio según política |
+| Q-167 | `OPERATIONAL_DETAIL_PENDING` | Reapertura manual excepcional con actor, motivo y auditoría; autoridad concreta pendiente |
+| Q-181/Q-183/Q-184 | `DEFINED_FOR_PILOT`; OPERATIONAL_DETAIL_PENDING | Correos de cita/oferta/corrección/resultado; dashboard y catálogo de reportes; textos, recordatorio y SLA adicionales pendientes |
+
+Q-201 a Q-210, Q-301 a Q-309 y las decisiones arquitectónicas continúan en sus compuertas originales.
 
 ## Preguntas de seguridad, legalidad y operación para G2/G5
 

@@ -23,10 +23,10 @@ Los términos como `PHYSICAL_DOCUMENT`, `SELF-ELEVATION` y los nombres de permis
 
 | ID | Estado | Pendiente que permanece |
 | --- | --- | --- |
-| C-009 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Catálogo de actividades, responsables, suplencias, pautas, modalidades, tolerancias y reglas concretas |
+| C-009 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Ejecutores, suplencias, duración, pautas, criterios de cierre y acceso detallados |
 | C-011 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Catálogo del piloto por curso/nivel, condición, vigencia y reglas de equivalencia |
 | C-013 | `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING` | Fundamento normativo, textos aplicables, retención, eliminación/anonimización, solicitudes de titulares y matriz legal final |
-| C-014 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Personal, suplencias, procedimiento, evidencias y reglas de conservación/devolución física |
+| C-014 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Suplencias, delegaciones adicionales, procedimiento detallado y reglas de conservación/devolución física |
 
 Estas cuatro contradicciones ya no bloquean conceptualmente el inicio de E1-B. Los pendientes indicados sí deben permanecer visibles para completar la especificación y preparar G1.
 
@@ -50,7 +50,7 @@ Estas cuatro contradicciones ya no bloquean conceptualmente el inicio de E1-B. L
 
 ### Pendientes operativos
 
-Pautas, modalidad, responsables y suplencias, número de reprogramaciones, tolerancias, plazos, criterios de cierre y criterios de acceso detallados quedan para E1-B. No se inventan cifras ni nombres.
+Para el piloto ya se definieron la presencialidad, 2 reprogramaciones normales y 15 minutos de tolerancia. Permanecen pendientes las pautas, la duración, los ejecutores concretos, las suplencias, los criterios de cierre y los criterios de acceso detallados. No se inventan nombres adicionales.
 
 ## C-011 — Informe de personalidad
 
@@ -124,14 +124,22 @@ Para evolución multioperador queda como control futuro propuesto que algunas ca
 
 ## Impacto en E1-B
 
-E1-B debe completar, sin inventar valores, catálogos concretos, personas y suplencias, cantidades, plazos, modalidades, pautas, criterios de espera, plantillas, reportes y reglas de excepción. El modelo funcional debe conservar historial, distinguir completado/exento/no completado/cerrado, vincular intentos y registrar origen documental.
+E1-B debe completar, sin inventar valores, catálogos concretos, personas y suplencias, ejecutores, duración, pautas, criterios de espera, plantillas, reportes y reglas de excepción. Para este piloto ya quedan definidos los cupos manuales configurables, la aceptación y corrección documental de 3 días hábiles, 2 reprogramaciones normales, 15 minutos de tolerancia y la presencialidad de entrevista y evaluación. El modelo funcional debe conservar historial, distinguir completado/exento/no completado/cerrado, vincular intentos y registrar origen documental.
 
 El modelo de permisos debe separar Administrador Institucional Máximo de administrador institucional normal, aplicar acceso por tenant y propósito, limitar datos C-013 por categoría y auditar elevaciones, accesos restringidos, excepciones, postulaciones asistidas y documentos físicos.
 
+## Consolidación operativa posterior
+
+Las siguientes reglas operativas fueron confirmadas después del commit base de esta línea: para el piloto, Responsable de Admisión es Roxana Henríquez; Administrador Institucional Máximo es Arturo Javier Galleguillos Trigo, Sostenedor; Secretaría puede asistir, cargar/digitalizar documentos y gestionar agenda, pero no recomendar, decidir, modificar cupos, promover ni exportar masivamente por defecto.
+
+El detalle operativo definido para el piloto queda en [`08-pilot-operational-rules.md`](08-pilot-operational-rules.md) y su matriz de configuración en [`09-pilot-configuration-matrix.md`](09-pilot-configuration-matrix.md). Incluye cupos manuales configurables, aceptación y corrección de 3 días hábiles, 2 reprogramaciones normales, tolerancia de 15 minutos, presencialidad del MVP, resultados simples de actividades, recomendación/decisión separadas, lista de espera no automática, comunicaciones y reportes/exportaciones.
+
+Estos detalles no eliminan los pendientes expresos: nombres de suplentes, ejecutores concretos, duración de actividades, catálogo de personalidad por curso, prioridades concretas, plantillas finales, SLA adicionales, pauta diagnóstica avanzada y responsable legal/normativo.
+
 ## Asuntos que continúan pendientes
 
-- Nombres, suplencias y delegaciones del personal.
-- Cupos, duración de reservas, cantidades de reprogramaciones y tolerancias.
+- Nombres de suplentes y delegaciones del personal; los responsables principales del piloto ya están identificados en el baseline operativo.
+- Duración de reservas, ejecutores concretos y pautas; los valores piloto de 2 reprogramaciones normales y 15 minutos de tolerancia ya están definidos.
 - Pautas de entrevista, evaluación y recomendación.
 - Criterios de lista de espera, textos de comunicación, reportes y SLA.
 - Catálogo concreto de personalidad del piloto.
@@ -141,4 +149,4 @@ El modelo de permisos debe separar Administrador Institucional Máximo de admini
 
 ## Límites de la validación
 
-Esta validación no cierra G1, no autoriza E2/G2, no aprueba ADR-0001, no autoriza código, scaffolding, arquitectura, dependencias, integración ejecutable ni datos reales. Tampoco define cargos nominados, cifras, políticas legales, mecanismos criptográficos, firma, retención física o una matriz final de permisos.
+Esta validación no cierra G1, no autoriza E2/G2, no aprueba ADR-0001, no autoriza código, scaffolding, arquitectura, dependencias, integración ejecutable ni datos reales. Tampoco define nombres de suplentes, ejecutores concretos de entrevista/evaluación, duración de actividades, políticas legales, mecanismos criptográficos, firma, retención física o una matriz final de permisos.

@@ -72,6 +72,19 @@ Abreviaturas de aprobación: `NS` Nicolás Sena; `RI` representante instituciona
 
 Estas cuatro contradicciones ya no bloquean conceptualmente el inicio de E1-B. G1 permanece `NO APROBADA`.
 
+## Trazabilidad de reglas operativas E1-B
+
+| Regla | Requisitos | Journeys | Casos de uso | Artefacto canónico | Estado |
+| --- | --- | --- | --- | --- | --- |
+| Responsables y separación | FR-DEC-004/005; FR-ADM-005 | J-ADM-002/003/004/006; J-DIR-001 | UC-DEC-001/003; UC-CAP-001/003; UC-ADM-002/003 | `01-actors-and-responsibilities.md`, `08-pilot-operational-rules.md` | `DEFINED_FOR_PILOT`; suplencias pendientes |
+| Cupos y auditoría de ajustes | FR-CAP-001/002/003 | J-ADM-006; J-FAM-008/009/010 | UC-CAP-001/003/004 | `08-pilot-operational-rules.md`, `09-pilot-configuration-matrix.md` | `DEFINED_FOR_PILOT` |
+| Plazos y expiración | FR-CAP-002/006; FR-DOC-005 | J-FAM-004/008/009/010; J-ADM-005/006 | UC-APP-007; UC-CAP-004; UC-COM-001 | `08-pilot-operational-rules.md` | `DEFINED_FOR_PILOT`; calendario pendiente |
+| Actividades y reprogramación | FR-ACT-001 a 007; FR-ACT-008/009 | J-FAM-005/006; J-ADM-003 | UC-ACT-001 a 006 | `08-pilot-operational-rules.md`, `09-pilot-configuration-matrix.md` | `DEFINED_FOR_PILOT`; ejecutores/duración pendientes |
+| Recomendación y decisión | FR-DEC-008/009 | J-ADM-004; J-DIR-001; J-FAM-008 | UC-DEC-001 a 003; UC-CAP-004 | `08-pilot-operational-rules.md` | `DEFINED_FOR_PILOT`; pautas y suplencias pendientes |
+| Lista de espera | FR-CAP-004/005 | J-FAM-009; J-ADM-006 | UC-CAP-002/003/004 | `08-pilot-operational-rules.md` | `DEFINED_FOR_PILOT`; prioridades pendientes |
+| Comunicaciones y dashboard | FR-COM-006/007/009; FR-ADM-001/009 | J-FAM-005/006/007/008/009; J-ADM-005 | UC-ACT-001/002; UC-COM-001; UC-ADM-003 | `08-pilot-operational-rules.md` | `DEFINED_FOR_PILOT`; plantillas/recordatorio pendientes |
+| Gestión documental física | FR-DOC-009; FR-DOC-001 a 008 | J-FAM-004; J-ADM-002; J-OPS-001 | UC-DOC-001/002; UC-ADM-002 | `08-pilot-operational-rules.md` | `DEFINED_FOR_PILOT`; conservación física pendiente |
+
 ## Contradicciones y vacíos
 
 | ID | Riesgo abierto | Preguntas/UC afectados | Evidencia para cerrar o avanzar | Entrega |

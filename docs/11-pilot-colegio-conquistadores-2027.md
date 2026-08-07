@@ -8,9 +8,11 @@
 - **Propietario funcional/técnico:** Nicolás Sena.
 - **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor.
 - **Validación institucional:** Arturo Javier Galleguillos Trigo, con participación de Admisión y/o Dirección.
-- **Estado:** G0 cerrada; E1-B `IN PROGRESS`; G1 no aprobada.
+- **Estado:** G0 cerrada; E1-B `IN PROGRESS / OPERATIONAL BASELINE DEFINED`; G1 no aprobada.
 
 La línea base institucional de E1-B está registrada en [`e1/07-institutional-validation-baseline.md`](e1/07-institutional-validation-baseline.md). Las reglas del piloto se expresan como configuración versionada; no se incorporan condiciones hardcodeadas por institución.
+
+El detalle operativo canónico está en [`e1/08-pilot-operational-rules.md`](e1/08-pilot-operational-rules.md) y la matriz de parámetros en [`e1/09-pilot-configuration-matrix.md`](e1/09-pilot-configuration-matrix.md).
 
 Este documento contiene reglas del piloto para configurar sobre el núcleo multiempresa. Ninguna regla debe transformarse en una condición hardcodeada por nombre, ID o dominio de correo de la institución.
 
@@ -23,15 +25,21 @@ Este documento contiene reglas del piloto para configurar sobre el núcleo multi
 | Año | 2027 |
 | Cobertura | Primero básico a cuarto medio |
 | Cuenta familiar | Puede gestionar varios hijos |
-| Entrevista apoderado | Obligatoria; horario asignado por el colegio |
-| Evaluación estudiante | Diagnóstica y obligatoria; horario asignado por el colegio |
+| Entrevista apoderado | Obligatoria; presencial; horario asignado por el colegio |
+| Evaluación estudiante | Diagnóstica, obligatoria y presencial; horario asignado por el colegio |
+| Plazo de aceptación | 3 días hábiles; configurable |
+| Plazo de corrección | 3 días hábiles; configurable |
+| Reprogramaciones normales | 2; configurable |
+| Tolerancia | 15 minutos; configurable |
+| Resultados internos | `FAVORABLE`, `NO_FAVORABLE`, `INCONCLUSO`; comentario opcional |
+| Oferta desde espera | 3 días hábiles; promoción nunca automática |
 | Recomendación | Admisión |
 | Decisión final | Dirección |
 | Canal inicial | Correo |
 | WhatsApp | Diferido |
 | Pago matrícula | Externo a Admisión, mediante portal que consulta EduPay |
 
-La obligatoriedad de entrevista y evaluación diagnóstica está validada institucionalmente para todos los cursos del piloto. La configuración inicial la marca obligatoria; excepciones, reprogramación, repetición y cierre mantienen historia, motivo y auditoría.
+La obligatoriedad de entrevista y evaluación diagnóstica está validada institucionalmente para todos los cursos del piloto. La configuración inicial la marca obligatoria; excepciones, reprogramación, repetición y cierre mantienen historia, motivo y auditoría. No se exige botón de confirmación de asistencia; la familia solicita cambio desde el portal.
 
 ## Flujo obligatorio conocido
 
@@ -39,13 +47,13 @@ La obligatoriedad de entrevista y evaluación diagnóstica está validada instit
 2. Postulación enviada.
 3. Recepción y revisión documental.
 4. Solicitud y respuesta de correcciones cuando corresponda.
-5. Entrevista del apoderado, con horario asignado por el colegio.
-6. Evaluación diagnóstica obligatoria del estudiante, con horario asignado por el colegio.
+5. Entrevista presencial del apoderado, con horario asignado por el colegio.
+6. Evaluación diagnóstica presencial obligatoria del estudiante, con horario asignado por el colegio.
 7. Revisión consolidada.
 8. Recomendación de Admisión.
 9. Decisión final de Dirección: aprobar, rechazar o devolver a revisión con justificación.
 10. Comunicación del resultado.
-11. Reserva de cupo y eventual aceptación familiar según decisión posterior.
+11. Dirección `APROBADO` → reserva de cupo → emisión de oferta → comunicación preparada → aceptación familiar dentro de 3 días hábiles.
 12. Handoff controlado hacia EduPay.
 13. Creación o vinculación del estudiante/apoderado y asociación académica en EduPay.
 14. Generación de deuda anual y concepto de matrícula en EduPay.
@@ -66,16 +74,17 @@ La obligatoriedad de entrevista y evaluación diagnóstica está validada instit
 | Rol | Responsabilidad en el piloto | Límite |
 | --- | --- | --- |
 | Apoderado postulante | Gestiona hijos, formulario, documentos, correcciones y acciones propias | Sólo postulaciones familiares autorizadas |
-| Admisión | Revisa, observa, agenda, consolida y recomienda | No toma decisión final ni publica por recomendación sola |
+| Responsable de Admisión — Roxana Henríquez | Revisa según permisos, observa, agenda, consolida, recomienda, administra cupos/espera y prepara/confirma comunicaciones | No toma decisión final; no revela resultados internos a la familia |
+| Secretaría | Postulación asistida; carga/digitalización documental; correcciones administrativas; asignación/reprogramación de citas | No recomienda, decide, modifica cupos, promueve ni exporta masivamente por defecto |
 | Entrevistador/evaluador | Ejecuta actividad asignada y registra conclusión restringida | Sólo casos y datos necesarios |
 | Dirección | Aprueba, rechaza o devuelve con justificación | No altera evidencia ni recomendación histórica |
 | Administrador institucional | Configura oferta, formularios, requisitos, membresías y permisos delegados | Tenant y alcance institucional; no es automáticamente Administrador Institucional Máximo |
-| Administrador Institucional Máximo | Administra o supervisa todas las categorías funcionales de su tenant cuando su función lo requiere | Sólo su tenant; permiso, propósito y auditoría |
+| Administrador Institucional Máximo — Arturo Javier Galleguillos Trigo, Sostenedor | Administra o supervisa todas las categorías funcionales de su tenant cuando su función lo requiere; puede modificar cupos y promover | Sólo su tenant; permiso, propósito y auditoría; no es Dirección |
 | Superadministrador Global | Opera plataforma; para contenido institucional usa elevación explícita | Ningún acceso de lectura implícito; `SELF-ELEVATION` explícita y auditada en MVP |
 | Nicolás Sena | Propiedad funcional/técnica e integración EduPay | No reemplaza validación institucional/legal requerida |
 | Arturo Javier Galleguillos Trigo, Sostenedor | Representación formal institucional para proceso y reglas del piloto | Asuntos diferidos conservan sus hitos de G1/piloto |
 
-Las personas concretas, suplencias y delegaciones siguen pendientes.
+Las personas suplentes, los ejecutores de entrevista/evaluación y las delegaciones adicionales siguen pendientes.
 
 ## Formulario inicial
 
@@ -179,6 +188,14 @@ Debe definirse cuáles requieren aceptación expresa, cuál es el texto/versiona
 
 Estas diferencias deben representarse mediante configuración y versiones, nunca mediante condicionales del tipo “si la institución es Conquistadores”.
 
+## Reglas operativas definidas en E1-B
+
+- Responsable de Admisión y Administrador Institucional Máximo pueden modificar cupos directamente; toda modificación conserva actor, fecha/hora, valor anterior, valor nuevo y motivo/comentario cuando corresponda.
+- Ante vencimiento de una oferta sin respuesta, la oferta expira, libera reserva/cupo, conserva historial y no inicia handoff a EduPay. La reapertura es manual, excepcional, autorizada y auditada.
+- La primera inasistencia no cierra; ante una segunda injustificada, Responsable de Admisión o Dirección puede cerrar manualmente. Nunca se cierra automáticamente sólo por contador.
+- La lista de espera usa orden de ingreso por defecto, no expone posición y no se promueve automáticamente. Secretaría no promueve.
+- La recomendación usa opciones internas con fundamento obligatorio; Dirección usa `APROBADO`, `RECHAZADO` y `DEVUELTO_A_REVISION`. `APROBADO` no inicia EduPay: la aceptación familiar expresa sigue siendo condición previa.
+
 ## Estado de contradicciones en E1-B
 
 | ID | Estado | Hito |
@@ -191,17 +208,15 @@ Estas diferencias deben representarse mediante configuración y versiones, nunca
 
 ## Decisiones pendientes
 
-1. Detalle de configuración, responsables, pautas, excepciones y cierres de entrevista/evaluación.
-2. Catálogo concreto y equivalentes del informe de personalidad.
-3. Validación legal de C-013: fundamento, retención, eliminación/anonimización y titulares.
-4. Personal, suplencias y evidencias de postulación asistida y documentación física.
-5. Cupos, reserva, espera, plazos, vencimientos y autorizaciones de excepción.
-6. Confirmación/reprogramación e inasistencia de actividades.
-7. Pautas de entrevista, evaluación y recomendación.
-8. Textos familiares y plantillas de correo.
-9. Aceptación familiar independiente y momento del handoff.
-10. Estado pre-pago y evento de matrícula de EduPay.
-11. Responsable legal/normativo antes de autorizar datos reales para el piloto.
+1. Nombres de suplentes y ejecutores concretos de entrevista/evaluación.
+2. Duración concreta de actividades y pauta diagnóstica avanzada.
+3. Catálogo concreto y equivalentes del informe de personalidad.
+4. Prioridades concretas de Conquistadores y desempate.
+5. Plantillas finales, recordatorio de oferta y SLA adicionales.
+6. Validación legal de C-013: fundamento, retención, eliminación/anonimización y titulares.
+7. Evidencias detalladas y conservación/devolución de documentación física.
+8. Estado pre-pago y evento de matrícula de EduPay.
+9. Responsable legal/normativo antes de autorizar datos reales para el piloto.
 
 ## Regla de no acoplamiento
 

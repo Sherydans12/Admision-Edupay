@@ -5,11 +5,11 @@
 | Campo | Valor |
 | --- | --- |
 | Entrega | E1-B — Especificación funcional institucional |
-| Estado | `IN PROGRESS` |
+| Estado | `IN PROGRESS / OPERATIONAL BASELINE DEFINED` |
 | Compuerta vigente | E1 autorizada; G1 `NO APROBADA` |
 | Base revisada | `main` en `8a7f12bb1bf1f7ca09ff29363ad040c693cc143d` |
 | Naturaleza | Documentación funcional; no autoriza implementación |
-| Registro principal | `docs/e1/07-institutional-validation-baseline.md` |
+| Registro principal | `docs/e1/07-institutional-validation-baseline.md`, `docs/e1/08-pilot-operational-rules.md`, `docs/e1/09-pilot-configuration-matrix.md` |
 | Aprobación consolidada | `2026-08-06T22:09:00-04:00` por Nicolás Sena |
 
 ## Clasificación de la información
@@ -59,6 +59,8 @@ flowchart LR
 - Separar captura y acceso de PIE/NEE/salud, excluir ingreso familiar del formulario MVP y registrar las dependencias legales pendientes.
 - Formalizar postulación asistida y diferenciar Administrador Institucional Máximo de Superadministrador Global.
 - Mantener trazabilidad a preguntas, contradicciones, decisiones, requisitos, journeys, casos de uso y evidencia.
+- Registrar responsables confirmados y separar funciones de Admisión, Secretaría, Dirección y Administrador Institucional Máximo.
+- Consolidar cupos, plazos, citas, actividades, decisión, espera, comunicaciones, documentos, reportes y exportaciones del piloto.
 
 ## Fuera de alcance
 
@@ -86,7 +88,8 @@ flowchart LR
 | G0 | `APPROVED / CLOSED` | Decisión aprobada; no se reabre |
 | E1 | `AUTORIZADA` para diseño funcional | Decisión aprobada |
 | E1-A | `CLOSED / PRODUCT DECISIONS RECORDED` | Acta histórica; no cierra G1 |
-| E1-B | `IN PROGRESS` | Validaciones institucionales registradas; detalles pendientes |
+| E1-B | `IN PROGRESS / OPERATIONAL BASELINE DEFINED` | Validaciones institucionales y reglas operativas iniciales registradas; E1-B no está cerrada |
+| E1-C | `NO INICIADA` | Consolidación y evidencia para G1 aún no autorizadas |
 | G1 | `NO APROBADA` | Hecho confirmado |
 | ADR-0001 | `PROPOSED` | Propuesta arquitectónica fuera de alcance |
 | Datos reales | No autorizados | Límite aprobado |
@@ -104,10 +107,10 @@ Esta entrega referencia esas decisiones; no las reemplaza, renumera ni amplía.
 | Grupo | IDs | Resultado requerido antes de G1 |
 | --- | --- | --- |
 | Oferta, formulario y familia | Q-101 a Q-108 | Decisiones de producto aprobadas; detalle/validación institucional pendiente |
-| Documentos | Q-120 a Q-124 | Decisiones de producto aprobadas; C-011 y detalle operativo pendientes |
-| Actividades | Q-140 a Q-145 | Decisiones de producto aprobadas; C-009, pautas y responsables pendientes |
-| Decisión, cupos y espera | Q-160 a Q-167 | Decisiones de producto aprobadas; personas, criterios y cifras pendientes |
-| Comunicaciones y reportes | Q-180 a Q-184 | Decisiones de producto aprobadas; plantillas, valores y procedimiento pendientes |
+| Documentos | Q-120 a Q-124 | C-011 validada; plazo de corrección definido para piloto; catálogo concreto, personalidad y detalles restantes pendientes |
+| Actividades | Q-140 a Q-145 | C-009 validada; modalidad, reprogramaciones, tolerancia y resultados simples definidos; ejecutores, suplencias, duración y pauta avanzada pendientes |
+| Decisión, cupos y espera | Q-160 a Q-167 | Recomendación, decisión, cupos, plazo y promoción definidos para piloto; prioridades concretas y autoridades de reapertura pendientes |
+| Comunicaciones y reportes | Q-180 a Q-184 | Citas, oferta, reportes y exportaciones definidos funcionalmente; plantillas finales, recordatorio y SLA adicionales pendientes |
 | Handoff | Q-310 | Secuencia funcional aprobada; Q-301 a Q-309 y contrato pendientes |
 
 También requieren trabajo antes de G1: detalles operativos de C-009, C-011 y C-014; validación legal posterior de C-013. Q-201/Q-202 y Q-301 a Q-309 siguen pendientes en sus compuertas.
@@ -132,13 +135,13 @@ La validación institucional registrada permite iniciar E1-B; no autoriza cerrar
 
 - Detalles operativos para C-009, C-011 y C-014.
 - Validación legal de C-013 antes de datos reales.
-- Definición de campos y documentos por curso, periodo y condición.
-- Autoridades y delegaciones operativas, incluida separación recomendación/decisión.
-- Reglas de citas, inasistencia, cupos, reservas, lista de espera, vencimiento y reapertura.
-- Proyección familiar, plantillas, reportes y plazos operacionales.
-- Decisión sobre aceptación de vacante y Q-310.
+- Catálogo concreto de informe de personalidad por curso/nivel y condición.
+- Nombres de suplentes y ejecutores concretos de entrevista/evaluación.
+- Duración concreta de actividades, prioridades concretas, plantillas finales y SLA adicionales.
+- Responsable legal/normativo, retención y asuntos Q-201/Q-202.
+- Q-301 a Q-309 y contrato EduPay.
 
-E1-B está iniciada documentalmente. Las respuestas institucionales se incorporan como `INSTITUTIONALLY_VALIDATED` y los detalles restantes como `OPERATIONAL_DETAIL_PENDING` o `LEGAL_VALIDATION_PENDING`; los pendientes bloqueantes para G1 permanecen visibles.
+E1-B está iniciada documentalmente y cuenta con una línea base operativa inicial. Las respuestas institucionales se incorporan como `INSTITUTIONALLY_VALIDATED`; los detalles definidos sólo para el piloto se marcan como `DEFINED_FOR_PILOT` o texto equivalente; los pendientes restantes como `OPERATIONAL_DETAIL_PENDING` o `LEGAL_VALIDATION_PENDING` permanecen visibles.
 
 ## Supuestos de trabajo usados
 
@@ -149,4 +152,4 @@ E1-B está iniciada documentalmente. Las respuestas institucionales se incorpora
 
 ## Siguiente compuerta humana
 
-La siguiente acción humana es completar los detalles operativos de E1-B y revisar la matriz funcional con los responsables institucionales. C-013 requiere además responsable legal/normativo antes de datos reales. G1 seguirá `NO APROBADA`; E2/G2 no están autorizadas.
+La siguiente acción humana es revisar la línea base operativa con los responsables institucionales, completar pendientes y preparar E1-C. C-013 requiere además responsable legal/normativo antes de datos reales. E1-B no está cerrada; G1 seguirá `NO APROBADA`; E1-C no está iniciada y E2/G2 no están autorizadas.

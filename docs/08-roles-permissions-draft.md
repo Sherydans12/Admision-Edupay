@@ -12,6 +12,8 @@ Es el rol administrativo de mayor autoridad dentro de un tenant. Es distinto del
 
 No tiene autoridad sobre otros tenants. Ningún administrador institucional normal obtiene este alcance por defecto.
 
+Para el piloto, esta capacidad corresponde a Arturo Javier Galleguillos Trigo, Sostenedor. El rol no se confunde con Dirección.
+
 ### Superadministrador Global de Plataforma
 
 Administra operación global, tenants y soporte técnico. No obtiene por defecto acceso al contenido de postulaciones. Para consultar contenido de un tenant requiere una elevación explícita, temporal, tenant-specific, scope-specific, justificada y auditada. En el MVP puede usar `SELF-ELEVATION`, pero la acción debe registrarse antes del acceso; no existe lectura silenciosa o permanente.
@@ -23,6 +25,12 @@ Administra configuración, membresías y operación dentro de una institución. 
 ### Encargado de admisión
 
 Coordina casos, documentos, agenda, comunicaciones, capacidad y recomendaciones según alcance. En el piloto revisa y emite la recomendación, pero no decide ni publica automáticamente el resultado.
+
+El responsable operativo inicial de Admisión es Roxana Henríquez.
+
+### Secretaría
+
+Realiza postulación asistida, carga y digitalización de documentos, correcciones administrativas dentro de permisos y gestión de agenda. No recomienda, aprueba/rechaza, modifica cupos, promueve lista de espera ni exporta masivamente por defecto.
 
 ### Entrevistador o evaluador
 
@@ -102,6 +110,22 @@ Los nombres son lenguaje de análisis, no API aprobada.
 | Autorizar su propia elevación | No | No | Sí en MVP mediante `SELF-ELEVATION` explícita y auditable |
 
 La matriz final deberá agregar permisos por actividad, excepciones, cierre, repetición, origen documental y auditoría. Los nombres de esta tabla son lenguaje funcional.
+
+### Capacidades operativas definidas para el piloto
+
+| Capacidad | Responsable de Admisión — Roxana Henríquez | Secretaría | Administrador Institucional Máximo | Dirección |
+| --- | --- | --- | --- | --- |
+| Revisar postulaciones/documentos según permiso | Sí | Carga/recepción; no validación definitiva por defecto | Sí, según propósito | Consulta antecedentes permitidos |
+| Consultar resultados internos/comentarios autorizados | Sí, según permiso | No por defecto | Sí, según propósito | Sí, según propósito |
+| Solicitar correcciones | Sí | Corrección administrativa dentro de permiso | Sí | Puede consultar |
+| Asignar/reprogramar citas | Sí | Sí | Según configuración | Según configuración |
+| Ajustar cupos | Sí, directamente y con auditoría | No | Sí | Sólo si se configura capacidad |
+| Promover lista de espera | Sí | No | Sí | Sólo si se configura capacidad |
+| Emitir recomendación | Sí | No | Sólo según matriz final; no reemplaza separación | No; Dirección decide |
+| Aprobar/rechazar/devolver | No | No | No por ser administrador; sólo si además tiene capacidad Dirección y no existe conflicto | Sí, como capacidad Dirección |
+| Exportar masivamente | Sí dentro de tenant, rol y propósito | No por defecto | Sí dentro de tenant, rol y propósito | Según matriz final |
+
+Las suplencias de Responsable de Admisión, evaluador y Dirección son obligatorias conceptualmente, pero sus nombres no están definidos.
 
 ## Alcances tentativos
 

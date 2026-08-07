@@ -68,7 +68,7 @@ El cierre no autoriza implementación, scaffolding, stack definitivo, datos real
 
 **Estado:** AUTORIZADA; **E1-A — `CLOSED / PRODUCT DECISIONS RECORDED`**; **E1-B — `IN PROGRESS`**. Esta autorización cubre diseño funcional, no implementación.
 
-E1 se divide provisionalmente en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`; E1-A queda `CLOSED / PRODUCT DECISIONS RECORDED`. E1-B está `IN PROGRESS` y su línea base está en `docs/e1/07-institutional-validation-baseline.md`; la división no agrega aprobaciones automáticas ni permite cerrar G1.
+E1 se divide provisionalmente en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`; E1-A queda `CLOSED / PRODUCT DECISIONS RECORDED`. E1-B está `IN PROGRESS / OPERATIONAL BASELINE DEFINED` y su línea base está en `docs/e1/07-institutional-validation-baseline.md`, con reglas y matriz en `docs/e1/08-pilot-operational-rules.md` y `docs/e1/09-pilot-configuration-matrix.md`; la división no agrega aprobaciones automáticas ni permite cerrar G1.
 
 ### Objetivo
 
@@ -91,7 +91,7 @@ Validar el proceso real con usuarios y convertir requisitos en comportamientos y
 
 **Estado:** NO APROBADA. Requiere resolver sus criterios y asuntos diferidos antes del cierre.
 
-La posición funcional de producto para las preguntas objetivo está aprobada por Nicolás Sena y C-009/C-011/C-013/C-014 ya tienen validación institucional registrada, pero G1 permanece `NO APROBADA` porque siguen pendientes detalles operativos, la validación legal de C-013, catálogos y el contrato Q-301 a Q-309.
+La posición funcional de producto para las preguntas objetivo está aprobada por Nicolás Sena y C-009/C-011/C-013/C-014 ya tienen validación institucional registrada. Parte del detalle operativo del piloto está definido, pero G1 permanece `NO APROBADA` porque siguen pendientes suplencias, catálogos, pautas avanzadas, prioridad de espera, plantillas/SLA adicionales, la validación legal de C-013 y el contrato Q-301 a Q-309.
 
 - Preguntas Q-101 a Q-184 resueltas para el piloto.
 - Q-310 resuelta para fijar el momento del handoff.

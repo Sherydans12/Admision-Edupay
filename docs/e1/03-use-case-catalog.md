@@ -136,33 +136,33 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Postcondición/aceptación:** estado y siguiente acción correctos sin información interna/terceros.
 - **Pendientes:** textos, historial, espera y SLA.
 
-### UC-ACT-001 — Confirmar cita
+### UC-ACT-001 — Registrar acuse de cita (opcional)
 
-- **Objetivo/actor:** registrar recepción/compromiso si la política lo exige; apoderado.
+- **Objetivo/actor:** registrar un acuse sólo si una configuración futura lo exige; apoderado.
 - **FR/preguntas:** FR-ACT-002/003/007; Q-142/Q-143.
-- **Precondiciones/disparador:** cita vigente y confirmable; familia confirma.
+- **Precondiciones/disparador:** cita vigente; la configuración habilita un acuse explícito.
 - **Flujo principal:** 1) autoriza caso/cita; 2) muestra datos mínimos; 3) confirma; 4) registra actor/instante; 5) actualiza próximo paso.
 - **Alternativos:** confirmación no requerida. **Errores:** cita cambiada, vencida o ya confirmada.
-- **Reglas:** doble confirmación idempotente; no confirma asistencia ni conclusión.
+- **Reglas:** el MVP no exige botón `Confirmar asistencia`; la cita queda informada y la familia puede `SOLICITAR CAMBIO`; un acuse nunca confirma asistencia ni conclusión.
 - **Datos leídos/modificados:** cita; estado de confirmación. **Clasificación:** `PERSONAL/RESTRICTED`.
 - **Autorización/tenant:** relación familiar y cita del caso/tenant.
 - **Auditoría/comunicaciones:** confirmación; acuse mínimo.
 - **Postcondición/aceptación:** confirmación única vinculada a la versión de cita.
-- **Pendientes:** si el piloto exige confirmar y hasta cuándo.
+- **Pendientes:** eventual uso futuro del acuse; no bloquea la operación del piloto.
 
 ### UC-ACT-002 — Solicitar reprogramación
 
 - **Objetivo/actor:** pedir cambio sin editar agenda; apoderado.
 - **FR/preguntas:** FR-ACT-002/003; Q-142/Q-143/Q-184.
 - **Precondiciones/disparador:** cita vigente y política habilita solicitud.
-- **Flujo principal:** 1) autoriza; 2) explica política; 3) registra motivo mínimo/preferencias permitidas; 4) confirma; 5) crea tarea para Admisión.
-- **Alternativos:** contacto asistido aprobado. **Errores:** límite/plazo excedido, cita cancelada o solicitud duplicada.
-- **Reglas:** solicitud no cambia horario; minimizar motivo; no exponer agenda completa.
+- **Flujo principal:** 1) autoriza; 2) explica política; 3) registra motivo mínimo; 4) confirma solicitud; 5) crea tarea para Admisión o Secretaría; 6) asigna nuevo horario cuando corresponda.
+- **Alternativos:** cambio institucional directo; contacto manual registrado. **Errores:** límite/plazo excedido, cita cancelada o solicitud duplicada.
+- **Reglas:** solicitud no cambia horario por sí sola; familia no elige directamente el nuevo horario; 2 reprogramaciones normales y 15 minutos de tolerancia son valores iniciales configurables; una adicional no exige workflow especial obligatorio.
 - **Datos leídos/modificados:** cita/política; solicitud/tarea. **Clasificación:** `RESTRICTED`.
 - **Autorización/tenant:** relación familiar; tarea en tenant del caso.
 - **Auditoría/comunicaciones:** solicitud y resolución; acuse/resultado.
 - **Postcondición/aceptación:** solicitud trazable pendiente/aprobada/rechazada, cita anterior vigente hasta cambio.
-- **Pendientes:** límites, tolerancia y autoridad Q-142.
+- **Pendientes:** configuración concreta de excepciones y duración de actividades.
 
 ### UC-APP-006 — Desistir
 
@@ -213,12 +213,12 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** registrar capacidad funcional y ajustes; responsable de cupos. Secundarios: administrador/Dirección.
 - **FR/preguntas:** FR-CAP-001/002/003; Q-162/Q-163.
 - **Precondiciones/disparador:** oferta existente; autoridad configura capacidad.
-- **Flujo principal:** 1) abre oferta; 2) selecciona concepto de capacidad aprobado; 3) ingresa valor/vigencia/razón; 4) revisa impacto; 5) confirma.
-- **Alternativos:** ajuste posterior con doble control. **Errores:** reducir bajo reservas/ofertas, valor inválido o concurrencia.
+- **Flujo principal:** 1) abre oferta; 2) selecciona concepto de cupo de admisión; 3) ingresa valor/vigencia/razón; 4) revisa impacto; 5) confirma directamente si es Responsable de Admisión o Administrador Institucional Máximo; 6) audita.
+- **Alternativos:** Dirección puede recibir capacidad mediante configuración institucional. **Errores:** reducir bajo reservas/ofertas, valor inválido o concurrencia.
 - **Reglas:** distinguir capacidad, cupo, reserva, oferta y matrícula; nunca negativos ni sobreoferta.
 - **Datos leídos/modificados:** oferta/reservas; plan/ajuste de capacidad `INTERNAL`, referencias `RESTRICTED`.
 - **Autorización/tenant:** permiso y scope de oferta; tenant derivado.
-- **Auditoría/comunicaciones:** valor anterior/nuevo, razón/autor; alertar responsables, no familias salvo efecto aprobado.
+- **Auditoría/comunicaciones:** actor, fecha/hora, valor anterior, valor nuevo y motivo/comentario cuando corresponda; alertar responsables, no familias salvo efecto aprobado.
 - **Postcondición/aceptación:** capacidad vigente reconstruible y consistente con compromisos.
 - **Pendientes:** concepto exacto, doble control y duración de reserva.
 
@@ -269,14 +269,14 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** dictaminar una versión segura; revisor documental. Secundarios: Admisión/familia.
 - **FR/preguntas:** FR-DOC-003 a 006; Q-121 a Q-124.
 - **Precondiciones/disparador:** archivo `READY_FOR_REVIEW`, tarea/asignación vigente.
-- **Flujo principal:** 1) autoriza requisito/archivo; 2) registra acceso; 3) comprueba correspondencia/vigencia/legibilidad; 4) acepta, observa o rechaza; 5) registra motivo; 6) crea acción familiar si aplica.
+- **Flujo principal:** 1) autoriza requisito/archivo; 2) registra acceso; 3) comprueba origen, correspondencia/vigencia/legibilidad; 4) acepta, observa o rechaza; 5) registra motivo; 6) crea acción familiar si aplica.
 - **Alternativos:** solicitar exención separada. **Errores:** cuarentena, enlace vencido, archivo cifrado, tenant/versión incorrectos.
 - **Reglas:** decisión por requisito/versión; no borrar; vínculo temporal tras autorización.
 - **Datos leídos/modificados:** documento `RESTRICTED/HIGHLY_RESTRICTED`; dictamen/estado.
 - **Autorización/tenant:** rol, asignación, propósito y clasificación; tenant del caso.
 - **Auditoría/comunicaciones:** lectura/descarga/dictamen; sólo observación accionable a familia.
 - **Postcondición/aceptación:** autor/motivo/instante/versión reconstruibles y nota interna oculta.
-- **Pendientes:** autoridad, correcciones y formatos Q-121 a Q-124.
+- **Pendientes:** autoridad, correcciones y formatos Q-121 a Q-124; Secretaría puede cargar/digitalizar y marcar recepción, pero no valida definitivamente por defecto.
 
 ### UC-DOC-003 — Eximir requisito
 
@@ -304,7 +304,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Autorización/tenant:** `interview/assessment.schedule`, scope y tenant.
 - **Auditoría/comunicaciones:** creación/cambio/cancelación; correo con datos mínimos.
 - **Postcondición/aceptación:** cita vigente, historia y ausencia de exposición de terceros.
-- **Pendientes:** modalidad, responsables, reprogramación, tolerancia y catálogo concreto de cierre.
+- **Pendientes:** responsables concretos, suplencias, duración y catálogo concreto de cierre; MVP presencial.
 
 ### UC-ACT-004 — Registrar asistencia
 
@@ -313,7 +313,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** cita vigente; llega hora de actividad.
 - **Flujo principal:** 1) autoriza actividad; 2) selecciona asistencia, inasistencia o cancelación/no completada; 3) registra instante/motivo mínimo; 4) confirma; 5) genera reprogramación o tarea según política.
 - **Alternativos:** corrección controlada. **Errores:** actividad equivocada, registro duplicado o actor no asignado.
-- **Reglas:** asistencia no equivale a conclusión; corrección agrega historia; actividad no completada se distingue de exenta o cerrada; cada intento conserva secuencia, fecha, responsable, estado, motivo, resultado/conclusión y relación con el intento anterior.
+- **Reglas:** asistencia no equivale a conclusión; corrección agrega historia; actividad no completada se distingue de exenta o cerrada; cada intento conserva secuencia, fecha, responsable, estado, motivo, resultado/conclusión y relación con el intento anterior; el resultado interno usa `FAVORABLE`, `NO_FAVORABLE` o `INCONCLUSO`.
 - **Datos leídos/modificados:** cita; asistencia/razón `RESTRICTED`.
 - **Autorización/tenant:** asignación específica y tenant.
 - **Auditoría/comunicaciones:** registro/corrección; aviso operativo según regla.
@@ -327,7 +327,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** actividad realizada; pauta aprobada y actor autorizado.
 - **Flujo principal:** 1) abre pauta mínima; 2) vincula el intento y responsable; 3) registra observaciones/conclusión; 4) clasifica contenido; 5) confirma; 6) cierra versión; 7) habilita consolidación.
 - **Alternativos:** borrador antes de enviar; corrección como nueva versión. **Errores:** pauta ausente, actor no asignado, dato excesivo o actividad no realizada.
-- **Reglas:** mínimo necesario; no comunicar a familia por defecto; edición posterior controlada.
+- **Reglas:** mínimo necesario; resultado simple y comentario interno opcional para MVP; no comunicar a familia; edición posterior controlada.
 - **Datos leídos/modificados:** pauta/caso mínimo; conclusión `HIGHLY_RESTRICTED`.
 - **Autorización/tenant:** rol, asignación, propósito, sensibilidad y tenant.
 - **Auditoría/comunicaciones:** creación/acceso/corrección; aviso interno de completitud sin contenido.
@@ -345,16 +345,16 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Reglas:** exenta, cerrada, no completada y completada son estados distinguibles; ningún intento anterior se reemplaza silenciosamente.
 - **Datos leídos/modificados:** actividad, intentos, motivo y estado `RESTRICTED/HIGHLY_RESTRICTED` según contenido.
 - **Autorización/tenant:** `activity.exception`, `activity.reschedule`, `activity.repeat` o `activity.close`, tenant, alcance, propósito y auditoría.
-- **Postcondición/aceptación:** historial completo y reconstruible; estado actual explícito; cantidades, tolerancias y autoridad concreta siguen pendientes.
+- **Postcondición/aceptación:** historial completo y reconstruible; estado actual explícito; el piloto usa 2 reprogramaciones normales y 15 minutos de tolerancia; la autoridad concreta para cada cierre sigue pendiente.
 
 ### UC-DEC-001 — Emitir recomendación
 
 - **Objetivo/actor:** someter recomendación no final; encargado de admisión. Secundarios: revisores/actividades/cupos.
 - **FR/preguntas:** FR-DEC-003 a 005; Q-160/Q-161/Q-162.
 - **Precondiciones/disparador:** antecedentes suficientes; recomendador autorizado inicia consolidación.
-- **Flujo principal:** 1) valida completitud/exenciones; 2) consulta resumen permitido; 3) aplica pauta aprobada; 4) registra fundamento; 5) revisa; 6) envía a Dirección.
+- **Flujo principal:** 1) valida completitud/exenciones; 2) consulta documentos/actividades/resultados internos/comentarios autorizados; 3) selecciona `RECOMENDAR_ADMISION`, `NO_RECOMENDAR_ADMISION` o `DEVOLVER_A_REVISION`; 4) registra fundamento obligatorio; 5) revisa; 6) envía a Dirección.
 - **Alternativos:** devuelve tareas o reemplaza versión devuelta. **Errores:** conflicto, dato pendiente o acceso sensible indebido.
-- **Reglas:** no decide, comunica ni reserva por sí sola; versiones inmutables tras envío.
+- **Reglas:** no decide, comunica ni reserva por sí sola; recomendación interna, versionada y auditable; versiones inmutables tras envío.
 - **Datos leídos/modificados:** antecedentes/conclusiones; recomendación `HIGHLY_RESTRICTED`.
 - **Autorización/tenant:** `decision.recommend`, scope y separación D-016.
 - **Auditoría/comunicaciones:** borrador/envío/reemplazo; notificación interna a Dirección.
@@ -380,14 +380,14 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** aprobar o rechazar de forma final; Dirección. Secundarios: Admisión/cupos.
 - **FR/preguntas:** FR-DEC-004/006/007; Q-160 a Q-167.
 - **Precondiciones/disparador:** recomendación vigente; Dirección decide.
-- **Flujo principal:** 1) autoriza; 2) revisa evidencia permitida; 3) verifica conflicto/capacidad aplicable; 4) elige aprobar/rechazar; 5) registra fundamento; 6) confirma; 7) habilita acción posterior.
-- **Alternativos:** devolver mediante UC-DEC-002; favorable a espera según política. **Errores:** recomendador=aprobador no permitido, concurrencia de cupo o recomendación obsoleta.
-- **Reglas:** decisión separada de recomendación/comunicación; no borra evidencia; reapertura excepcional.
+- **Flujo principal:** 1) autoriza capacidad Dirección; 2) revisa evidencia permitida, actividades, resultados internos, comentarios autorizados y recomendación; 3) verifica conflicto/capacidad; 4) elige `APROBADO`, `RECHAZADO` o `DEVUELTO_A_REVISION`; 5) exige fundamento/motivo; 6) registra actor, rol, tenant, fecha/hora y versión de antecedentes; 7) confirma; 8) habilita acción posterior.
+- **Alternativos:** devolución mediante UC-DEC-002; `APROBADO` con reserva/oferta; espera por falta de cupo. **Errores:** recomendador=aprobador no permitido, concurrencia de cupo o recomendación obsoleta.
+- **Reglas:** decisión separada de recomendación/comunicación; `RECHAZADO` exige fundamento; `DEVUELTO_A_REVISION` vuelve a Admisión; `APROBADO` no inicia handoff, sólo reserva/oferta/comunicación preparada; no borra evidencia.
 - **Datos leídos/modificados:** resumen/recomendación/capacidad; decisión `HIGHLY_RESTRICTED`.
 - **Autorización/tenant:** `decision.approve/reject`, autoridad/scope/tenant y D-016.
 - **Auditoría/comunicaciones:** decisión y acceso; aviso interno, sin correo familiar automático.
 - **Postcondición/aceptación:** una decisión final autorizada y reproducible.
-- **Pendientes:** criterios, doble control, capacidad y reapertura.
+- **Pendientes:** suplencia, prioridades de espera, duración de actividad y reapertura; el plazo de oferta inicial es 3 días hábiles.
 
 ### UC-COM-001 — Comunicar resultado
 
@@ -421,33 +421,33 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 
 - **Objetivo/actor:** convertir espera en oferta con control humano; responsable de cupos. Secundarios: Admisión/Dirección/familia.
 - **FR/preguntas:** FR-CAP-002 a 005; D-008; Q-163 a Q-166.
-- **Precondiciones/disparador:** cupo/reserva disponible y siguiente candidato según política; operador confirma.
+- **Precondiciones/disparador:** cupo/reserva disponible y siguiente candidato según política; Responsable de Admisión o Administrador Institucional Máximo confirma.
 - **Flujo principal:** 1) valida capacidad/orden; 2) selecciona candidato; 3) muestra fundamento; 4) obtiene confirmación humana; 5) reserva; 6) emite oferta; 7) comunica.
 - **Alternativos:** saltar sólo por causa aprobada y auditable. **Errores:** carrera, candidato no elegible, oferta simultánea o política vencida.
-- **Reglas:** promoción no automática en piloto; reserva consistente; no alterar decisión.
+- **Reglas:** promoción nunca automática en piloto; Secretaría no puede promover; reserva consistente; no alterar decisión.
 - **Datos leídos/modificados:** lista/capacidad/caso; reserva/oferta/entrada `RESTRICTED`.
 - **Autorización/tenant:** permiso reforzado, scope y tenant; posible doble control.
 - **Auditoría/comunicaciones:** selección, confirmación, reserva/oferta; mensaje al promovido.
 - **Postcondición/aceptación:** un cupo no se asigna dos veces y orden/excepción quedan explicables.
-- **Pendientes:** duración, múltiples ofertas y autoridad.
+- **Pendientes:** prioridades concretas, duración de oferta y autoridad de reapertura.
 
 ### UC-CAP-004 — Emitir oferta de vacante
 
 - **Objetivo/actor:** convertir una decisión favorable y reserva válida en una oferta comunicable; responsable de cupos/Admisión según RACI. Secundarios: Dirección, comunicaciones y familia.
 - **FR/preguntas:** FR-CAP-002/003; FR-COM-005/006; Q-163/Q-166/Q-310.
-- **Precondiciones/disparador:** decisión favorable final, capacidad disponible, política/vigencia aprobadas; responsable emite oferta.
+- **Precondiciones/disparador:** decisión favorable final, capacidad disponible, política/vigencia aprobadas; Responsable de Admisión o Administrador Institucional Máximo emite oferta.
 - **Flujo principal:** 1) autoriza decisión/caso; 2) verifica o crea reserva consistente; 3) fija condiciones y vencimiento aprobados; 4) confirma oferta; 5) habilita comunicación; 6) espera respuesta o regla de expiración.
 - **Alternativos:** oferta nacida de promoción de espera. **Errores:** cupo concurrente, decisión no final, oferta previa vigente o condiciones sin aprobar.
-- **Reglas:** oferta no equivale a aceptación, pago ni matrícula; reserva se crea junto a la comunicación favorable; una unidad de capacidad no sostiene ofertas incompatibles según política.
+- **Reglas:** oferta no equivale a aceptación, pago ni matrícula; reserva se crea al aprobar Dirección; aceptación inicial de 3 días hábiles; una unidad de capacidad no sostiene ofertas incompatibles según política; expiración libera reserva/cupo y no inicia handoff.
 - **Datos leídos/modificados:** decisión/capacidad/reserva; oferta/condiciones/vigencia `RESTRICTED`.
 - **Autorización/tenant:** `offer.issue` conceptual, scope de oferta/tenant y separación respecto de decisión.
 - **Auditoría/comunicaciones:** emisión, reserva, vencimiento/cancelación; comunicación mediante UC-COM-001.
 - **Postcondición/aceptación:** oferta única, vigente y correlacionada con reserva/decisión, sin sobreoferta.
-- **Pendientes:** autoridad, duración, ofertas múltiples y efecto de Q-310.
+- **Pendientes:** recordatorio, ofertas múltiples y efecto de Q-310; duración inicial definida como 3 días hábiles.
 
 ### UC-ADM-002 — Crear postulación asistida
 
-- **Objetivo/actor:** ayudar a registrar caso si C-014 se aprueba; operador asistido. Secundario: familia.
+- **Objetivo/actor:** ayudar a registrar caso según C-014; Secretaría u operador asistido autorizado. Secundario: familia.
 - **FR/preguntas:** FR-APP-003/008; FR-AUD-001/004; Q-107/C-014.
 - **Precondiciones/disparador:** modalidad aprobada, operador/scope vigentes y autorización familiar verificable.
 - **Flujo principal:** 1) explica modalidad; 2) registra tenant, operador, rol, origen asistido, fecha/hora, adulto presente, autorización/consentimiento y acciones; 3) identifica familia/estudiante sin suplantar; 4) crea borrador con el mismo formulario versionado; 5) transcribe; 6) digitaliza documentación física excepcional al requisito correspondiente con origen conceptual `PHYSICAL_DOCUMENT`; 7) el adulto responsable revisa y autoriza envío; 8) entrega acuse/control.
@@ -457,7 +457,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Autorización/tenant:** rol temporal, caso/tenant y propósito; sin acceso masivo.
 - **Auditoría/comunicaciones:** todas las acciones asistidas; confirmación a familia.
 - **Postcondición/aceptación:** postulación distinguible como asistida y control familiar demostrable.
-- **Pendientes:** personal, suplencias, reglas de presencia, evidencia detallada y conservación/devolución física.
+- **Pendientes:** suplencias, evidencia detallada y conservación/devolución física; el adulto responsable debe estar presente para envío.
 
 ### UC-ADM-003 — Exportar reporte autorizado
 
@@ -471,7 +471,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Autorización/tenant:** `export.create`, propósito, scope, sensibilidad y posible aprobación adicional.
 - **Auditoría/comunicaciones:** solicitud, columnas, descarga/expiración; aviso interno si reforzado.
 - **Postcondición/aceptación:** exportación limitada al propósito/tenant y no utilizable tras vencimiento.
-- **Pendientes:** reportes, periodicidad, audiencia y retención Q-183/Q-202 diferida.
+- **Pendientes:** catálogo final, periodicidad, audiencia y retención Q-183/Q-202 diferida; Secretaría no exporta masivamente por defecto.
 
 ## Integración conceptual con EduPay
 

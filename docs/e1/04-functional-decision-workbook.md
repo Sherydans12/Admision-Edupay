@@ -223,14 +223,14 @@ Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los 
 
 ### Q-143 — ¿Presencial, remota o híbrida; ubicación/enlace?
 
-- **Contexto/fuentes/condicionantes:** FR-ACT-006 diferida para integraciones de calendario/videollamada. **Situación:** abierta.
+- **Contexto/fuentes/condicionantes:** FR-ACT-006 diferida para integraciones de calendario/videollamada. Para el piloto la entrevista y la evaluación son presenciales; ubicación y duración aún requieren detalle.
 - **Opciones:** A) sólo presencial; simple, menos accesible. B) modalidad configurable por actividad con ubicación o enlace minimizado; flexible. C) híbrida siempre; compleja e innecesaria.
 - **Impactos:** familia: B acomoda casos; operación: plantillas/modos; tenant: modalidad configurada; seguridad: enlaces no públicos y sin datos en URLs.
-- **Recomendación/razón:** **B** a nivel funcional, sin integrar proveedor; el piloto puede seleccionar presencial si el colegio lo confirma.
+- **Recomendación/razón:** **B** a nivel funcional, sin integrar proveedor; para el piloto se fija presencialidad y se mantiene la modalidad configurable por actividad para evolución.
 - **Aprobación/límite/documentos:** Admisión + entrevistadores/evaluadores; antes de E1-B.
-- **Pregunta al colegio:** “¿Las actividades serán presenciales, remotas o dependerán del caso? ¿Qué información de ubicación debe recibir la familia?”
+- **Pendiente de detalle:** ubicación exacta, duración y reglas para una modalidad futura remota o híbrida.
 - **Estado histórico:** `PROPOSED`.
-- **Estado consolidado:** `APPROVED_PRODUCT`; modalidad concreta pendiente.
+- **Estado consolidado:** `DEFINED_FOR_PILOT`; ubicación, duración y modalidad futura pendientes.
 
 ### Q-144 — ¿Pauta, resultado y confidencialidad detallada?
 
@@ -443,6 +443,28 @@ La respuesta institucional/funcional confirmada por Nicolás Sena el `2026-08-06
 | Q-140 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-009; `OPERATIONAL_DETAIL_PENDING` | Actividades obligatorias en piloto; excepciones, repetición, reprogramación y cierre auditados |
 | Q-142 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-009; `OPERATIONAL_DETAIL_PENDING` | No completada → registrar y reprogramar; eximir/cerrar sólo excepcionalmente con motivo y auditoría |
 | Q-144 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-009/C-013; pendientes operativos y legales | Resultados y datos sensibles por rol/propósito; no acceso automático de Admisión general |
+
+## Addendum E1-B — Detalle operativo definido para el piloto
+
+Las filas siguientes complementan el addendum institucional anterior. Se usa `DEFINED_FOR_PILOT` sólo para marcar el detalle operativo inicial; `APPROVED_PRODUCT` se conserva cuando la decisión de producto sigue siendo la fuente. Estos detalles no cierran E1-B ni G1.
+
+| Tema | Definición inicial del piloto | Estado | Pendiente que permanece |
+| --- | --- | --- | --- |
+| Responsables | Administrador Institucional Máximo: Arturo Javier Galleguillos Trigo, Sostenedor. Responsable de Admisión: Roxana Henríquez. Secretaría apoya operación y agenda. | `DEFINED_FOR_PILOT` | Suplentes y ejecutores concretos de entrevista/evaluación |
+| Cupos | Número manual por curso/año; Responsable de Admisión y Administrador Máximo pueden modificar directamente con auditoría. | `DEFINED_FOR_PILOT` | Valores concretos, señal familiar y configuración final de Dirección |
+| Aceptación | 3 días hábiles, configurable; familia y personal ven vencimiento y tiempo restante. | `DEFINED_FOR_PILOT` | Calendario institucional |
+| Corrección documental | 3 días hábiles, configurable; requisito exacto, portal, correo y límite visible; sin rechazo automático por vencimiento. | `DEFINED_FOR_PILOT` | Plantillas y escalamiento |
+| Actividades | Presenciales en MVP; sin botón obligatorio de confirmación; solicitud de cambio en portal. | `DEFINED_FOR_PILOT` | Duración, ejecutores y modalidad futura |
+| Reprogramación | 2 normales y 15 minutos de tolerancia, configurables; familia solicita con motivo, Admisión/Secretaría asignan. | `DEFINED_FOR_PILOT` | Reglas detalladas de excepciones |
+| Inasistencia | Primera no cierra; segunda injustificada permite cierre manual por Responsable de Admisión o Dirección; nunca cierre automático por contador. | `DEFINED_FOR_PILOT` | Procedimiento y evidencia de justificación |
+| Resultado de actividad | `FAVORABLE`, `NO_FAVORABLE`, `INCONCLUSO`; comentario interno opcional; no es decisión final. | `DEFINED_FOR_PILOT` | Pauta avanzada futura |
+| Recomendación | `RECOMENDAR_ADMISION`, `NO_RECOMENDAR_ADMISION`, `DEVOLVER_A_REVISION`; fundamento obligatorio, interna y versionada. | `DEFINED_FOR_PILOT` | Pauta institucional completa |
+| Decisión | `APROBADO`, `RECHAZADO`, `DEVUELTO_A_REVISION`; fundamento/motivo obligatorio; aprobado crea reserva/oferta/comunicación preparada. | `DEFINED_FOR_PILOT` | Suplencias y autoridad concreta de reapertura |
+| Lista de espera | Orden de ingreso por defecto; prioridades no definidas; promoción humana por Responsable de Admisión o Administrador Máximo; Secretaría no promueve. | `DEFINED_FOR_PILOT` | Prioridades y desempate |
+| Oferta de espera | 3 días hábiles, igual que oferta normal; origen visible al personal y vencimiento libera cupo. | `DEFINED_FOR_PILOT` | Recordatorio y textos finales |
+| Reportes/exportaciones | Catálogo operativo inicial; no archivos sensibles en Excel/CSV; Responsable de Admisión y Administrador Máximo exportan dentro de tenant; Secretaría no masiva por defecto. | `DEFINED_FOR_PILOT` | Columnas, periodicidad y legalidad |
+
+La fuente operativa detallada es [`08-pilot-operational-rules.md`](08-pilot-operational-rules.md) y la matriz de parámetros es [`09-pilot-configuration-matrix.md`](09-pilot-configuration-matrix.md).
 
 ## Documentos afectados por pregunta
 

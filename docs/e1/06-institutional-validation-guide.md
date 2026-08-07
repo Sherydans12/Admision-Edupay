@@ -29,6 +29,12 @@ No registrar en esta guía datos personales de familias, estudiantes o trabajado
 
 Quedan fijadas para el MVP: disponibilidad categórica; un adulto responsable con cuenta; portal como fuente oficial y postulación asistida; captura mínima; catálogo documental versionado; actividades obligatorias en el piloto y configurables en el núcleo; reserva junto a oferta; promoción humana de espera; historial familiar seguro; correo automático único; y handoff a EduPay después de aceptación expresa. Si el colegio necesita una excepción o cambio, registrar `MODIFICADO` o `PENDIENTE` con impacto y responsable, sin presentarlo como una decisión ya aprobada.
 
+## Reglas operativas ya definidas para el piloto
+
+El detalle operativo posterior está consolidado en [`08-pilot-operational-rules.md`](08-pilot-operational-rules.md) y [`09-pilot-configuration-matrix.md`](09-pilot-configuration-matrix.md). Para esta guía se consideran definidos: cupos manuales configurables; aceptación y corrección de 3 días hábiles; 2 reprogramaciones normales; tolerancia de 15 minutos; presencialidad de entrevista/evaluación; solicitud de cambio sin botón obligatorio de confirmación; resultados simples internos; recomendación/decisión separadas; lista de espera con orden de ingreso por defecto y promoción humana; Secretaría como apoyo sin recomendación/decisión/cupos/promoción/exportación masiva por defecto; y dashboard/reportes operativos iniciales.
+
+La agenda pendiente de la guía se concentra en suplencias, ejecutores concretos, duración, catálogo de personalidad por curso, prioridades, plantillas finales, recordatorio de oferta, SLA adicionales, conservación física y validación legal de C-013.
+
 ## Cómo registrar cada tema
 
 Marcar un único resultado:
@@ -72,7 +78,7 @@ Una conversación sin registro no cuenta como aprobación.
 
 ### 5. Entrevista del apoderado
 
-- **Por qué se pregunta:** se confirma la actividad, pero faltan pauta, modalidad y excepciones.
+- **Por qué se pregunta:** se confirma la actividad y la presencialidad del MVP, pero faltan pauta, duración, ejecutores, suplencias y reglas detalladas de acceso/cierre.
 - **Recomendación:** cita asignada por colegio, pauta estructurada, datos mínimos y conclusión restringida.
 - **Preguntas de validación:** ¿quién ocupa/suple el rol?, ¿qué pauta y modalidad concreta usará el colegio?, ¿qué conclusión necesita registrar y quién la revisa?
 - **Trazabilidad:** Q-141 a Q-145; UC-ACT-003 a 005.
@@ -80,14 +86,14 @@ Una conversación sin registro no cuenta como aprobación.
 ### 6. Evaluación diagnóstica
 
 - **Validación registrada:** entrevista de apoderado y evaluación diagnóstica obligatorias para todos los postulantes de 1º básico a 4º medio del piloto; configuración versionada por tenant/proceso/año/oferta/curso/tipo; excepciones, reprogramación, repetición y cierre con motivo e historia auditada.
-- **Preguntas de detalle C-009:** ¿qué pauta, modalidad, responsables, suplencias, tolerancias y criterios concretos se aplicarán?, ¿quién accede a la conclusión según propósito?
+- **Preguntas de detalle C-009:** ¿qué pauta, duración, ejecutores, suplencias y criterios concretos se aplicarán?, ¿quién accede a la conclusión según propósito?
 - **Trazabilidad:** Q-140, Q-144/Q-145, C-009; UC-ACT-003/005.
 
 ### 7. Reprogramaciones e inasistencias
 
-- **Por qué se pregunta:** hoy no hay límites, tolerancia ni efecto aprobados.
-- **Validación registrada:** si una evaluación no puede completarse, se registra y normalmente se reprograma; eximir o cerrar es excepcional y exige actor autorizado, motivo y auditoría. Los límites, tolerancias y tareas concretas siguen pendientes.
-- **Preguntas de detalle:** ¿cuántos cambios, anticipación y tolerancia se configuran?, ¿quién revisa la inasistencia?, ¿qué tarea se crea?
+- **Por qué se pregunta:** la regla inicial del piloto debe quedar vinculada a la configuración versionada y a las tareas operativas.
+- **Validación registrada:** si una evaluación no puede completarse, se registra y normalmente se reprograma; el piloto usa 2 reprogramaciones normales y 15 minutos de tolerancia. Eximir o cerrar es excepcional y exige actor autorizado, motivo y auditoría.
+- **Preguntas de detalle:** ¿qué suplencias, duración, tareas y criterio de cierre se aplican?, ¿quién revisa la inasistencia?
 - **Trazabilidad:** Q-142/Q-143; UC-ACT-002/004.
 
 ### 8. Recomendación de Admisión

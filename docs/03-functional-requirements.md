@@ -2,7 +2,7 @@
 
 ## Uso y estados
 
-Los requisitos provienen de `SRC-001` a `SRC-005`. Las decisiones funcionales de `SRC-004` están aprobadas por Nicolás Sena; las reglas institucionales y detalles señalados como preguntas siguen sujetos a Admisión/Dirección del colegio. Los IDs existentes se conservan para trazabilidad.
+Los requisitos provienen de `SRC-001` a `SRC-005`. Las decisiones funcionales de `SRC-004` están aprobadas por Nicolás Sena; la validación institucional y el detalle operativo definido para el piloto se registran en `docs/e1/07-institutional-validation-baseline.md`, `docs/e1/08-pilot-operational-rules.md` y `docs/e1/09-pilot-configuration-matrix.md`. Los IDs existentes se conservan para trazabilidad.
 
 Prioridad provisional:
 
@@ -44,9 +44,9 @@ La prioridad no autoriza implementación.
 | FR-FRM-001 | La institución debe configurar plantillas versionadas de formulario. | MUST | Una postulación conserva la versión con que fue enviada. |
 | FR-FRM-002 | La plantilla debe expresar obligatoriedad, tipo, validación y propósito de cada campo. | MUST | El render y la validación usan una definición coherente. |
 | FR-FRM-003 | Deben soportarse inicialmente datos del estudiante, domicilio, procedencia y motivo de postulación. | MUST | El detalle final se valida con el colegio. |
-| FR-FRM-004 | Deben soportarse antecedentes de hogar, repitencia, PIE, especialistas y necesidades educativas. | MUST | Se etiquetan como restringidos según sensibilidad y propósito. |
+| FR-FRM-004 | Deben soportarse antecedentes de hogar, repitencia, PIE, especialistas y necesidades educativas cuando exista finalidad funcional. | MUST | PIE/NEE son opcionales y progresivos; se etiquetan como restringidos según sensibilidad y propósito. |
 | FR-FRM-005 | Deben soportarse datos de madre, padre, apoderado titular y apoderado financiero. | MUST | Los roles familiares pueden coincidir sin duplicar o exponer información. |
-| FR-FRM-006 | Deben soportarse ocupación, educación, contacto, trabajo, cargo e ingreso del hogar. | MUST | La visibilidad financiera se limita por permiso y propósito. |
+| FR-FRM-006 | Deben soportarse ocupación, educación, contacto, trabajo y cargo cuando el formulario los justifique. | MUST | El ingreso familiar queda fuera del formulario de admisión MVP y sólo puede tratarse separadamente por un proceso financiero futuro. |
 | FR-FRM-007 | Cambios posteriores al envío deben conservar versiones o enmiendas. | MUST | Es posible reconstruir qué información fundamentó una decisión. |
 | FR-FRM-008 | Cada institución debe construir formularios mediante secciones ordenables y campos de tipos controlados. | MUST | Configura etiqueta, ayuda, obligatoriedad, validaciones, opciones y orden sin desarrollo específico. |
 | FR-FRM-009 | El constructor debe soportar reglas condicionales declarativas y verificables. | MUST | Las condiciones sólo usan operadores/campos permitidos y pueden validarse antes de publicar. |
@@ -71,11 +71,11 @@ La prioridad no autoriza implementación.
 
 | ID | Requisito | Prioridad | Criterio conceptual de aceptación |
 | --- | --- | --- | --- |
-| FR-ACT-001 | La institución debe configurar si una entrevista o evaluación aplica por nivel/oferta; el piloto exige ambas actividades. | MUST | Una omisión en otros procesos queda registrada; la regla del piloto se valida por C-009. |
-| FR-ACT-002 | Personal autorizado debe proponer, agendar, confirmar y reprogramar actividades. | MUST | Se conserva historial de horarios, zona horaria y responsables. |
-| FR-ACT-003 | La familia debe ver próximos pasos y confirmar o solicitar cambio cuando esté permitido. | MUST | No accede a agenda o datos de terceros. |
-| FR-ACT-004 | Deben registrarse asistencia, inasistencia, cancelación y conclusión separadamente. | MUST | La conclusión no se deduce sólo de la asistencia. |
-| FR-ACT-005 | Pautas, notas y resultados deben tener visibilidad restringida. | MUST | Sólo roles y propósitos autorizados acceden al contenido. |
+| FR-ACT-001 | La institución debe configurar si una entrevista o evaluación aplica por nivel/oferta; el piloto exige ambas actividades. | MUST | En Conquistadores son obligatorias desde 1º básico a 4º medio; la regla se versiona por tenant/proceso/oferta/curso/tipo. |
+| FR-ACT-002 | Personal autorizado debe agendar y reprogramar actividades. | MUST | La familia solicita cambio con motivo; Admisión/Secretaría asignan el nuevo horario; se conserva historial. |
+| FR-ACT-003 | La familia debe ver próximos pasos y solicitar cambio cuando esté permitido. | MUST | No se exige botón de confirmación ni elección directa de horario; no accede a agenda o datos de terceros. |
+| FR-ACT-004 | Deben registrarse estados operacionales, asistencia, inasistencia, reprogramación, excepción, repetición y conclusión separadamente. | MUST | La conclusión no se deduce sólo de asistencia; el cierre no ocurre automáticamente por contador. |
+| FR-ACT-005 | Pautas, comentarios y resultados deben tener visibilidad restringida. | MUST | La familia sólo ve estado operativo y próximos pasos; sólo roles y propósitos autorizados acceden al contenido. |
 | FR-ACT-006 | La integración futura con calendarios o videollamada queda fuera del MVP hasta validación. | LATER | Requiere contrato, privacidad y manejo de zona horaria. |
 | FR-ACT-007 | La institución debe poder asignar directamente horarios de actividades. | MUST | En el piloto, sólo el colegio asigna entrevista y evaluación; cada asignación/reprogramación queda auditada. |
 
@@ -90,11 +90,11 @@ La prioridad no autoriza implementación.
 | FR-DEC-005 | La recomendación de Admisión debe tener ciclo, versiones y auditoría propios. | MUST | Borrador, envío, devolución y reemplazo son reconstruibles y no publican resultado. |
 | FR-DEC-006 | Dirección debe aprobar, rechazar o devolver a revisión con justificación. | MUST | Sólo aprobar/rechazar constituye decisión final; devolver reactiva revisión sin notificar un resultado final. |
 | FR-DEC-007 | La comunicación del resultado debe ser una acción posterior autorizada. | MUST | Una recomendación o devolución nunca dispara automáticamente el resultado. |
-| FR-CAP-001 | La institución debe definir cupos por institución, sede, año y curso. | MUST | Los ajustes tienen vigencia, razón y autor. |
+| FR-CAP-001 | La institución debe definir cupos manuales por institución, sede, año y curso. | MUST | Responsable de Admisión y Administrador Institucional Máximo pueden ajustar; se registra actor, fecha/hora, anterior, nuevo y motivo. |
 | FR-CAP-002 | El sistema debe distinguir capacidad, reserva, oferta, aceptación y matrícula. | MUST | Ningún paso consume o libera cupo por inferencia ambigua. |
 | FR-CAP-003 | La asignación concurrente debe impedir sobreoferta según política. | MUST | Dos operaciones simultáneas no usan la misma unidad disponible. |
-| FR-CAP-004 | La lista de espera debe operar con una política versionada y auditable. | MUST | Ingreso, orden, promoción y cierre son reproducibles. |
-| FR-CAP-005 | La posición visible y las prioridades requieren aprobación institucional. | MUST | No se exponen reglas ni datos de terceros por defecto. |
+| FR-CAP-004 | La lista de espera debe operar con una política versionada y auditable. | MUST | Orden de ingreso por defecto; promoción humana por Responsable de Admisión o Administrador Máximo; nunca automática en MVP. |
+| FR-CAP-005 | La posición visible y las prioridades requieren aprobación institucional. | MUST | No se expone posición ni reglas internas; prioridades concretas de Conquistadores siguen pendientes. |
 
 ## Comunicación y experiencia familiar
 
@@ -105,7 +105,7 @@ La prioridad no autoriza implementación.
 | FR-COM-003 | El sistema debe registrar intención, envío, entrega cuando sea posible y fallo. | MUST | “Enviado” no se presenta como “entregado” sin evidencia. |
 | FR-COM-004 | Deben gestionarse preferencias y consentimientos cuando correspondan. | MUST | Los mensajes operacionales y promocionales no se mezclan. |
 | FR-COM-005 | La comunicación de resultado debe provenir de una decisión autorizada. | MUST | No se envían resultados prematuros por cambios intermedios. |
-| FR-COM-006 | El núcleo debe soportar aceptación o rechazo explícito de una oferta cuando la configuración lo exija. | MUST | La respuesta queda asociada a oferta, condiciones y plazo; su uso en el piloto sigue abierto. |
+| FR-COM-006 | El núcleo debe soportar aceptación o rechazo explícito de una oferta cuando la configuración lo exija. | MUST | La respuesta queda asociada a oferta, condiciones y plazo de 3 días hábiles en el piloto; aceptación precede al handoff. |
 | FR-COM-007 | El piloto debe notificar inicialmente resultado y acciones sólo por correo. | MUST | Se registra preparación, envío, entrega cuando exista evidencia y fallo; proveedor aún no seleccionado. |
 | FR-COM-008 | WhatsApp queda diferido. | LATER | Requiere análisis de costo, privacidad, consentimiento, proveedor y arquitectura. |
 
@@ -113,12 +113,12 @@ La prioridad no autoriza implementación.
 
 | ID | Requisito | Prioridad | Criterio conceptual de aceptación |
 | --- | --- | --- | --- |
-| FR-ADM-001 | Personal autorizado debe ver dashboard, tabla y tablero por etapas. | MUST | Todas las consultas están restringidas a tenant y alcance. |
+| FR-ADM-001 | Personal autorizado debe ver dashboard, tabla y tablero por etapas. | MUST | Incluye nuevas, por revisar, correcciones venciendo, citas próximas, esperando decisión, ofertas por vencer y lista de espera; todas las consultas están restringidas a tenant y alcance. |
 | FR-ADM-002 | Debe filtrar y buscar por dimensiones autorizadas sin enumeración transversal. | MUST | Resultados y conteos no filtran existencia en otro tenant. |
 | FR-ADM-003 | Debe configurar sedes, años, niveles, cursos y ofertas. | MUST | Publicación y cambios sensibles tienen historial. |
 | FR-ADM-004 | Debe configurar plantillas, requisitos y flujo dentro de límites de plataforma. | MUST | Versiones activas no alteran retroactivamente postulaciones. |
 | FR-ADM-005 | Debe administrar membresías, roles y alcances. | MUST | Nadie puede conceder más privilegio que el propio límite delegado. |
-| FR-ADM-006 | Debe exportar o reportar sólo datos y columnas autorizados. | SHOULD | La exportación se audita, expira y minimiza datos. |
+| FR-ADM-006 | Debe exportar o reportar sólo datos y columnas autorizados. | SHOULD | Responsable de Admisión y Administrador Máximo pueden exportar dentro de tenant; Secretaría no exporta masivamente por defecto; la exportación se audita, expira y minimiza datos. |
 | FR-ADM-007 | Debe existir soporte controlado de plataforma sin acceso implícito a contenido sensible. | MUST | Acceso excepcional es temporal, justificado y auditado. |
 | FR-ADM-008 | La institución debe administrar formularios sólo mediante el constructor controlado. | MUST | No existe mecanismo institucional para inyectar código o HTML ejecutable. |
 
@@ -129,7 +129,20 @@ La prioridad no autoriza implementación.
 | FR-AUD-001 | Cambios relevantes deben producir eventos auditables. | MUST | Actor, tenant, objeto, acción, instante y correlación son reconstruibles. |
 | FR-AUD-002 | Las visualizaciones de datos restringidos deben auditarse. | MUST | La consulta de salud, finanzas o documentos deja evidencia útil. |
 | FR-AUD-003 | El historial visible a la familia debe ser una proyección segura. | MUST | No muestra notas, actores internos ni metadatos sensibles. |
-| FR-AUD-004 | Correcciones administrativas no deben borrar la historia. | MUST | Se registra corrección, razón y relación con el dato anterior. |
+| FR-AUD-004 | Correcciones administrativas, excepciones y cierres no deben borrar la historia. | MUST | Se registra corrección/excepción/cierre, razón, actor y relación con el dato o intento anterior. |
+
+## Refinamientos operativos E1-B definidos para el piloto
+
+| ID | Requisito | Prioridad | Criterio conceptual de aceptación |
+| --- | --- | --- | --- |
+| FR-DOC-009 | La documentación física aceptada excepcionalmente debe digitalizarse al requisito correspondiente. | MUST | El documento oficial registra origen conceptual `PHYSICAL_DOCUMENT`, operador y fecha; no se crea expediente paralelo. |
+| FR-ACT-008 | Cada actividad debe distinguir estado operacional de resultado interno. | MUST | Estados como `PROGRAMADA`, `REALIZADA`, `REPROGRAMADA`, `EXENTA`, `NO_COMPLETADA` y `CERRADA` se separan de `FAVORABLE`, `NO_FAVORABLE` e `INCONCLUSO`. |
+| FR-ACT-009 | Una evaluación debe conservar intentos y permitir repetición autorizada. | MUST | Evaluador o Responsable de Admisión inicia repetición; secuencia, responsable, motivo, resultado y relación anterior quedan reconstruibles. |
+| FR-DEC-008 | La recomendación de Admisión debe usar opciones funcionales internas y fundamento obligatorio. | MUST | `RECOMENDAR_ADMISION`, `NO_RECOMENDAR_ADMISION` y `DEVOLVER_A_REVISION` son versionados/auditados y no constituyen decisión final. |
+| FR-DEC-009 | La decisión de Dirección debe usar opciones finales y fundamento/motivo obligatorio según opción. | MUST | `APROBADO` crea reserva/oferta/comunicación preparada; `RECHAZADO` exige fundamento; `DEVUELTO_A_REVISION` vuelve a Admisión; no inicia directamente EduPay. |
+| FR-CAP-006 | Una oferta debe expirar y liberar reserva/cupo al vencer su plazo sin respuesta. | MUST | El piloto usa 3 días hábiles para oferta normal y de espera; el caso conserva historia y no inicia handoff. |
+| FR-COM-009 | Las citas deben informar acción de cambio sin exigir confirmación. | MUST | Correo incluye actividad, fecha, hora, lugar, portal y `SOLICITAR CAMBIO`; llamadas son contacto manual, no canal automático. |
+| FR-ADM-009 | El dashboard debe mostrar los contadores operativos mínimos del piloto. | MUST | Se distinguen nuevas, revisión, correcciones, citas, decisión, ofertas por vencer y lista de espera, con aislamiento tenant. |
 
 ## Integración con EduPay
 
