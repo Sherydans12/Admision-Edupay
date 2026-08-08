@@ -8,7 +8,7 @@
 - **Propietario funcional/técnico:** Nicolás Sena.
 - **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor.
 - **Validación institucional:** Arturo Javier Galleguillos Trigo, con participación de Admisión y/o Dirección.
-- **Estado:** G0 cerrada; E1-B `IN PROGRESS / OPERATIONAL BASELINE DEFINED`; G1 no aprobada.
+- **Estado:** G0 cerrada; E1-B `IN PROGRESS / READY FOR CLOSURE REVIEW`; G1 no aprobada.
 
 La línea base institucional de E1-B está registrada en [`e1/07-institutional-validation-baseline.md`](e1/07-institutional-validation-baseline.md). Las reglas del piloto se expresan como configuración versionada; no se incorporan condiciones hardcodeadas por institución.
 
@@ -34,7 +34,7 @@ Este documento contiene reglas del piloto para configurar sobre el núcleo multi
 | Resultados internos | `FAVORABLE`, `NO_FAVORABLE`, `INCONCLUSO`; comentario opcional |
 | Oferta desde espera | 3 días hábiles; promoción nunca automática |
 | Recomendación | Admisión |
-| Decisión final | Dirección |
+| Disposición final | Dirección: `APROBADO`, `LISTA_DE_ESPERA`, `RECHAZADO` o `DEVUELTO_A_REVISION` |
 | Canal inicial | Correo |
 | WhatsApp | Diferido |
 | Pago matrícula | Externo a Admisión, mediante portal que consulta EduPay |
@@ -51,8 +51,8 @@ La obligatoriedad de entrevista y evaluación diagnóstica está validada instit
 6. Evaluación diagnóstica presencial obligatoria del estudiante, con horario asignado por el colegio.
 7. Revisión consolidada.
 8. Recomendación de Admisión.
-9. Decisión final de Dirección: aprobar, rechazar o devolver a revisión con justificación.
-10. Comunicación del resultado.
+9. Disposición final de Dirección: `APROBADO`, `LISTA_DE_ESPERA`, `RECHAZADO` o `DEVUELTO_A_REVISION`, con fundamento/motivo según opción.
+10. Si es `APROBADO`, comunicación de oferta; si es `LISTA_DE_ESPERA`, comunicación del estado general sin oferta ni plazo de aceptación.
 11. Dirección `APROBADO` → reserva de cupo → emisión de oferta → comunicación preparada → aceptación familiar dentro de 3 días hábiles.
 12. Handoff controlado hacia EduPay.
 13. Creación o vinculación del estudiante/apoderado y asociación académica en EduPay.
@@ -77,7 +77,7 @@ La obligatoriedad de entrevista y evaluación diagnóstica está validada instit
 | Responsable de Admisión — Roxana Henríquez | Revisa según permisos, observa, agenda, consolida, recomienda, administra cupos/espera y prepara/confirma comunicaciones | No toma decisión final; no revela resultados internos a la familia |
 | Secretaría | Postulación asistida; carga/digitalización documental; correcciones administrativas; asignación/reprogramación de citas | No recomienda, decide, modifica cupos, promueve ni exporta masivamente por defecto |
 | Entrevistador/evaluador | Ejecuta actividad asignada y registra conclusión restringida | Sólo casos y datos necesarios |
-| Dirección | Aprueba, rechaza o devuelve con justificación | No altera evidencia ni recomendación histórica |
+| Dirección | Aprueba, pone en lista de espera, rechaza o devuelve con justificación | No altera evidencia ni recomendación histórica |
 | Administrador institucional | Configura oferta, formularios, requisitos, membresías y permisos delegados | Tenant y alcance institucional; no es automáticamente Administrador Institucional Máximo |
 | Administrador Institucional Máximo — Arturo Javier Galleguillos Trigo, Sostenedor | Administra o supervisa todas las categorías funcionales de su tenant cuando su función lo requiere; puede modificar cupos y promover | Sólo su tenant; permiso, propósito y auditoría; no es Dirección |
 | Superadministrador Global | Opera plataforma; para contenido institucional usa elevación explícita | Ningún acceso de lectura implícito; `SELF-ELEVATION` explícita y auditada en MVP |
@@ -170,7 +170,7 @@ Debe definirse cuáles requieren aceptación expresa, cuál es el texto/versiona
 - el portal de pagos consulta EduPay;
 - una entrega técnica del handoff no equivale a matrícula;
 - Q-309 debe definir estado pre-pago y evento de confirmación;
-- Q-310 debe definir si el handoff precede o sigue a una aceptación familiar explícita.
+- Q-310 está `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`: el handoff sigue a la aceptación familiar expresa de una oferta vigente.
 
 ## Diferencias respecto del núcleo configurable
 
@@ -182,7 +182,7 @@ Debe definirse cuáles requieren aceptación expresa, cuál es el texto/versiona
 | Origen de horario configurable | Colegio asigna directamente |
 | Recomendador/aprobador configurables | Admisión recomienda; Dirección decide |
 | Canales configurables | Sólo correo inicialmente |
-| Aceptación de oferta configurable | Uso de acción independiente pendiente |
+| Aceptación de oferta configurable | Acción expresa; en este piloto precede al handoff |
 | Requisitos versionados | Catálogo inicial de SRC-002/SRC-003 |
 | Integraciones por contrato | Handoff futuro a EduPay |
 
@@ -193,8 +193,9 @@ Estas diferencias deben representarse mediante configuración y versiones, nunca
 - Responsable de Admisión y Administrador Institucional Máximo pueden modificar cupos directamente; toda modificación conserva actor, fecha/hora, valor anterior, valor nuevo y motivo/comentario cuando corresponda.
 - Ante vencimiento de una oferta sin respuesta, la oferta expira, libera reserva/cupo, conserva historial y no inicia handoff a EduPay. La reapertura es manual, excepcional, autorizada y auditada.
 - La primera inasistencia no cierra; ante una segunda injustificada, Responsable de Admisión o Dirección puede cerrar manualmente. Nunca se cierra automáticamente sólo por contador.
-- La lista de espera usa orden de ingreso por defecto, no expone posición y no se promueve automáticamente. Secretaría no promueve.
-- La recomendación usa opciones internas con fundamento obligatorio; Dirección usa `APROBADO`, `RECHAZADO` y `DEVUELTO_A_REVISION`. `APROBADO` no inicia EduPay: la aceptación familiar expresa sigue siendo condición previa.
+- La lista de espera usa orden de ingreso por defecto, no expone posición y no se promueve automáticamente. `LISTA_DE_ESPERA` no crea oferta, plazo de aceptación ni handoff; Secretaría no promueve.
+- La recomendación usa opciones internas con fundamento obligatorio; Dirección usa `APROBADO`, `LISTA_DE_ESPERA`, `RECHAZADO` y `DEVUELTO_A_REVISION`. `APROBADO` crea reserva/oferta/comunicación y plazo de aceptación; la aceptación familiar expresa sigue siendo condición previa al handoff.
+- Si la admisibilidad ya fue decidida, promover desde `LISTA_DE_ESPERA` no requiere nueva decisión de Dirección: Responsable de Admisión o Administrador Institucional Máximo crea reserva/oferta e inicia los mismos 3 días hábiles, con historial y auditoría.
 
 ## Estado de contradicciones en E1-B
 
@@ -203,7 +204,7 @@ Estas diferencias deben representarse mediante configuración y versiones, nunca
 | C-009 | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING | Obligatoria para todos; configuración versionada, excepciones, reprogramación, repetición y cierre auditados |
 | C-010 | RESUELTA | Etapa 4 corresponde a “Revisión de antecedentes”; no altera el flujo |
 | C-011 | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING | Catálogo concreto del piloto por curso/nivel, condición, vigencia y equivalencia |
-| C-013 | INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING | Fundamento normativo, textos, retención, eliminación/anonimización y titulares antes de datos reales |
+| C-013 | INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING | Fundamento normativo, textos, retención, eliminación/anonimización y titulares antes de datos reales/piloto productivo; no bloquea E1-B/G1 |
 | C-014 | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING | Personal, suplencias, evidencias y detalle de documentación física |
 
 ## Decisiones pendientes
@@ -213,10 +214,10 @@ Estas diferencias deben representarse mediante configuración y versiones, nunca
 3. Catálogo concreto y equivalentes del informe de personalidad.
 4. Prioridades concretas de Conquistadores y desempate.
 5. Plantillas finales, recordatorio de oferta y SLA adicionales.
-6. Validación legal de C-013: fundamento, retención, eliminación/anonimización y titulares.
-7. Evidencias detalladas y conservación/devolución de documentación física.
-8. Estado pre-pago y evento de matrícula de EduPay.
-9. Responsable legal/normativo antes de autorizar datos reales para el piloto.
+6. `PILOT_CONFIGURATION_PENDING`: suplentes, ejecutores, duración, catálogo de personalidad, prioridades, plantillas y SLA.
+7. `PRE_PILOT_LEGAL_PENDING`: validación legal de C-013, retención, eliminación/anonimización, titulares y conservación/devolución física.
+8. `FUTURE_INTEGRATION_PENDING`: estado pre-pago y evento de matrícula de EduPay (Q-301 a Q-309).
+9. Responsable legal/normativo antes de autorizar datos reales/piloto productivo.
 
 ## Regla de no acoplamiento
 

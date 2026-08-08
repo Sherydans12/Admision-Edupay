@@ -148,7 +148,7 @@ La aprobación consolidada de E1-A y la validación institucional E1-B fijan par
 - **Recorrido principal:** 1) Dirección decide; 2) se reserva y emite oferta; 3) Admisión autoriza comunicación; 4) familia recibe resultado y condiciones; 5) el adulto responsable acepta expresamente dentro de 3 días hábiles; 6) se inicia handoff; 7) EduPay continúa su propio ciclo.
 - **Variantes:** favorable con oferta inmediata; favorable con paso de aceptación; acción externa de formalización.
 - **Excepciones:** cupo ya no disponible, comunicación fallida, oferta expirada, respuesta duplicada, divergencia de handoff.
-- **Puntos de decisión:** reserva, vigencia, aceptación explícita, Q-310 y efecto de no formalizar.
+- **Puntos de decisión:** reserva, vigencia, aceptación explícita y efecto de no formalizar; Q-310 queda resuelta con aceptación previa al handoff.
 - **Datos:** decisión comunicable, oferta, plazo, contacto y referencias mínimas de integración futura.
 - **No mostrar:** fundamento interno, recomendación, notas, situación de terceros o payload técnico.
 - **Eventos auditables:** `AdmissionDecisionRecorded`, `SeatReserved`, `AdmissionOfferIssued/Accepted`, comunicación y handoff.
@@ -162,7 +162,7 @@ La aprobación consolidada de E1-A y la validación institucional E1-B fijan par
 - **Objetivo:** comprender que existe elegibilidad sin vacante garantizada.
 - **Actor principal:** apoderado postulante. **Secundarios:** Dirección, Admisión, responsable de cupos.
 - **Disparador:** decisión/regla de capacidad lleva a espera. **Precondiciones:** política versionada y decisión autorizada.
-- **Recorrido principal:** 1) se registra ingreso y criterio; 2) se comunica condición y vigencia; 3) familia consulta estado; 4) responsable revisa ante cupo; 5) promoción requiere confirmación humana por D-008; 6) se emite oferta con vigencia de 3 días hábiles o se cierra.
+- **Recorrido principal:** 1) Dirección registra `LISTA_DE_ESPERA` como disposición final; 2) se registra ingreso y criterio; 3) familia consulta el estado general sin posición exacta; 4) responsable revisa ante cupo; 5) promoción requiere confirmación humana por D-008; 6) se crea reserva y oferta con vigencia de 3 días hábiles o se cierra. La entrada inicial no crea oferta ni inicia plazo de aceptación o handoff.
 - **Variantes:** cambios de política quedan para evolución; prioridades/desempates aprobados; familia desiste. En el MVP no se muestra posición numérica exacta.
 - **Excepciones:** empate, ajuste de cupo, cierre de lista, comunicación fallida, promoción concurrente.
 - **Puntos de decisión:** orden, visibilidad, promoción, plazo y respuesta.
@@ -170,7 +170,7 @@ La aprobación consolidada de E1-A y la validación institucional E1-B fijan par
 - **No mostrar:** datos de terceros, posición si no está aprobada, criterios sensibles o probabilidad de admisión.
 - **Eventos auditables:** `ApplicationWaitlisted`, cambios de orden justificados, promoción, cierre o desistimiento.
 - **Notificaciones:** ingreso, cambio accionable, oferta/promoción o cierre.
-- **Estado visible:** “En lista de espera” con explicación aprobada, no promesa.
+- **Estado visible:** “En lista de espera” con explicación aprobada, no promesa ni posición exacta.
 - **Resultado:** espera vigente, promoción controlada o cierre trazable.
 - **Preguntas:** Q-164 a Q-166, Q-181, Q-182, Q-184.
 
@@ -302,15 +302,15 @@ La aprobación consolidada de E1-A y la validación institucional E1-B fijan par
 
 - **Objetivo:** iniciar un handoff controlado en el momento funcional aprobado.
 - **Actor principal:** Admisión. **Secundarios:** familia, Dirección, EduPay, soporte de integración.
-- **Disparador/precondiciones:** decisión favorable; Q-310 cumplida; referencia de tenant/oferta válida; contrato futuro aprobado.
+- **Disparador/precondiciones:** oferta vigente aceptada expresamente; referencia de tenant/oferta válida; contrato futuro aprobado.
 - **Recorrido principal:** verificar aceptación expresa; preparar mínimo funcional; registrar intención/correlación; entregar a borde futuro; consultar estado; recibir confirmación; proyectar sin confundir entrega con matrícula.
-- **Variantes:** tras decisión, aceptación o formalización según Q-310; vinculación existente. **Excepciones:** conflicto de identidad, rechazo, timeout, duplicado, desistimiento durante proceso.
-- **Decisiones:** Q-310 en E1; Q-301 a Q-309 quedan para integración. **Datos:** identidad/relación académica mínimas; nunca salud, NEE, documentos o notas.
+- **Variantes:** partes ya vinculadas. **Excepciones:** conflicto de identidad, rechazo, timeout, duplicado, desistimiento durante proceso.
+- **Decisiones:** Q-310 está `FUNCTIONALLY_RESOLVED`; Q-301 a Q-309 quedan para integración futura. **Datos:** identidad/relación académica mínimas; nunca salud, NEE, documentos o notas.
 - **No mostrar:** payload, referencias técnicas, reintentos o errores internos.
 - **Auditoría/notificación:** solicitud, entrega, acuse, fallo, reintento, reconciliación y confirmación.
 - **Estado familiar:** “Preparando matrícula”; sólo `ENROLLED` con confirmación contractual futura.
 - **Resultado:** handoff iniciado/confirmado/atención requerida, sin tablas compartidas.
-- **Preguntas:** Q-310; dependencias Q-301 a Q-309.
+- **Preguntas:** dependencias Q-301 a Q-309.
 
 ### J-ADM-007 — Administrador configura y publica formulario y requisitos
 
@@ -338,11 +338,12 @@ flowchart TD
     F5 --> A4["J-ADM-004 Recomendar"]
     A4 --> D1["J-DIR-001 Decidir"]
     D1 -->|Devuelve| A4
-    D1 --> C1["J-ADM-005 Comunicar"]
-    C1 -->|Espera| W1["J-FAM-009 / J-ADM-006"]
-    C1 -->|Favorable| F8["J-FAM-008"]
+    D1 -->|Lista de espera| W1["J-FAM-009 / J-ADM-006"]
+    D1 -->|Aprobado| O1["Oferta y comunicación"]
+    D1 -->|Rechazado| R1["Resultado negativo"]
+    O1 --> F8["J-FAM-008"]
     W1 -->|Promoción humana| F8
-    F8 --> I1["J-INT-001 según Q-310"]
+    F8 --> I1["J-INT-001 después de aceptación"]
     F8 -->|Desiste o vence| F10["J-FAM-010"]
 ```
 

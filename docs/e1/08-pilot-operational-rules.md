@@ -5,12 +5,12 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E1-B — Especificación funcional institucional |
-| Estado | `IN PROGRESS / OPERATIONAL BASELINE DEFINED` |
+| Estado | `IN PROGRESS / READY FOR CLOSURE REVIEW` |
 | Piloto | Colegio Particular Conquistadores — Admisión 2027 |
 | Fuente | Decisiones operativas confirmadas después de `e9039867e0b2e42782a238bc9edb4052ac6c5fdb` |
 | Naturaleza | Reglas funcionales; no es configuración técnica, API, esquema ni base de datos |
 
-Este documento consolida los detalles operativos definidos para el piloto. `DEFINED_FOR_PILOT` significa que existe un valor o regla inicial del piloto; no implica que el parámetro deje de ser configurable en el núcleo, que se haya cerrado G1 o que se autorice implementación.
+Este documento consolida los detalles operativos definidos para el piloto. `DEFINED_FOR_PILOT` significa que existe un valor o regla inicial del piloto; no implica que el parámetro deje de ser configurable en el núcleo, que se haya cerrado G1 o que se autorice implementación. E1-B queda `IN PROGRESS / READY FOR CLOSURE REVIEW` sujeto a revisión humana; este documento por sí solo no cierra la etapa.
 
 La configuración debe ser por tenant, proceso/año, oferta, curso/nivel, actividad o condición cuando corresponda. Ninguna regla se implementa por nombre, dominio, correo o identificador de Conquistadores.
 
@@ -129,11 +129,12 @@ Opciones funcionales:
 
 El fundamento o comentario es obligatorio en las tres opciones. La recomendación es interna, versionada y auditable; no se muestra a la familia ni constituye decisión final.
 
-### Decisión de Dirección
+### Disposición final de Dirección
 
-Dirección accede a antecedentes permitidos, actividades, resultados internos, comentarios autorizados y recomendación. Opciones:
+Dirección accede a antecedentes permitidos, actividades, resultados internos, comentarios autorizados y recomendación. La disposición institucional final puede ser:
 
 - `APROBADO`;
+- `LISTA_DE_ESPERA`;
 - `RECHAZADO`;
 - `DEVUELTO_A_REVISION`.
 
@@ -142,18 +143,21 @@ Sólo una identidad con capacidad Dirección puede ejecutar la decisión final. 
 - `RECHAZADO` exige fundamento obligatorio.
 - `DEVUELTO_A_REVISION` exige motivo obligatorio, vuelve a Responsable de Admisión y permite completar/corregir antecedentes antes de un nuevo envío a Dirección.
 - `APROBADO` dispara reserva, oferta, comunicación preparada y plazo de 3 días hábiles. No inicia directamente handoff a EduPay.
-- El handoff a EduPay sólo ocurre después de aceptación familiar expresa, conforme a Q-310.
+- `LISTA_DE_ESPERA` significa que el postulante es admisible, pero no recibe oferta inmediata, no inicia plazo de aceptación ni handoff; la familia sólo ve el estado general de espera.
+- El handoff a EduPay sólo ocurre después de aceptación familiar expresa de una oferta vigente; esta es la resolución funcional de Q-310.
 
 ## Lista de espera
 
 - El proceso puede seguir aceptando postulaciones aunque no exista cupo inmediato.
 - Un postulante admisible puede quedar en `LISTA_DE_ESPERA` sin recibir oferta inmediata.
 - `APROBADO` y `LISTA_DE_ESPERA` son conceptos distintos.
+- `LISTA_DE_ESPERA` no inicia plazo de aceptación ni handoff; la familia sólo ve el estado general de espera.
 - Sin reglas adicionales, el orden por defecto es el ingreso a la lista de espera.
 - El orden es interno: no se muestra al apoderado ni se exporta públicamente.
 - La institución puede configurar prioridades. No se inventan prioridades concretas de Conquistadores.
 - Toda prioridad futura debe ser explícita, versionada y auditable, con desempate definido antes de producción.
 - La promoción nunca es automática en el MVP. Responsable de Admisión o Administrador Institucional Máximo ejecuta una acción equivalente a `PROMOVER / OFRECER VACANTE`; Secretaría no puede promover.
+- Si la admisibilidad ya fue decidida, la promoción no requiere una nueva decisión de Dirección: crea reserva y oferta, e inicia los mismos 3 días hábiles de aceptación.
 - Una oferta de espera usa 3 días hábiles, muestra origen `LISTA_DE_ESPERA`, y al expirar libera cupo, conserva historial y sale de esa oferta/lista por defecto. La reapertura es manual, excepcional, autorizada y auditada.
 
 ## Comunicaciones
@@ -219,4 +223,4 @@ PIE/NEE y salud mantienen acceso restringido por propósito, rol y auditoría. E
 
 ## Límites
 
-Este documento no define UI, calendarios técnicos, API, tablas, esquema físico, arquitectura, dependencias, integración ejecutable, firma criptográfica, retención legal ni datos reales. E1-B permanece en progreso y G1 continúa `NO APROBADA`.
+Este documento no define UI, calendarios técnicos, API, tablas, esquema físico, arquitectura, dependencias, integración ejecutable, firma criptográfica, retención legal ni datos reales. E1-B permanece `IN PROGRESS / READY FOR CLOSURE REVIEW` y G1 continúa `NO APROBADA`.

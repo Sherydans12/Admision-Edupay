@@ -15,7 +15,7 @@
 
 ## Cómo leer esta validación
 
-Esta línea base separa hechos confirmados, decisiones registradas y detalles todavía abiertos. La validación institucional permite iniciar E1-B y deja de tratar C-009, C-011, C-013 y C-014 como contradicciones conceptuales bloqueantes para esta etapa. No cierra G1 ni convierte una regla funcional en autorización legal o técnica.
+Esta línea base separa hechos confirmados, decisiones registradas y detalles todavía abiertos. La validación institucional permite iniciar E1-B y deja de tratar C-009, C-011, C-013 y C-014 como contradicciones conceptuales bloqueantes para esta etapa. La revisión actual no identifica una decisión funcional bloqueante para el cierre de E1-B, que queda `IN PROGRESS / READY FOR CLOSURE REVIEW`. No cierra G1 ni convierte una regla funcional en autorización legal o técnica.
 
 Los términos como `PHYSICAL_DOCUMENT`, `SELF-ELEVATION` y los nombres de permisos son lenguaje funcional de análisis; no son enums, endpoints, tablas ni contratos de API.
 
@@ -82,7 +82,7 @@ El catálogo concreto del piloto permanece abierto por curso/nivel, condición, 
 
 ### Pendientes legales
 
-No se emiten conclusiones legales. Antes de datos reales deben definirse fundamento normativo, textos aplicables, retención, eliminación/anonimización, solicitudes de titulares y validación legal de la matriz final.
+No se emiten conclusiones legales. Antes de datos reales/piloto productivo deben definirse fundamento normativo, textos aplicables, retención, eliminación/anonimización, solicitudes de titulares y validación legal de la matriz final. Este pendiente no bloquea el cierre funcional documental de E1-B ni la aprobación de comportamiento de G1.
 
 ## C-014 — Portal y postulación asistida
 
@@ -124,7 +124,7 @@ Para evolución multioperador queda como control futuro propuesto que algunas ca
 
 ## Impacto en E1-B
 
-E1-B debe completar, sin inventar valores, catálogos concretos, personas y suplencias, ejecutores, duración, pautas, criterios de espera, plantillas, reportes y reglas de excepción. Para este piloto ya quedan definidos los cupos manuales configurables, la aceptación y corrección documental de 3 días hábiles, 2 reprogramaciones normales, 15 minutos de tolerancia y la presencialidad de entrevista y evaluación. El modelo funcional debe conservar historial, distinguir completado/exento/no completado/cerrado, vincular intentos y registrar origen documental.
+E1-B ya define el comportamiento funcional del piloto sin inventar valores: cupos manuales configurables, aceptación y corrección documental de 3 días hábiles, 2 reprogramaciones normales, 15 minutos de tolerancia, presencialidad de entrevista/evaluación, decisiones, espera, excepciones, comunicaciones, historial y origen documental. Los valores y responsables que sólo deben completarse antes del piloto se clasifican como `PILOT_CONFIGURATION_PENDING`; la legalidad como `PRE_PILOT_LEGAL_PENDING`; y Q-301 a Q-309 como `FUTURE_INTEGRATION_PENDING`.
 
 El modelo de permisos debe separar Administrador Institucional Máximo de administrador institucional normal, aplicar acceso por tenant y propósito, limitar datos C-013 por categoría y auditar elevaciones, accesos restringidos, excepciones, postulaciones asistidas y documentos físicos.
 
@@ -134,19 +134,15 @@ Las siguientes reglas operativas fueron confirmadas después del commit base de 
 
 El detalle operativo definido para el piloto queda en [`08-pilot-operational-rules.md`](08-pilot-operational-rules.md) y su matriz de configuración en [`09-pilot-configuration-matrix.md`](09-pilot-configuration-matrix.md). Incluye cupos manuales configurables, aceptación y corrección de 3 días hábiles, 2 reprogramaciones normales, tolerancia de 15 minutos, presencialidad del MVP, resultados simples de actividades, recomendación/decisión separadas, lista de espera no automática, comunicaciones y reportes/exportaciones.
 
-Estos detalles no eliminan los pendientes expresos: nombres de suplentes, ejecutores concretos, duración de actividades, catálogo de personalidad por curso, prioridades concretas, plantillas finales, SLA adicionales, pauta diagnóstica avanzada y responsable legal/normativo.
+Estos detalles no eliminan los pendientes expresos, pero no son bloqueantes funcionales de E1-B: nombres de suplentes, ejecutores concretos, duración de actividades, catálogo de personalidad por curso, prioridades concretas, plantillas finales, SLA adicionales y pauta diagnóstica avanzada son `PILOT_CONFIGURATION_PENDING`; el responsable legal/normativo y la retención son `PRE_PILOT_LEGAL_PENDING`.
 
-## Asuntos que continúan pendientes
+## Asuntos que continúan pendientes, clasificados
 
-- Nombres de suplentes y delegaciones del personal; los responsables principales del piloto ya están identificados en el baseline operativo.
-- Duración de reservas, ejecutores concretos y pautas; los valores piloto de 2 reprogramaciones normales y 15 minutos de tolerancia ya están definidos.
-- Pautas de entrevista, evaluación y recomendación.
-- Criterios de lista de espera, textos de comunicación, reportes y SLA.
-- Catálogo concreto de personalidad del piloto.
-- Reglas legales de retención, eliminación, anonimización y solicitudes de titulares.
-- Contrato Q-301 a Q-309 con EduPay.
-- Arquitectura, API, base de datos, dependencias, código y datos reales.
+- `PILOT_CONFIGURATION_PENDING`: nombres de suplentes y delegaciones; duración de actividades; ejecutores concretos; pautas avanzadas; prioridades concretas; textos de comunicación, reportes, plantillas y SLA; catálogo concreto de personalidad.
+- `PRE_PILOT_LEGAL_PENDING`: responsable legal/normativo; fundamento, retención, eliminación, anonimización, solicitudes de titulares y conservación/devolución física.
+- `FUTURE_INTEGRATION_PENDING`: contrato Q-301 a Q-309 con EduPay.
+- `OUT_OF_SCOPE`: arquitectura, API, base de datos, dependencias, código y datos reales.
 
 ## Límites de la validación
 
-Esta validación no cierra G1, no autoriza E2/G2, no aprueba ADR-0001, no autoriza código, scaffolding, arquitectura, dependencias, integración ejecutable ni datos reales. Tampoco define nombres de suplentes, ejecutores concretos de entrevista/evaluación, duración de actividades, políticas legales, mecanismos criptográficos, firma, retención física o una matriz final de permisos.
+Esta validación no cierra G1, no autoriza E2/G2, no aprueba ADR-0001, no autoriza código, scaffolding, arquitectura, dependencias, integración ejecutable ni datos reales. E1-B queda pendiente sólo de revisión humana de cierre; los detalles `PILOT_CONFIGURATION_PENDING`, `PRE_PILOT_LEGAL_PENDING` y `FUTURE_INTEGRATION_PENDING` no se presentan como decisiones aprobadas por esta línea base.

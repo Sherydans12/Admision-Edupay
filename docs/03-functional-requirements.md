@@ -88,12 +88,12 @@ La prioridad no autoriza implementación.
 | FR-DEC-003 | El flujo debe consolidar antecedentes para revisión final. | MUST | Requisitos faltantes o exenciones son visibles al decisor. |
 | FR-DEC-004 | Decisión y aprobación deben respetar la separación de funciones configurada. | MUST | Se identifica recomendador, aprobador y fundamento permitido. |
 | FR-DEC-005 | La recomendación de Admisión debe tener ciclo, versiones y auditoría propios. | MUST | Borrador, envío, devolución y reemplazo son reconstruibles y no publican resultado. |
-| FR-DEC-006 | Dirección debe aprobar, rechazar o devolver a revisión con justificación. | MUST | Sólo aprobar/rechazar constituye decisión final; devolver reactiva revisión sin notificar un resultado final. |
+| FR-DEC-006 | Dirección debe emitir una disposición final de aprobado, lista de espera o rechazado, o devolver a revisión con justificación. | MUST | `APROBADO`, `LISTA_DE_ESPERA` y `RECHAZADO` son disposiciones finales; `DEVUELTO_A_REVISION` reactiva revisión sin constituir decisión definitiva. |
 | FR-DEC-007 | La comunicación del resultado debe ser una acción posterior autorizada. | MUST | Una recomendación o devolución nunca dispara automáticamente el resultado. |
 | FR-CAP-001 | La institución debe definir cupos manuales por institución, sede, año y curso. | MUST | Responsable de Admisión y Administrador Institucional Máximo pueden ajustar; se registra actor, fecha/hora, anterior, nuevo y motivo. |
 | FR-CAP-002 | El sistema debe distinguir capacidad, reserva, oferta, aceptación y matrícula. | MUST | Ningún paso consume o libera cupo por inferencia ambigua. |
 | FR-CAP-003 | La asignación concurrente debe impedir sobreoferta según política. | MUST | Dos operaciones simultáneas no usan la misma unidad disponible. |
-| FR-CAP-004 | La lista de espera debe operar con una política versionada y auditable. | MUST | Orden de ingreso por defecto; promoción humana por Responsable de Admisión o Administrador Máximo; nunca automática en MVP. |
+| FR-CAP-004 | La lista de espera debe operar con una política versionada y auditable. | MUST | Orden de ingreso por defecto; `LISTA_DE_ESPERA` no crea oferta ni plazo; promoción humana por Responsable de Admisión o Administrador Máximo crea reserva/oferta sin nueva decisión de Dirección si la admisibilidad ya fue decidida; nunca automática en MVP. |
 | FR-CAP-005 | La posición visible y las prioridades requieren aprobación institucional. | MUST | No se expone posición ni reglas internas; prioridades concretas de Conquistadores siguen pendientes. |
 
 ## Comunicación y experiencia familiar
@@ -139,7 +139,7 @@ La prioridad no autoriza implementación.
 | FR-ACT-008 | Cada actividad debe distinguir estado operacional de resultado interno. | MUST | Estados como `PROGRAMADA`, `REALIZADA`, `REPROGRAMADA`, `EXENTA`, `NO_COMPLETADA` y `CERRADA` se separan de `FAVORABLE`, `NO_FAVORABLE` e `INCONCLUSO`. |
 | FR-ACT-009 | Una evaluación debe conservar intentos y permitir repetición autorizada. | MUST | Evaluador o Responsable de Admisión inicia repetición; secuencia, responsable, motivo, resultado y relación anterior quedan reconstruibles. |
 | FR-DEC-008 | La recomendación de Admisión debe usar opciones funcionales internas y fundamento obligatorio. | MUST | `RECOMENDAR_ADMISION`, `NO_RECOMENDAR_ADMISION` y `DEVOLVER_A_REVISION` son versionados/auditados y no constituyen decisión final. |
-| FR-DEC-009 | La decisión de Dirección debe usar opciones finales y fundamento/motivo obligatorio según opción. | MUST | `APROBADO` crea reserva/oferta/comunicación preparada; `RECHAZADO` exige fundamento; `DEVUELTO_A_REVISION` vuelve a Admisión; no inicia directamente EduPay. |
+| FR-DEC-009 | La disposición de Dirección debe usar opciones finales y fundamento/motivo obligatorio según opción. | MUST | `APROBADO` crea reserva/oferta/comunicación preparada; `LISTA_DE_ESPERA` conserva admisibilidad sin oferta, aceptación ni handoff; `RECHAZADO` exige fundamento; `DEVUELTO_A_REVISION` vuelve a Admisión; no inicia directamente EduPay. |
 | FR-CAP-006 | Una oferta debe expirar y liberar reserva/cupo al vencer su plazo sin respuesta. | MUST | El piloto usa 3 días hábiles para oferta normal y de espera; el caso conserva historia y no inicia handoff. |
 | FR-COM-009 | Las citas deben informar acción de cambio sin exigir confirmación. | MUST | Correo incluye actividad, fecha, hora, lugar, portal y `SOLICITAR CAMBIO`; llamadas son contacto manual, no canal automático. |
 | FR-ADM-009 | El dashboard debe mostrar los contadores operativos mínimos del piloto. | MUST | Se distinguen nuevas, revisión, correcciones, citas, decisión, ofertas por vencer y lista de espera, con aislamiento tenant. |
@@ -155,7 +155,7 @@ La prioridad no autoriza implementación.
 | FR-INT-005 | El handoff debe crear o vincular idempotentemente institución, año, curso, apoderado y estudiante en EduPay. | LATER | Usa referencias externas y contrato; RUT/correo no son claves de idempotencia. |
 | FR-INT-006 | EduPay debe crear o recuperar la asociación académica antes de generar deuda anual y matrícula. | LATER | La obligación se genera sólo cuando el estudiante existe y está asociado/matriculado según reglas de EduPay. |
 | FR-INT-007 | El portal de pagos existente consulta información de EduPay, no Admisión. | LATER | Admisión sólo proyecta confirmaciones recibidas mediante contrato. |
-| FR-INT-008 | El momento del handoff debe ser configurable o quedar fijado por contrato aprobado. | LATER | Se resolverá si ocurre al aprobar Dirección o tras aceptación familiar explícita. |
+| FR-INT-008 | El handoff debe iniciar sólo después de la aceptación familiar expresa de una oferta vigente. | LATER | Borde funcional aprobado por Q-310; contrato, mecanismo y nombre técnico permanecen pendientes. |
 
 ## Trazabilidad futura
 

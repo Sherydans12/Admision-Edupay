@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Entrega | E1-B — Especificación funcional institucional |
-| Estado | `IN PROGRESS / OPERATIONAL BASELINE DEFINED` |
+| Estado | `IN PROGRESS / READY FOR CLOSURE REVIEW` |
 | Compuerta vigente | E1 autorizada; G1 `NO APROBADA` |
 | Base revisada | `main` en `8a7f12bb1bf1f7ca09ff29363ad040c693cc143d` |
 | Naturaleza | Documentación funcional; no autoriza implementación |
@@ -88,7 +88,7 @@ flowchart LR
 | G0 | `APPROVED / CLOSED` | Decisión aprobada; no se reabre |
 | E1 | `AUTORIZADA` para diseño funcional | Decisión aprobada |
 | E1-A | `CLOSED / PRODUCT DECISIONS RECORDED` | Acta histórica; no cierra G1 |
-| E1-B | `IN PROGRESS / OPERATIONAL BASELINE DEFINED` | Validaciones institucionales y reglas operativas iniciales registradas; E1-B no está cerrada |
+| E1-B | `IN PROGRESS / READY FOR CLOSURE REVIEW` | No se identifica una decisión funcional bloqueante; requiere revisión humana de cierre |
 | E1-C | `NO INICIADA` | Consolidación y evidencia para G1 aún no autorizadas |
 | G1 | `NO APROBADA` | Hecho confirmado |
 | ADR-0001 | `PROPOSED` | Propuesta arquitectónica fuera de alcance |
@@ -111,9 +111,9 @@ Esta entrega referencia esas decisiones; no las reemplaza, renumera ni amplía.
 | Actividades | Q-140 a Q-145 | C-009 validada; modalidad, reprogramaciones, tolerancia y resultados simples definidos; ejecutores, suplencias, duración y pauta avanzada pendientes |
 | Decisión, cupos y espera | Q-160 a Q-167 | Recomendación, decisión, cupos, plazo y promoción definidos para piloto; prioridades concretas y autoridades de reapertura pendientes |
 | Comunicaciones y reportes | Q-180 a Q-184 | Citas, oferta, reportes y exportaciones definidos funcionalmente; plantillas finales, recordatorio y SLA adicionales pendientes |
-| Handoff | Q-310 | Secuencia funcional aprobada; Q-301 a Q-309 y contrato pendientes |
+| Handoff | Q-310 | Secuencia funcional `FUNCTIONALLY_RESOLVED`; contrato Q-301 a Q-309 posterior y fuera de G1 |
 
-También requieren trabajo antes de G1: detalles operativos de C-009, C-011 y C-014; validación legal posterior de C-013. Q-201/Q-202 y Q-301 a Q-309 siguen pendientes en sus compuertas.
+El borde funcional de integración ya está definido: Admisión es dueña del proceso; EduPay es dominio separado; el handoff ocurre después de aceptación; no se comparten tablas; el contrato futuro debe ser idempotente; y los estados técnicos no equivalen a matrícula. Q-201/Q-202, C-013 legal y Q-301 a Q-309 siguen abiertos en sus compuertas posteriores, pero no son bloqueantes de cierre funcional E1-B/G1.
 
 ## Criterios de salida de E1-B
 
@@ -129,19 +129,17 @@ E1-B está documentalmente en progreso mientras:
 8. G1 y ADR-0001 conservan sus estados;
 9. no se introduce código, arquitectura ni datos reales.
 
-La validación institucional registrada permite iniciar E1-B; no autoriza cerrar G1 automáticamente.
+La validación institucional y la consolidación operativa permiten solicitar revisión humana de cierre de E1-B; no autorizan cerrar G1 automáticamente.
 
-## Trabajo pendiente de E1-B
+## Clasificación de pendientes
 
-- Detalles operativos para C-009, C-011 y C-014.
-- Validación legal de C-013 antes de datos reales.
-- Catálogo concreto de informe de personalidad por curso/nivel y condición.
-- Nombres de suplentes y ejecutores concretos de entrevista/evaluación.
-- Duración concreta de actividades, prioridades concretas, plantillas finales y SLA adicionales.
-- Responsable legal/normativo, retención y asuntos Q-201/Q-202.
-- Q-301 a Q-309 y contrato EduPay.
+- **Bloqueantes de cierre E1-B:** ninguno identificado en esta revisión. El comportamiento funcional y sus excepciones están definidos; la etapa queda `READY FOR CLOSURE REVIEW`.
+- **`PILOT_CONFIGURATION_PENDING`:** nombres de suplentes; personas concretas de entrevista/evaluación; duración exacta; valores concretos de cupos; catálogo de personalidad por curso; prioridades especiales; textos finales de email; anticipación del recordatorio; SLA numéricos; nombres finales de plantillas.
+- **`PRE_PILOT_LEGAL_PENDING`:** C-013 legal, responsable legal/normativo, retención/eliminación y conservación/devolución física. Es condición antes de datos reales/piloto productivo, no para el cierre funcional de E1-B/G1.
+- **`FUTURE_INTEGRATION_PENDING`:** Q-301 a Q-309 y contrato EduPay. Se resuelven en E7/G7, no en E1-B ni como requisito de G1.
+- **`OPEN_SECURITY_AND_OPERATION_QUESTIONS`:** Q-201/Q-202 y demás Q-203 a Q-210 permanecen abiertas; no se resuelven ni se declaran trabajo obligatorio de E1-B.
 
-E1-B está iniciada documentalmente y cuenta con una línea base operativa inicial. Las respuestas institucionales se incorporan como `INSTITUTIONALLY_VALIDATED`; los detalles definidos sólo para el piloto se marcan como `DEFINED_FOR_PILOT` o texto equivalente; los pendientes restantes como `OPERATIONAL_DETAIL_PENDING` o `LEGAL_VALIDATION_PENDING` permanecen visibles.
+E1-B está documentalmente en progreso y queda lista para revisión de cierre. Las respuestas institucionales se incorporan como `INSTITUTIONALLY_VALIDATED`; los detalles definidos sólo para el piloto se marcan como `DEFINED_FOR_PILOT`; la configuración previa al piloto como `PILOT_CONFIGURATION_PENDING`; la legalidad como `PRE_PILOT_LEGAL_PENDING`; y la integración futura como `FUTURE_INTEGRATION_PENDING`.
 
 ## Supuestos de trabajo usados
 
@@ -152,4 +150,4 @@ E1-B está iniciada documentalmente y cuenta con una línea base operativa inici
 
 ## Siguiente compuerta humana
 
-La siguiente acción humana es revisar la línea base operativa con los responsables institucionales, completar pendientes y preparar E1-C. C-013 requiere además responsable legal/normativo antes de datos reales. E1-B no está cerrada; G1 seguirá `NO APROBADA`; E1-C no está iniciada y E2/G2 no están autorizadas.
+La siguiente acción humana es revisar el cierre de E1-B y, sólo después de autorización, preparar E1-C. C-013 requiere responsable legal/normativo antes de datos reales/piloto productivo. E1-B no está cerrada; G1 sigue `NO APROBADA`; E1-C sigue no iniciada y E2/G2 no están autorizadas.

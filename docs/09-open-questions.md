@@ -24,7 +24,7 @@
 | Q-001 | Las fuentes autorizadas son `SRC-001` a `SRC-005`. Nicolás Sena es propietario funcional. | Nicolás Sena | 2026-08-06 | RESUELTA |
 | Q-002 | Multitenancy se implementa desde el primer incremento; la etapa posterior es onboarding y hardening operacional. | Nicolás Sena | 2026-08-06 | RESUELTA |
 | Q-003 | Se aprueba separar etapas, estados, actividades, eventos y resultados. | Nicolás Sena | 2026-08-06 | RESUELTA |
-| Q-004 | Se distinguen decisión institucional, reserva, comunicación, aceptación cuando aplique, handoff y matrícula. No se decide aún si el piloto tendrá botón independiente de aceptación. | Nicolás Sena | 2026-08-06 | RESUELTA con detalle G1 abierto en Q-310 |
+| Q-004 | Se distinguen decisión institucional, reserva, comunicación, aceptación, handoff y matrícula. La aceptación familiar expresa precede al handoff del piloto. | Nicolás Sena | 2026-08-06 | RESUELTA; Q-310 funcionalmente resuelta |
 | Q-005 | Producto/técnica, integración y seguridad técnica: Nicolás Sena. Representante formal institucional: Arturo Javier Galleguillos Trigo, Sostenedor. Legal/normativo sigue pendiente antes del piloto y no bloquea E1. | Nicolás Sena | 2026-08-06T14:16:00-04:00 | RESUELTA |
 
 ## Decisiones G0 aprobadas
@@ -65,7 +65,7 @@ Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
 | D-021 | Pago de matrícula externo a Admisión | APROBADA |
 | D-022 | EduPay gestiona información de pago; el portal existente la consulta | APROBADA |
 | D-023 | Estudiante debe existir y estar asociado/matriculado en curso de EduPay antes de generar deuda y matrícula | APROBADA; estado exacto pendiente Q-309 |
-| D-024 | Admisión hace handoff controlado después de decisión favorable según contrato | APROBADA; momento exacto pendiente Q-310 |
+| D-024 | Admisión hace handoff controlado después de decisión favorable según contrato | APROBADA; Q-310 resuelta: aceptación familiar expresa después de oferta |
 
 ## Supuestos de trabajo
 
@@ -89,7 +89,7 @@ Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
 | ID | Tema | Resolución/seguimiento | Estado |
 | --- | --- | --- | --- |
 | C-001 | Lista mezcla estados, etapas, hitos y resultados | Separada por D-001/Q-003 | RESUELTA |
-| C-002 | `ACCEPTED` ambiguo | Dimensiones separadas; aceptación del piloto en Q-310 | RESUELTA EN NÚCLEO |
+| C-002 | `ACCEPTED` ambiguo | Dimensiones separadas; aceptación expresa del piloto antes del handoff conforme a Q-310 | RESUELTA EN NÚCLEO |
 | C-003 | Multitenancy obligatoria vs etapa tardía | Q-002: primer incremento; etapa tardía = hardening | RESUELTA |
 | C-004 | Configuración libre vs estructura común | Versiones y constructor controlado D-003/D-020 | RESUELTA EN PRINCIPIO |
 | C-005 | Disponibilidad visible vs confidencialidad de cupos | Definir señal institucional | ABIERTA G1 |
@@ -100,7 +100,7 @@ Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
 | C-010 | SRC-003 salta de etapa 3 a 5 | Inconsistencia de numeración; etapa 4 = “Revisión de antecedentes”; no altera flujo | RESUELTA |
 | C-011 | SRC-002 dice informe “cuando corresponda”; SRC-003 pide 2025 y 2026 | Requisito configurable; último informe vigente/disponible o equivalente; exención autorizada; no exigir 2025 y 2026 rígidamente | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING |
 | C-012 | SRC-002 permite antecedentes adicionales | Catálogo configurable/versionado; definir contenido | RESUELTA EN DISEÑO, catálogo pendiente |
-| C-013 | SRC-003 pide salud, NEE e ingreso familiar | PIE/NEE opcionales y progresivos para apoyos; salud mínima sólo por necesidad funcional; ingreso familiar fuera del formulario MVP; acceso restringido y auditable; legalidad/retención antes de datos reales | INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING |
+| C-013 | SRC-003 pide salud, NEE e ingreso familiar | PIE/NEE opcionales y progresivos para apoyos; salud mínima sólo por necesidad funcional; ingreso familiar fuera del formulario MVP; acceso restringido y auditable; legalidad/retención antes de datos reales/piloto productivo, sin bloquear E1-B ni G1 | INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING |
 | C-014 | Fuentes contemplan correo/presencial frente al portal | Portal como fuente oficial; asistencia presencial por Admisión/Secretaría con evidencia; papel sólo como origen físico digitalizado en expediente oficial | INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING |
 
 ## Resoluciones de cierre G0
@@ -225,7 +225,7 @@ Las opciones históricas, decisiones canónicas, impactos y pendientes de Q-101 
 | Q-167 | `OPERATIONAL_DETAIL_PENDING` | Reapertura manual excepcional con actor, motivo y auditoría; autoridad concreta pendiente |
 | Q-181/Q-183/Q-184 | `DEFINED_FOR_PILOT`; OPERATIONAL_DETAIL_PENDING | Correos de cita/oferta/corrección/resultado; dashboard y catálogo de reportes; textos, recordatorio y SLA adicionales pendientes |
 
-Q-201 a Q-210, Q-301 a Q-309 y las decisiones arquitectónicas continúan en sus compuertas originales.
+Q-201 a Q-210, Q-301 a Q-309 y las decisiones arquitectónicas continúan en sus compuertas originales. Q-201/Q-202 no son trabajo obligatorio de E1-B; C-013 legal permanece como condición pre-datos-reales/piloto productivo.
 
 ## Preguntas de seguridad, legalidad y operación para G2/G5
 
@@ -247,17 +247,17 @@ Todas permanecen `ABIERTA`. Q-201/Q-202 requieren responsable legal aún no desi
 | ID | Pregunta/Respuesta parcial | Estado |
 | --- | --- | --- |
 | Q-301 | ¿Sistema maestro e ID externo de institución, sede, año, curso, persona y estudiante? | ABIERTA |
-| Q-302 | ¿Qué evento/condición inicia el handoff? | ABIERTA; ampliada por Q-310 |
-| Q-303 | EduPay es dueño de obligaciones; falta definir si recibe comando o las deriva | PARCIAL |
+| Q-302 | ¿Qué evento/condición contractual inicia el handoff? | ABIERTA; el borde funcional ya exige aceptación por Q-310 |
+| Q-303 | EduPay es dueño de obligaciones; falta definir si recibe comando o las deriva | ABIERTA / PARCIAL |
 | Q-304 | ¿Definición de matrícula iniciada, pendiente, confirmada, cancelada y revertida? | ABIERTA; ampliada por Q-309 |
 | Q-305 | ¿Payload mínimo y fundamento de transferencia? | ABIERTA |
 | Q-306 | ¿Interfaz, autenticación, versionado y límites? | ABIERTA |
 | Q-307 | ¿SLA, reintentos, reconciliación y soporte? | ABIERTA |
 | Q-308 | ¿Oferta expirada o desistimiento durante handoff? | ABIERTA |
-| Q-309 | ¿Qué estado usa EduPay antes del pago y qué evento confirma matrícula? | BLOQUEANTE INTEGRACIÓN |
-| Q-310 | ¿Handoff tras aprobación de Dirección o tras aceptación familiar explícita? | APPROVED_PRODUCT; secuencia aprobada; Q-301 a Q-309 pendientes |
+| Q-309 | ¿Qué estado usa EduPay antes del pago y qué evento confirma matrícula? | ABIERTA; condición futura para G7 |
+| Q-310 | ¿Cuál es el momento funcional del handoff? | `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`; aceptación familiar expresa después de oferta |
 
-Q-310 tiene comparación y secuencia funcional propuestas en [`e1/04-functional-decision-workbook.md`](e1/04-functional-decision-workbook.md#q-310--handoff-tras-aprobación-de-dirección-o-tras-aceptación-familiar-explícita). Q-301 a Q-309, incluida Q-309, no fueron modificadas ni resueltas por E1-A.
+Q-310 tuvo comparación y alternativas históricas en [`e1/04-functional-decision-workbook.md`](e1/04-functional-decision-workbook.md#q-310--momento-funcional-del-handoff). Su resolución funcional actual es decisión favorable → reserva → oferta → comunicación → aceptación familiar expresa → handoff. Q-301 a Q-309, incluida Q-309, siguen abiertas como contrato futuro y no fueron resueltas por esta entrega.
 
 La validación institucional de C-009, C-011, C-013 y C-014 quedó registrada en [`e1/07-institutional-validation-baseline.md`](e1/07-institutional-validation-baseline.md). Q-301 a Q-309 siguen abiertas y no fueron resueltas por esa validación.
 

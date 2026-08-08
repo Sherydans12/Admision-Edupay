@@ -183,14 +183,14 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** aceptar o rechazar una oferta si la acción se aprueba; adulto facultado.
 - **FR/preguntas:** FR-COM-006; FR-CAP-002/003; Q-105/Q-163/Q-166/Q-310.
 - **Precondiciones/disparador:** oferta vigente y regla exige respuesta; familia elige.
-- **Flujo principal:** 1) autoriza; 2) muestra condiciones/plazo; 3) confirma aceptación/rechazo; 4) registra respuesta idempotente; 5) mantiene/libera reserva; 6) habilita siguiente paso según Q-310.
+- **Flujo principal:** 1) autoriza; 2) muestra condiciones/plazo; 3) confirma aceptación/rechazo; 4) registra respuesta idempotente; 5) mantiene/libera reserva; 6) si acepta, habilita el handoff funcional aprobado.
 - **Alternativos:** no existe acción separada si se decide otra regla. **Errores:** oferta vencida, respuesta concurrente, múltiples ofertas o cupo inconsistente.
 - **Reglas:** respuesta, decisión, pago y matrícula son hitos distintos; efectos explícitos.
 - **Datos leídos/modificados:** oferta/condiciones; respuesta/reserva/evento. **Clasificación:** `RESTRICTED`.
 - **Autorización/tenant:** facultad de aceptación Q-105; oferta y caso del mismo tenant.
 - **Auditoría/comunicaciones:** `AdmissionOfferAccepted/Declined`; acuse y próximo paso.
 - **Postcondición/aceptación:** respuesta única sobre oferta vigente, sin sobreasignar.
-- **Pendientes:** uso en piloto, ofertas múltiples y Q-310.
+- **Pendientes:** ofertas múltiples y reglas de comunicación; la aceptación expresa como precondición del handoff está resuelta funcionalmente por Q-310.
 
 ## Configuración y operación institucional
 
@@ -380,9 +380,9 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Objetivo/actor:** aprobar o rechazar de forma final; Dirección. Secundarios: Admisión/cupos.
 - **FR/preguntas:** FR-DEC-004/006/007; Q-160 a Q-167.
 - **Precondiciones/disparador:** recomendación vigente; Dirección decide.
-- **Flujo principal:** 1) autoriza capacidad Dirección; 2) revisa evidencia permitida, actividades, resultados internos, comentarios autorizados y recomendación; 3) verifica conflicto/capacidad; 4) elige `APROBADO`, `RECHAZADO` o `DEVUELTO_A_REVISION`; 5) exige fundamento/motivo; 6) registra actor, rol, tenant, fecha/hora y versión de antecedentes; 7) confirma; 8) habilita acción posterior.
-- **Alternativos:** devolución mediante UC-DEC-002; `APROBADO` con reserva/oferta; espera por falta de cupo. **Errores:** recomendador=aprobador no permitido, concurrencia de cupo o recomendación obsoleta.
-- **Reglas:** decisión separada de recomendación/comunicación; `RECHAZADO` exige fundamento; `DEVUELTO_A_REVISION` vuelve a Admisión; `APROBADO` no inicia handoff, sólo reserva/oferta/comunicación preparada; no borra evidencia.
+- **Flujo principal:** 1) autoriza capacidad Dirección; 2) revisa evidencia permitida, actividades, resultados internos, comentarios autorizados y recomendación; 3) verifica conflicto/capacidad; 4) elige `APROBADO`, `LISTA_DE_ESPERA`, `RECHAZADO` o `DEVUELTO_A_REVISION`; 5) exige fundamento/motivo; 6) registra actor, rol, tenant, fecha/hora y versión de antecedentes; 7) confirma; 8) habilita acción posterior.
+- **Alternativos:** devolución mediante UC-DEC-002; `APROBADO` con reserva/oferta; `LISTA_DE_ESPERA` sin oferta inmediata; rechazo final. **Errores:** recomendador=aprobador no permitido, concurrencia de cupo o recomendación obsoleta.
+- **Reglas:** disposición separada de recomendación/comunicación; `RECHAZADO` exige fundamento; `DEVUELTO_A_REVISION` vuelve a Admisión y no constituye decisión definitiva; `APROBADO` crea reserva/oferta/comunicación preparada y plazo de aceptación; `LISTA_DE_ESPERA` conserva admisibilidad sin oferta, plazo ni handoff; no borra evidencia.
 - **Datos leídos/modificados:** resumen/recomendación/capacidad; decisión `HIGHLY_RESTRICTED`.
 - **Autorización/tenant:** `decision.approve/reject`, autoridad/scope/tenant y D-016.
 - **Auditoría/comunicaciones:** decisión y acceso; aviso interno, sin correo familiar automático.
@@ -424,7 +424,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Precondiciones/disparador:** cupo/reserva disponible y siguiente candidato según política; Responsable de Admisión o Administrador Institucional Máximo confirma.
 - **Flujo principal:** 1) valida capacidad/orden; 2) selecciona candidato; 3) muestra fundamento; 4) obtiene confirmación humana; 5) reserva; 6) emite oferta; 7) comunica.
 - **Alternativos:** saltar sólo por causa aprobada y auditable. **Errores:** carrera, candidato no elegible, oferta simultánea o política vencida.
-- **Reglas:** promoción nunca automática en piloto; Secretaría no puede promover; reserva consistente; no alterar decisión.
+- **Reglas:** promoción nunca automática en piloto; Secretaría no puede promover; si la admisibilidad ya fue decidida, no requiere una nueva decisión de Dirección; crea reserva/oferta con 3 días hábiles; no altera la decisión ni la historia.
 - **Datos leídos/modificados:** lista/capacidad/caso; reserva/oferta/entrada `RESTRICTED`.
 - **Autorización/tenant:** permiso reforzado, scope y tenant; posible doble control.
 - **Auditoría/comunicaciones:** selección, confirmación, reserva/oferta; mensaje al promovido.
@@ -443,7 +443,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Autorización/tenant:** `offer.issue` conceptual, scope de oferta/tenant y separación respecto de decisión.
 - **Auditoría/comunicaciones:** emisión, reserva, vencimiento/cancelación; comunicación mediante UC-COM-001.
 - **Postcondición/aceptación:** oferta única, vigente y correlacionada con reserva/decisión, sin sobreoferta.
-- **Pendientes:** recordatorio, ofertas múltiples y efecto de Q-310; duración inicial definida como 3 días hábiles.
+- **Pendientes:** recordatorio, ofertas múltiples y textos finales; duración inicial definida como 3 días hábiles.
 
 ### UC-ADM-002 — Crear postulación asistida
 
@@ -479,7 +479,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 
 - **Objetivo/actor:** registrar intención de derivación en el momento aprobado; Admisión. Secundarios: EduPay/familia/soporte.
 - **FR/preguntas:** FR-INT-001/002/005/008; Q-310 y dependencias Q-301 a Q-306.
-- **Precondiciones/disparador:** decisión favorable y condición A/B/C de Q-310 satisfecha; contrato futuro vigente.
+- **Precondiciones/disparador:** oferta vigente aceptada expresamente; contrato futuro vigente.
 - **Flujo principal:** 1) verifica hito de negocio; 2) resuelve tenant/referencias; 3) minimiza datos; 4) crea intención/correlación/idempotencia; 5) entrega al borde; 6) registra estado técnico.
 - **Alternativos:** partes ya vinculadas. **Errores:** referencia faltante, identidad conflictiva, payload incompatible o handoff previo.
 - **Reglas:** sin tablas compartidas; handoff sólo después de aceptación expresa; RUT/correo no son idempotencia; entrega no es matrícula.
@@ -487,7 +487,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Autorización/tenant:** permiso `integration` conceptual; mapeo autorizado del tenant y recurso.
 - **Auditoría/comunicaciones:** creación/emisión/rechazo; familia ve sólo próximo paso, no payload.
 - **Postcondición/aceptación:** una intención estable por efecto lógico y estado distinguible.
-- **Pendientes:** Q-310 en G1; contrato Q-301 a Q-309 posterior.
+- **Pendientes:** contrato Q-301 a Q-309 posterior; Q-310 está `FUNCTIONALLY_RESOLVED` y define la aceptación como precondición.
 
 ### UC-INT-002 — Consultar estado del handoff
 

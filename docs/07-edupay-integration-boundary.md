@@ -5,7 +5,8 @@
 - **Fuentes:** `SRC-001`, `SRC-004` y `SRC-005`.
 - **Propietario de integración:** Nicolás Sena.
 - **Decisión G0:** `D-007` aprobada — integración idempotente sin tablas compartidas.
-- **Implementación:** fuera de alcance; contrato y mecanismo pendientes.
+- **Borde funcional:** decisión favorable → reserva → oferta → comunicación → aceptación familiar expresa → handoff.
+- **Implementación:** fuera de alcance; contrato y mecanismo técnico pendientes.
 
 ## Propiedad de dominios
 
@@ -65,7 +66,7 @@ El handoff debe poder crear o vincular de forma idempotente:
 
 “Crear o vincular” no autoriza emparejamientos débiles por nombre, RUT o correo. El contrato debe definir identidad, coincidencias, conflictos y revisión manual.
 
-## Secuencia conceptual con punto de decisión abierto
+## Secuencia conceptual con momento de handoff resuelto
 
 ```mermaid
 sequenceDiagram
@@ -77,12 +78,9 @@ sequenceDiagram
 
     Admission->>Admission: Admisión emite recomendación
     Admission->>Admission: Dirección aprueba
-    Admission-->>Family: Comunica resultado
-    alt Se exige aceptación familiar explícita
-        Family->>Admission: Acepta oferta vigente
-    else Handoff tras aprobación de Dirección
-        Admission->>Admission: Verifica regla contractual
-    end
+    Admission->>Admission: Reserva cupo y emite oferta
+    Admission-->>Family: Comunica oferta y plazo
+    Family->>Admission: Acepta oferta vigente
     Admission->>Bridge: EnrollmentHandoffRequested (idempotente)
     Bridge->>EduPay: Crear o vincular institución, año, curso y partes
     EduPay->>EduPay: Crear/recuperar asociación académica
@@ -96,7 +94,7 @@ sequenceDiagram
     Admission-->>Family: Proyecta estado final
 ```
 
-El `alt` representa `Q-310`: todavía no se decide si el handoff ocurre inmediatamente tras la aprobación de Dirección o después de aceptación explícita de la familia.
+`Q-310` estuvo abierta durante E1-A. Su resolución funcional actual es `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`: el handoff sólo se solicita después de la aceptación familiar expresa de una oferta vigente. El nombre del comando, el protocolo y el contrato técnico siguen pendientes.
 
 ## Hechos y comandos candidatos
 
@@ -104,13 +102,13 @@ El `alt` representa `Q-310`: todavía no se decide si el handoff ocurre inmediat
 | --- | --- | --- | --- |
 | Recomendación enviada | Admisión | `AdmissionRecommendationSubmitted` interno | No sale a EduPay |
 | Decisión favorable | Admisión | `AdmissionDecisionApproved` interno | Confirmado como hecho separado |
-| Reserva de cupo | Admisión | `AdmissionSeatReserved` interno | Política pendiente |
-| Aceptación familiar | Admisión | `AdmissionOfferAccepted` | Uso en piloto pendiente |
+| Reserva de cupo | Admisión | `AdmissionSeatReserved` interno | Se produce junto a la oferta favorable; parámetros configurables |
+| Aceptación familiar | Admisión | `AdmissionOfferAccepted` o equivalente funcional | Precondición funcional aprobada para solicitar handoff; nombre contractual pendiente |
 | Inicio de handoff | Admisión → EduPay | comando `StartEnrollment` o equivalente | Mecanismo/nombre pendiente |
 | Partes vinculadas | EduPay | confirmación idempotente | Contrato pendiente |
-| Asociación académica | EduPay | evento/resultado por definir | Bloquea generación financiera |
+| Asociación académica | EduPay | evento/resultado por definir | Prerrequisito futuro para generación financiera en EduPay |
 | Obligaciones generadas | EduPay | evento informativo si Admisión lo necesita | Propiedad confirmada |
-| Matrícula confirmada | EduPay | evento por definir | Pregunta bloqueante Q-309 |
+| Matrícula confirmada | EduPay | evento por definir | Pregunta de integración futura Q-309 |
 
 No se ha decidido REST, eventos, webhook, cola ni combinación. Swagger/OpenAPI 3.0 existe en EduPay y es una opción de alineación, no una selección automática.
 
@@ -176,14 +174,20 @@ El estado técnico no reemplaza el estado de admisión:
 - Definir compensación si la oferta expira, la familia desiste o Dirección revierte antes de completar matrícula.
 - EduPay es autoridad sobre estado académico/financiero; Admisión es autoridad sobre postulación y cupo de admisión.
 
-## Preguntas bloqueantes
+## Preguntas de integración futura
 
 - **Q-309:** ¿Qué estado exacto utiliza EduPay antes del pago de matrícula y qué evento contractual confirma que la matrícula quedó realizada? Responsable: Nicolás Sena; resolver antes de aprobar el contrato de integración.
-- **Q-310:** ¿El handoff ocurre inmediatamente después de la aprobación de Dirección o después de una aceptación familiar explícita? Responsable: Nicolás Sena con validación del colegio; resolver en G1 antes de fijar el flujo del piloto.
 - **Q-301:** ¿Cuál es el sistema maestro y el identificador externo de institución, año, curso, persona y estudiante?
+- **Q-302:** ¿Qué evento o condición contractual inicia el procesamiento técnico del handoff?
+- **Q-303:** ¿EduPay recibe un comando o deriva la operación mediante otro mecanismo?
+- **Q-304:** ¿Qué estados contractuales existen para matrícula iniciada, pendiente, confirmada, cancelada y revertida?
 - **Q-305:** ¿Cuál es el payload mínimo y fundamento de transferencia?
 - **Q-306:** ¿Cuál será la interfaz, autenticación, versionado y límites?
 - **Q-307:** ¿Cuáles serán SLA, reintentos, reconciliación y soporte?
+- **Q-308:** ¿Qué ocurre con una oferta expirada o desistimiento durante un handoff ya iniciado?
+- **Q-309:** ¿Qué estado exacto utiliza EduPay antes del pago de matrícula y qué evento contractual confirma que la matrícula quedó realizada?
+
+Q-301 a Q-309 permanecen abiertas como dependencias de integración futura. No bloquean el cierre funcional de E1-B ni la aprobación de G1; su resolución contractual corresponde a E7/G7.
 
 ## Decisiones técnicas diferidas
 

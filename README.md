@@ -8,11 +8,11 @@ La primera institución prevista es Colegio Particular Conquistadores. El produc
 
 La **fundación documental G0 está aprobada y cerrada** sobre el commit `1d33191d7b0bb9e4d6f2c99dfa9a8baed701a379`. La aprobación fue otorgada por Nicolás Sena el `2026-08-06T14:16:00-04:00`, con Arturo Javier Galleguillos Trigo, Sostenedor de Colegio Particular Conquistadores, como representante formal institucional.
 
-E1 — Diseño funcional está autorizada. E1-A quedó cerrada como registro de decisiones de producto y E1-B está `IN PROGRESS / OPERATIONAL BASELINE DEFINED`. G1 no está aprobada y conserva asuntos diferidos que deben resolverse antes de su cierre.
+E1 — Diseño funcional está autorizada. E1-A quedó cerrada como registro de decisiones de producto y E1-B está `IN PROGRESS / READY FOR CLOSURE REVIEW`. G1 no está aprobada y requiere consolidación funcional y aprobación humana explícita.
 
 Esta autorización permite únicamente continuar el diseño funcional. No autoriza implementación, uso de datos reales, integración ejecutable ni selección definitiva de stack. `ADR-0001` permanece `PROPOSED`.
 
-**E1-A — `CLOSED / PRODUCT DECISIONS RECORDED`** quedó registrada en el acta histórica [`docs/approvals/E1-A-functional-decisions-2026-08-06.md`](docs/approvals/E1-A-functional-decisions-2026-08-06.md). **E1-B — `IN PROGRESS / OPERATIONAL BASELINE DEFINED`** registra la validación institucional en [`docs/e1/07-institutional-validation-baseline.md`](docs/e1/07-institutional-validation-baseline.md), las reglas en [`docs/e1/08-pilot-operational-rules.md`](docs/e1/08-pilot-operational-rules.md) y la matriz en [`docs/e1/09-pilot-configuration-matrix.md`](docs/e1/09-pilot-configuration-matrix.md). Esta entrega continúa sin autorizar implementación, scaffolding, dependencias ni decisiones de arquitectura. Estado y plan: [`docs/e1/00-e1-plan-and-status.md`](docs/e1/00-e1-plan-and-status.md).
+**E1-A — `CLOSED / PRODUCT DECISIONS RECORDED`** quedó registrada en el acta histórica [`docs/approvals/E1-A-functional-decisions-2026-08-06.md`](docs/approvals/E1-A-functional-decisions-2026-08-06.md). **E1-B — `IN PROGRESS / READY FOR CLOSURE REVIEW`** registra la validación institucional en [`docs/e1/07-institutional-validation-baseline.md`](docs/e1/07-institutional-validation-baseline.md), las reglas en [`docs/e1/08-pilot-operational-rules.md`](docs/e1/08-pilot-operational-rules.md) y la matriz en [`docs/e1/09-pilot-configuration-matrix.md`](docs/e1/09-pilot-configuration-matrix.md). Esta entrega continúa sin autorizar implementación, scaffolding, dependencias ni decisiones de arquitectura. Estado y plan: [`docs/e1/00-e1-plan-and-status.md`](docs/e1/00-e1-plan-and-status.md).
 
 ## Principios
 
@@ -53,8 +53,8 @@ Esta autorización permite únicamente continuar el diseño funcional. No autori
 ## Cómo continuar
 
 1. Iniciar E1 únicamente como diseño funcional.
-2. Completar E1-B y resolver los asuntos diferidos a G1 registrados en `docs/09-open-questions.md`.
-3. Revisar el formulario, catálogo documental, reglas institucionales y casos de excepción antes de cerrar G1.
+2. Revisar humanamente el cierre de E1-B y, sólo después de autorización, iniciar E1-C.
+3. Consolidar el formulario, catálogo documental, reglas institucionales, casos de excepción, criterios de aceptación y backlog antes de solicitar G1.
 4. Designar al responsable legal/normativo antes de autorizar datos reales para el piloto.
 5. Evaluar `ADR-0001` en arquitectura antes de cualquier scaffolding.
 
