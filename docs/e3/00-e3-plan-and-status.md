@@ -5,12 +5,13 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E3 — Prototipo UX |
-| Estado | `IN PROGRESS / READY FOR UX DECISIONS` |
+| Estado | `IN PROGRESS / READY FOR G3 REVIEW` |
 | Inicio autorizado | `2026-08-08T07:08:00-04:00` |
 | Base | `main` en `c573dc39460620b82e8152717268bc28b4af3048` |
 | Rama | `docs/e3-ux-prototype` |
 | Dependencia | G2 `APPROVED / CLOSED` |
 | G3 | `NO APROBADA` |
+| HUX-001..HUX-005 | `RESOLVED` sobre evidencia UX `046385b7cb552685a856ae8f5a8973def97c09f3` |
 | Implementación | No autorizada |
 | Scaffolding/dependencias | No autorizados |
 | Infraestructura | No autorizada |
@@ -20,7 +21,7 @@
 
 Validar que familias y personal institucional puedan comprender y ejecutar los recorridos críticos aprobados antes de construir la aplicación. E3 debe reducir ambigüedad de navegación, contenido, estados y permisos visibles sin reabrir E1 ni modificar la arquitectura aprobada en G2.
 
-La etapa se mantendrá deliberadamente corta: sólo se diseñarán y validarán las pantallas y estados necesarios para el recorrido P0 y la aprobación G3.
+La etapa se mantendrá deliberadamente corta: sólo se diseñan y validan las pantallas y estados necesarios para el recorrido P0 y la aprobación G3.
 
 ## Fuentes canónicas
 
@@ -38,7 +39,7 @@ La etapa se mantendrá deliberadamente corta: sólo se diseñarán y validarán 
 
 ## Alcance E3
 
-E3 debe producir evidencia UX suficiente para los recorridos críticos de:
+E3 produce evidencia UX suficiente para los recorridos críticos de:
 
 ### Familia
 
@@ -80,7 +81,7 @@ Sólo lo mínimo necesario para validar UX de:
 - permisos y accesos restringidos;
 - sesión/elevación de Superadministrador Global sin acceso ambiental al tenant.
 
-No se diseñará todavía un panel exhaustivo de plataforma si no es P0.
+No se diseña todavía un panel exhaustivo de plataforma si no es P0.
 
 ## Principios UX obligatorios
 
@@ -92,8 +93,9 @@ No se diseñará todavía un panel exhaustivo de plataforma si no es P0.
 - No mostrar información interna, recomendaciones, puntajes, comentarios o identidad de revisores a familia.
 - No mostrar posición numérica de lista de espera.
 - No exponer cupos exactos por defecto.
+- Distinguir disponibilidad categórica del proceso de una oferta de admisión emitida.
 - No revelar existencia de casos/recursos ajenos.
-- Confirmaciones explícitas en acciones irreversibles o relevantes.
+- Confirmaciones explícitas en acciones irreversibles, sensibles o relevantes conforme HUX-005/UX-D-010.
 - Fechas y vencimientos visibles con lenguaje comprensible.
 - Estados vacíos, loading, error, sin permiso y sesión expirada diseñados explícitamente.
 
@@ -168,7 +170,7 @@ No se diseñará todavía un panel exhaustivo de plataforma si no es P0.
    - severidad de hallazgos.
 
 14. `14-ux-decision-workbook.md`
-    - UX-D-001..UX-D-013 y HUX-001..HUX-005.
+    - UX-D-001..UX-D-013 y estado de HUX-001..HUX-005.
 
 15. `15-g3-readiness-checklist.md`
    - `PASS`, `PASS_WITH_DEFERRED`, `BLOCKED`.
@@ -178,7 +180,7 @@ No se diseñará todavía un panel exhaustivo de plataforma si no es P0.
 
 ## Prototipo
 
-El prototipo puede representarse mediante wireframes/documentación visual de baja o media fidelidad. No debe confundirse con código productivo.
+El prototipo se representa mediante wireframes/documentación visual de baja o media fidelidad. No debe confundirse con código productivo.
 
 Se priorizan primero las pantallas P0 y los estados que cambian decisiones o acceso. La identidad visual final, branding avanzado, animaciones y sistema de diseño exhaustivo no bloquean G3.
 
@@ -218,12 +220,13 @@ E3 puede solicitar G3 cuando:
 - todos los recorridos P0 críticos tengan pantalla/estado identificable;
 - familia pueda completar el recorrido principal sin depender de información interna;
 - personal pueda distinguir claramente recomendación de decisión;
-- lista de espera, cupos y oferta no induzcan a error;
+- lista de espera, disponibilidad, cupos y oferta no induzcan a error;
 - sesión expirada, errores y falta de permisos estén diseñados;
 - la matriz de visibilidad coincida con E1/G1;
 - WCAG 2.2 AA esté incorporado como criterio verificable;
 - no se exponga información de otro tenant o caso;
 - exista checklist G3 sin bloqueantes UX severos;
+- HUX-001..HUX-005 estén resueltas;
 - G3 permanezca `NO APROBADA` hasta decisión humana explícita.
 
 ## Estado de consolidación
@@ -231,9 +234,11 @@ E3 puede solicitar G3 cuando:
 - 42 pantallas conceptuales: 18 Familia, 18 Personal y 6 Administración mínima.
 - 18 wireflows Familia, wireflows por rol para Personal y board consolidado.
 - 20 tareas sintéticas listas para validación humana.
-- 13 decisiones UX recomendadas y 5 elecciones humanas requeridas.
+- 13 decisiones UX recomendadas.
+- HUX-001..HUX-005 resueltas; HUX-005 incorpora UX-D-010 como confirmación apropiada para acciones críticas.
+- Copy de disponibilidad ajustado para no confundir estado del proceso con oferta emitida.
 - Checklist G3 `PASS_WITH_DEFERRED`, sin bloqueante UX material identificado.
-- E3 todavía no está aprobada: queda `READY FOR UX DECISIONS` hasta resolver HUX-001..HUX-005.
+- E3 queda `READY FOR G3 REVIEW`; G3 continúa `NO APROBADA`.
 
 ## Estrategia para reducir tiempo hasta código
 
