@@ -1,0 +1,73 @@
+name: E4 foundation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - feat/e4-technical-foundation
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:15.14-alpine
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: admission_bootstrap_local_only
+          POSTGRES_USER: admission_bootstrap
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U admission_bootstrap -d postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_APP_URL: postgresql://admission_app:admission_app_local_only@localhost:5432/admission_dev
+      DATABASE_MIGRATION_URL: postgresql://admission_migrator:admission_migrator_local_only@localhost:5432/admission_dev
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.18.0
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.19.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bootstrap local database roles
+        env:
+          PGPASSWORD: admission_bootstrap_local_only
+        run: >-
+          docker run --rm --network host
+          -v "$PWD/infrastructure/postgres/init/001-bootstrap.sql:/bootstrap.sql:ro"
+          -e PGPASSWORD
+          postgres:15.14-alpine
+          psql -h localhost -U admission_bootstrap -d postgres -f /bootstrap.sql
+
+      - name: Generate Prisma Client and apply migrations
+        run: |
+          pnpm db:generate
+          pnpm db:migrate
+
+      - name: Validate foundation
+        run: |
+          pnpm format:check
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm build
+
+      - name: Prove tenant isolation with PostgreSQL RLS
+        run: pnpm test:rls

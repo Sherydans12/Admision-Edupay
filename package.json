@@ -10,13 +10,19 @@
   },
   "scripts": {
     "build": "pnpm --recursive --if-present run build",
+    "db:down": "docker compose down",
+    "db:generate": "pnpm --filter @admission/database db:generate",
+    "db:migrate": "pnpm --filter @admission/database db:migrate",
+    "db:reset": "docker compose down --volumes --remove-orphans && docker compose up -d postgres",
+    "db:up": "docker compose up -d postgres",
     "dev:api": "pnpm --filter @admission/api dev",
     "dev:web": "pnpm --filter @admission/web dev",
     "dev:worker": "pnpm --filter @admission/worker dev",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
-    "test": "vitest run",
+    "test": "vitest run --exclude packages/database/src/tenant-rls.integration.spec.ts",
+    "test:rls": "vitest run packages/database/src/tenant-rls.integration.spec.ts",
     "typecheck": "pnpm --recursive --if-present run typecheck"
   },
   "devDependencies": {
@@ -32,11 +38,5 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.66.0",
     "vitest": "4.1.10"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "unrs-resolver"
-    ]
   }
 }

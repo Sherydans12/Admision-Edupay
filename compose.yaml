@@ -1,0 +1,23 @@
+name: admission-edupay-local
+
+services:
+  postgres:
+    image: postgres:15.14-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: admission_bootstrap_local_only
+      POSTGRES_USER: admission_bootstrap
+    ports:
+      - "127.0.0.1:55439:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admission_bootstrap -d postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - admission-postgres-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init/001-bootstrap.sql:/docker-entrypoint-initdb.d/001-bootstrap.sql:ro
+    restart: unless-stopped
+
+volumes:
+  admission-postgres-data:

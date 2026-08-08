@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E4 — Fundación técnica |
-| Estado | `IN PROGRESS` |
+| Estado | `IN PROGRESS / FOUNDATION AND RLS POC COMPLETE` |
 | Inicio autorizado | `2026-08-08T15:30:00-04:00` |
 | Base | `main` en `6b2549333e25b65a44c97423a718b70a8d38937f` |
 | Rama | `feat/e4-technical-foundation` |
@@ -14,6 +14,20 @@
 | Datos permitidos | Sólo sintéticos |
 | Infraestructura productiva | No autorizada |
 | Integración técnica EduPay | No autorizada |
+
+## Estado de incrementos
+
+| Incremento | Estado | Evidencia |
+| --- | --- | --- |
+| E4-A — Repository and toolchain foundation | `COMPLETE` | Monorepo pnpm instalable, lintable, typecheckable, testeable y compilable; web/API/worker separados |
+| E4-B — PostgreSQL, Prisma y PoC tenant/RLS | `COMPLETE` | PostgreSQL 15.14 real, migración Prisma 7.9.1 y `POC-01..POC-08` con 8/8 tests `PASS` |
+| E4-C — Identity/session/authorization foundation | `NOT_STARTED` | Fuera del alcance de esta entrega |
+| E4-D — Operational foundation | `NOT_STARTED` | Sólo CI mínima estrictamente necesaria para validar E4-A/B; el resto está diferido |
+| E4-E — G4 readiness | `NOT_STARTED` | G4 permanece `NO APROBADA` |
+
+La evidencia reproducible de E4-A y E4-B está en `docs/e4/01-local-development.md`,
+`docs/e4/02-tenant-rls-poc.md` y `docs/e4/03-technical-baseline.md`. Completar estos
+incrementos no autoriza avanzar E4-C/E4-D ni solicitar, aprobar o sustituir G4.
 
 ## Objetivo
 
