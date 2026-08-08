@@ -93,9 +93,9 @@ G1 aprueba comportamiento funcional, criterios de aceptación, escenarios, backl
 
 ## E2 — Arquitectura
 
-**Estado:** `IN PROGRESS / READY FOR ARCHITECTURE DECISIONS`. G2 continúa `NO APROBADA`.
+**Estado:** `IN PROGRESS / READY FOR G2 REVIEW`. G2 continúa `NO APROBADA`.
 
-La primera consolidación integral está documentada en `docs/e2/01..12`. El checklist concluye `PASS_WITH_DEFERRED`: no existe bloqueo arquitectónico material para decidir, pero E2-D-001..017 y ADR-0001..0005 siguen propuestas y necesitan aprobación humana.
+La primera consolidación integral está documentada en `docs/e2/01..12`. Las ocho elecciones humanas están registradas en el workbook y el checklist concluye `PASS_WITH_DEFERRED`: no existe bloqueo arquitectónico material para revisión G2. E2-D-001..017 y ADR-0001..0005 siguen propuestas hasta la aprobación formal de G2.
 
 ### Objetivo
 

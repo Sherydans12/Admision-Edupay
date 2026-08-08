@@ -97,7 +97,7 @@ No se almacenan muestras peligrosas reales fuera de mecanismos de prueba control
 - scheduler duplicado sin doble expiración;
 - caída después de commit y antes de procesar outbox;
 - proveedor de email lento, fallido o con callback repetido;
-- `FAILED` genera tarea interna y no rechazo/cambio de decisión (`AC-045`);
+- `FAILED` genera tarea interna y no rechazo/cambio de decisión (`AC-042`);
 - reporte grande se autoriza antes de generar y antes de descargar;
 - handoff futuro simulado sólo en el boundary, sin contrato técnico.
 

@@ -10,7 +10,7 @@ La **fundación documental G0 está aprobada y cerrada** sobre el commit `1d3319
 
 E1 — Diseño funcional queda cerrado: E1-A `CLOSED / PRODUCT DECISIONS RECORDED`, E1-B `CLOSED / OPERATIONAL BASELINE APPROVED` y E1-C `CLOSED / FUNCTIONAL SPECIFICATION APPROVED`. G1 está `APPROVED / CLOSED` sobre el commit funcional `e233927659b0709d37de8c4b66b55439a854e0e1` del PR #4.
 
-E2 — Arquitectura está `IN PROGRESS / READY FOR ARCHITECTURE DECISIONS`. La consolidación propone un modular monolith, alineación principal de stack, tenancy shared-schema con defensa RLS, archivos privados, jobs/outbox, runtime y controles de seguridad; todas las decisiones relevantes siguen sujetas a revisión humana. G2 continúa `NO APROBADA`. No están autorizados implementación, scaffolding, dependencias, datos reales ni integración técnica con EduPay. `ADR-0001..ADR-0005` permanecen `PROPOSED / RECOMMENDED_FOR_G2`.
+E2 — Arquitectura está `IN PROGRESS / READY FOR G2 REVIEW`. Las ocho elecciones humanas están registradas: modular monolith, stack/monorepo, tenancy/RLS condicionado a PoC, sesión opaca server-side, archivos, jobs, deployment y objetivos RPO/RTO. G2 continúa `NO APROBADA`; las ADR permanecen `PROPOSED / RECOMMENDED_FOR_G2`. No están autorizados implementación, scaffolding, dependencias, datos reales ni integración técnica con EduPay.
 
 Los registros formales principales son [`docs/approvals/E1-B-functional-closure-2026-08-08.md`](docs/approvals/E1-B-functional-closure-2026-08-08.md) y [`docs/approvals/G1-functional-approval-2026-08-08.md`](docs/approvals/G1-functional-approval-2026-08-08.md).
 
@@ -79,7 +79,7 @@ Los registros formales principales son [`docs/approvals/E1-B-functional-closure-
 
 ## Cómo continuar
 
-1. Revisar las ocho decisiones humanas requeridas en el workbook de E2.
+1. Revisar el estado de las ocho decisiones humanas registradas en el workbook de E2.
 2. Aceptar, ajustar o devolver explícitamente E2-D-001..017 y ADR-0001..0005 en G2.
 3. Mantener implementación y datos reales bloqueados hasta las compuertas posteriores correspondientes.
 4. Designar al responsable legal/normativo antes de autorizar datos reales para el piloto.

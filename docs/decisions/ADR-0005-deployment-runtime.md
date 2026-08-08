@@ -45,7 +45,7 @@ Base, storage y servicios internos permanecen privados; secretos no se versionan
 
 ## Operación, recuperación y costos
 
-Se requieren monitoreo, backups, restore y rollback ensayado. RPO 1 hora/RTO 4 horas es una propuesta, no SLA. Sponsor y operación deben aprobar objetivos y presupuesto antes de infraestructura.
+Se requieren monitoreo, backups, restore y rollback ensayado. RPO inicial de 1 hora y RTO inicial de 4 horas son objetivos técnicos, no SLA, compromiso comercial, garantía legal ni compromiso de disponibilidad. Deben revalidarse con proveedor, volumen, costo y operación reales antes de infraestructura.
 
 ## Validación y reversibilidad
 

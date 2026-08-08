@@ -31,9 +31,9 @@ Fronteras de confianza: navegador/API, tenant/plataforma, módulos internos, API
 | E/I | Recursos tenant | IDOR sobre caso/documento/oferta | Lectura o cambio ajeno | Autorización por recurso+tenant, IDs opacos, denegación uniforme, tests negativos | Medio | E4/E5 |
 | E/I | Aislamiento | Tenant breakout por filtro ausente | Exposición masiva | tenant server-side, repositorios tenant-aware, constraints, RLS propuesto, pruebas cross-tenant | Medio | PoC E4; E4/E5 |
 | E | Roles/permisos | Escalada horizontal o vertical | Decisión/exportación no autorizada | deny-by-default, memberships, scopes, SoD, auditoría y revisión | Medio | E3/E4/E5 |
-| S | Cuenta | Account takeover | Control de familia/personal | verificación email, reset de un uso, rotación refresh, revocación, alertas | Medio | E4/E5 |
+| S | Cuenta | Account takeover | Control de familia/personal | verificación email, reset de un uso, revocación de sesiones, alertas | Medio | E4/E5 |
 | S/D | Login | Credential stuffing | Secuestro/denegación | rate limits, bloqueo progresivo, detección, MFA por riesgo futura | Medio | E5/operación |
-| S | Sesión | Robo/replay de sesión | Acceso persistente | cookies HttpOnly/Secure/SameSite, refresh rotatorio hash, reuse detection, TTL corto | Medio | E4/E5 |
+| S | Sesión | Robo/replay de sesión | Acceso persistente | cookie HttpOnly/Secure/SameSite, identificador opaco hasheado server-side, revocación y expiración | Medio | E4/E5 |
 | T | Requests | CSRF | Acciones con sesión de víctima | SameSite, token/origin checks en mutaciones, no cambios por GET | Bajo-medio | E4/E5 |
 | T/I | Portal | XSS almacenado/reflejado | Robo de sesión/contenido | escaping, CSP, sanitización, builder sin código arbitrario | Medio | E4/E5 |
 | T/I | Datos | SQL injection | Fuga/corrupción | consultas parametrizadas/ORM, validación, mínimo privilegio DB | Bajo-medio | E4/E5 |
@@ -68,7 +68,7 @@ Los controles técnicos minimizan PIE/NEE/salud, pero no resuelven fundamento no
 
 ### Disponibilidad
 
-Ataques o fallos sobre worker, base, storage, email o DNS pueden degradar el proceso. Outbox, backups, health checks, límites y runbooks reducen impacto. Los objetivos RPO/RTO y presupuesto necesitan aprobación humana.
+Ataques o fallos sobre worker, base, storage, email o DNS pueden degradar el proceso. Outbox, backups, health checks, límites y runbooks reducen impacto. RPO 1 hora y RTO 4 horas quedan registrados como objetivos técnicos iniciales y deben revalidarse con proveedor, volumen, costo y operación reales.
 
 ## Validación y mantenimiento
 

@@ -117,12 +117,12 @@ La estrategia debe cubrir de forma coordinada:
 - procedimientos de restauración por ambiente;
 - pruebas periódicas de restore con datos sintéticos hasta autorizar datos reales.
 
-Se propone como objetivo inicial sujeto a decisión humana:
+Queda registrado como objetivo técnico inicial:
 
 - **RPO:** hasta 1 hora;
 - **RTO:** hasta 4 horas para el servicio principal del piloto.
 
-Estos valores no constituyen SLA ni compromiso contractual. Operación debe aprobarlos considerando costo, proveedor, ventanas de admisión y criticidad.
+Estos valores no constituyen SLA, compromiso comercial, garantía legal ni compromiso de disponibilidad. Deben revalidarse considerando proveedor, volumen, costo, ventanas de admisión y operación real.
 
 ## Respuesta y degradación
 

@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E2 — Arquitectura |
-| Estado | `IN PROGRESS / READY FOR ARCHITECTURE DECISIONS` |
+| Estado | `IN PROGRESS / READY FOR G2 REVIEW` |
 | Inicio autorizado | `2026-08-08T06:20:00-04:00` |
 | Base | `main` en `c88b8a9ddb094fa37025a9c5c0f40a9c34887425` |
 | Rama | `docs/e2-architecture` |
@@ -116,4 +116,4 @@ E2 puede solicitar revisión G2 cuando:
 
 ## Siguiente compuerta humana
 
-Resolver las ocho elecciones de `11-e2-decision-workbook.md#human-decisions-required` y luego decidir G2. El checklist resulta `PASS_WITH_DEFERRED`, sin bloqueante arquitectónico material. E2 no puede aprobar G2 automáticamente.
+Las ocho elecciones humanas están registradas en `11-e2-decision-workbook.md#human-decisions-status`. El checklist resulta `PASS_WITH_DEFERRED`, sin bloqueante arquitectónico material. La siguiente acción es la revisión humana de G2; E2 no puede aprobar G2 automáticamente.

@@ -8,7 +8,7 @@
 
 **PR:** #5 — `E2: Architecture design and G2 preparation`
 
-**Commit de evidencia:** pendiente al cerrar la entrega
+**Commit de evidencia:** head del PR #5 después del commit de esta corrección
 
 ## Propósito del borrador
 
@@ -21,7 +21,7 @@ Preparar el paquete que permitiría decidir G2. Este archivo no registra aprobac
 - monorepo independiente con workspaces y paquetes compartidos limitados;
 - PostgreSQL como fuente transaccional;
 - shared database/shared schema con tenantId obligatorio y RLS sujeto a PoC;
-- identidad común, memberships tenant y sesión híbrida revocable;
+- identidad común, memberships tenant y opaque server-side session revocable;
 - autorización por capacidad, tenant, recurso, scope, sensibilidad, propósito y separación de funciones;
 - object storage privado con cuarentena y escaneo antimalware fail-closed;
 - transacciones, locks, constraints e idempotencia para cupos/ofertas/espera;
@@ -29,6 +29,12 @@ Preparar el paquete que permitiría decidir G2. Este archivo no registra aprobac
 - auditoría separada de logs, security events y métricas;
 - runtime Linux containerizado con servicios administrados selectivos;
 - estrategia de testing y threat model.
+
+## Decisiones humanas registradas
+
+Nicolás Sena registró las ocho elecciones humanas del workbook: HD-01 `RESOLVED`, HD-02 `RESOLVED`, HD-03 `RESOLVED_WITH_CONDITION`, HD-04 `RESOLVED_WITH_MODIFICATION`, HD-05 `RESOLVED`, HD-06 `RESOLVED`, HD-07 `RESOLVED` y HD-08 `RESOLVED_AS_TECHNICAL_TARGET`.
+
+HD-03 exige PoC sintética antes de G4 para request/job con tenant correcto, ausencia de contexto = `DENY`, cross-tenant = `DENY`, pooling seguro, Prisma con transacciones/RLS, roles DB separados y fail-closed. HD-04 selecciona sesión opaca server-side para el web MVP. HD-08 registra RPO 1 hora y RTO 4 horas como objetivos técnicos iniciales, no SLA.
 
 ## Decisiones y ADR propuestas
 
@@ -64,7 +70,7 @@ La eventual aprobación humana debe indicar cuáles decisiones/ADR acepta, ajust
 - Q-201..Q-210 conservan componentes legales u operativos en sus compuertas.
 - Q-301..Q-309 siguen `FUTURE_INTEGRATION_PENDING`; no existe contrato técnico EduPay.
 - Proveedores, residencia, presupuesto y volúmenes concretos aún deben validarse.
-- RLS, refresh rotation y targets operativos requieren validación práctica autorizada en etapas posteriores.
+- PoC RLS/Prisma/pooling, infraestructura no aprovisionada y targets operativos requieren validación práctica en etapas posteriores.
 - SELF-ELEVATION conserva riesgo concentrado; se recomiendan alertas y evolución a doble control para categorías altamente restringidas.
 
 ## Lo que G2 aprobaría
@@ -85,8 +91,8 @@ G2 aprobaría la dirección arquitectónica y autorizaría continuar a la siguie
 
 ## Condiciones sugeridas
 
-1. Ejecutar PoC de RLS/contexto tenant antes de persistencia productiva.
-2. Validar sesión híbrida, rotación y revocación antes de exponer autenticación.
+1. Ejecutar PoC sintética de RLS/Prisma/pooling antes de G4.
+2. Validar la implementación de sesión server-side y CSRF antes de exponer autenticación.
 3. Cotizar deployment, storage y recuperación antes de aprovisionar.
 4. Cerrar política legal/retención antes de datos reales.
 5. Mantener la integración EduPay para E7/G7.

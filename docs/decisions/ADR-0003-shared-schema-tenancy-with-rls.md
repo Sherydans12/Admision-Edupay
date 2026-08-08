@@ -20,7 +20,7 @@ Las dos primeras ofrecen fronteras físicas mayores pero multiplican migraciones
 
 ## Decisión propuesta
 
-Usar shared database/shared schema con `tenantId` obligatorio en todo agregado tenant-owned. El tenant efectivo se resuelve server-side desde sesión/membership o elevación, nunca desde un body/query como autoridad.
+Usar shared database/shared schema con `tenantId` obligatorio en todo agregado tenant-owned. El tenant efectivo se resuelve server-side desde sesión/membership o elevación, nunca desde un body/query como autoridad. Esta dirección fue registrada por Nicolás Sena como HD-03, con condición obligatoria antes de G4.
 
 Aplicar defensa en profundidad:
 
@@ -57,7 +57,7 @@ Se evita una base por tenant durante el piloto. Backup/restore por tenant es má
 
 ## Validación y reversibilidad
 
-El PoC previo a G4 debe demostrar fail-closed sin contexto, ausencia de fuga en pooling, rol de migración separado, transacciones y tests cross-tenant. Si RLS no puede aplicarse con garantías, G4 deberá volver a decidir antes de persistir datos.
+El PoC sintético previo a G4 debe demostrar: request con tenant correcto; job con tenant correcto; ausencia de tenant context = `DENY`; intento cross-tenant = `DENY`; pooling sin fuga de contexto; compatibilidad de Prisma con transacciones y RLS; rol de aplicación separado del rol de migraciones; y comportamiento fail-closed. Si RLS no puede aplicarse con garantías, no se deshabilita silenciosamente: G4 debe volver a revisión arquitectónica y aprobar una defensa equivalente antes de persistir datos.
 
 ## Referencias
 

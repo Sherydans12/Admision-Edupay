@@ -7,7 +7,7 @@
 | Shared database/shared schema con `tenantId` | `PROPOSED / RECOMMENDED_FOR_G2` |
 | PostgreSQL RLS como defensa adicional | `PROPOSED / RECOMMENDED_FOR_G2`, sujeto a validación Prisma/pooling |
 | Identidad global + memberships tenant | `PROPOSED / RECOMMENDED_FOR_G2` |
-| Sesión híbrida con cookies HttpOnly y refresh rotado | `PROPOSED / RECOMMENDED_FOR_G2` |
+| Sesión opaca server-side con cookie HttpOnly | `PROPOSED / RECOMMENDED_FOR_G2`, elección humana registrada |
 
 ## Comparación de tenancy
 
@@ -96,21 +96,29 @@ flowchart LR
 
 ## Sesiones
 
-### Propuesta
+### Decisión MVP
 
-- Cookie `HttpOnly`, `Secure` y `SameSite` adecuada para credenciales; nunca tokens en localStorage.
-- Access token firmado de vida corta, transportado en cookie, con claims mínimos y no usado como única fuente de autorización.
-- Refresh token opaco de alta entropía, rotado en cada uso, almacenado hasheado server-side en un registro de sesión.
-- Detección de reutilización de refresh; revocación de la familia de tokens/sesión.
-- CSRF token/origin checking para acciones mutantes según topología web/API.
-- Revocación por cierre, recuperación, cambio de credencial, suspensión o riesgo.
-- Registro de dispositivo/sesión minimizado y auditable.
+La sesión web MVP es **server-side opaque session**:
 
-Passport JWT puede validar credenciales/access tokens; no resuelve rotación, revocación, CSRF, cookies, rate limiting ni autorización.
+- el navegador recibe sólo una cookie `HttpOnly`, `Secure` en HTTPS y con política `SameSite` apropiada;
+- la cookie contiene un identificador opaco de alta entropía, sin información de negocio, permisos ni tenant autoritativo;
+- el servidor persiste preferentemente sólo un hash/verificador del identificador y lo vincula a `PlatformUser`, memberships y metadata mínima de seguridad;
+- la sesión expira por inactividad y por límite absoluto;
+- soporta creación, logout, revocación inmediata, revocación de todas las sesiones y rotación del identificador después de login, cambios sensibles o elevación;
+- recuperación o cambio de credenciales invalida las sesiones aplicables;
+- cada operación resuelve sesión, identidad, membership, tenant efectivo, permiso, recurso, scope, sensitivity, purpose y separation of duties server-side.
 
-### Alternativa principal
+La sesión identifica; **no autoriza por sí misma**. El tenant enviado por el cliente nunca es autoridad.
 
-Sesiones totalmente server-side con identificador opaco en cookie. Simplifican revocación pero aumentan lectura de sesión y dependencia del store. Se conserva como alternativa si la prueba E4 muestra que access JWT no aporta valor.
+Passport puede utilizarse como adapter o estrategia de autenticación; no define el modelo de sesión ni reemplaza autorización, CSRF, rate limiting o auditoría.
+
+### Protección CSRF
+
+Las acciones mutantes mantienen protección explícita mediante combinación compatible con la topología final de `SameSite`, comprobaciones `Origin/Referer` cuando correspondan y CSRF token cuando sea necesario. `HttpOnly` no elimina CSRF.
+
+### Evolución futura
+
+JWT no queda prohibido como tecnología global. Podrá evaluarse para clientes API externos, mobile, service-to-service o integraciones futuras si una etapa posterior lo justifica. No es el modelo de sesión web del MVP.
 
 ## Cuenta y recuperación
 
@@ -173,4 +181,4 @@ sequenceDiagram
 
 ## Pendientes
 
-Q-201/Q-202 requieren responsable legal; Q-204 define política MFA; Q-205 define soporte/notificación. Son pendientes de política, no autorización para debilitar los controles propuestos.
+Q-201/Q-202 requieren responsable legal; Q-204 define política MFA; Q-205 define soporte/notificación. Son pendientes de política, no autorización para debilitar los controles propuestos. La elección humana de sesión server-side quedó registrada como HD-04; G2 aún debe aprobar formalmente E2-D-007.

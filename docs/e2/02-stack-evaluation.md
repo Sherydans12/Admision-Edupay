@@ -65,7 +65,7 @@ Recomendar **Alineación principal con EduPay**, con dos límites:
 | Estilos | Tailwind | Decisión reversible de UI, sin impacto de dominio |
 | Persistencia | PostgreSQL 15 + Prisma 7 | RLS/transactions/concurrencia requieren prueba técnica en E4 |
 | Documentación HTTP | OpenAPI 3 | No define todavía endpoints ni contrato EduPay |
-| Autenticación | Passport como adapter | Sesión híbrida y autorización son diseños separados |
+| Autenticación | Passport como adapter | Sesión opaca server-side y autorización son diseños separados |
 
 ## Repositorio
 
