@@ -70,6 +70,5 @@ export {
 } from "./tenant-execution-context.js";
 export {
   withTenantCandidateTransaction,
-  withTrustedPlatformSupportTransaction,
   withTenantTransaction,
 } from "./tenant-transaction.js";

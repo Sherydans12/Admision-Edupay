@@ -8,7 +8,7 @@ import {
   type TenantExecutionContext,
   type VerifiedSupportElevation,
 } from "./tenant-execution-context.js";
-import { withTrustedPlatformSupportTransaction } from "./tenant-transaction.js";
+import { withTrustedPlatformSupportTransaction } from "./support-elevation-transaction.js";
 import type { SecurityEventSink } from "./security-events.js";
 
 export interface StartSupportElevationInput {
@@ -103,18 +103,16 @@ export class SupportElevationService {
       this.prisma,
       actorContext.actorId,
       input.targetTenantId,
-      (transaction) =>
-        transaction.supportElevation.create({
-          data: {
-            actorUserId: actorContext.actorId,
-            categories: [...input.categories],
-            expiresAt: input.expiresAt,
-            purpose: input.purpose,
-            reason: input.reason,
-            scopes: [...input.scopes],
-            startedAt: now,
-            tenantId: input.targetTenantId,
-          },
+      (repository) =>
+        repository.create({
+          actorUserId: actorContext.actorId,
+          categories: input.categories,
+          expiresAt: input.expiresAt,
+          purpose: input.purpose,
+          reason: input.reason,
+          scopes: input.scopes,
+          startedAt: now,
+          tenantId: input.targetTenantId,
         }),
     );
 
@@ -142,24 +140,21 @@ export class SupportElevationService {
     input: ResolveActiveSupportElevationInput,
   ): Promise<VerifiedSupportElevation | undefined> {
     const now = input.now ?? new Date();
-    const where = {
-      actorUserId: input.actorId,
-      categories: { hasEvery: [...(input.categories ?? [])] },
-      closedAt: null,
-      expiresAt: { gt: now },
-      id: input.elevationId,
-      revokedAt: null,
-      scopes: { hasEvery: [...(input.scopes ?? [])] },
-      tenantId: input.targetTenantId,
-      ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
-    };
     const row = await withTrustedPlatformSupportTransaction(
       this.prisma,
       input.actorId,
       input.targetTenantId,
-      (transaction) =>
-        transaction.supportElevation.findFirst({
-          where,
+      (repository) =>
+        repository.findActive({
+          actorUserId: input.actorId,
+          elevationId: input.elevationId,
+          expiresAfter: now,
+          tenantId: input.targetTenantId,
+          ...(input.categories === undefined
+            ? {}
+            : { categories: input.categories }),
+          ...(input.purpose === undefined ? {} : { purpose: input.purpose }),
+          ...(input.scopes === undefined ? {} : { scopes: input.scopes }),
         }),
     );
     if (row === null) return undefined;
@@ -246,19 +241,16 @@ export class SupportElevationService {
       this.prisma,
       input.actorContext.actorId,
       input.targetTenantId,
-      (transaction) =>
-        transaction.supportElevation.updateMany({
-          data: { [state]: now },
-          where: {
-            actorUserId: input.actorContext.actorId,
-            closedAt: null,
-            id: input.elevationId,
-            revokedAt: null,
-            tenantId: input.targetTenantId,
-          },
+      (repository) =>
+        repository.updateActiveState({
+          actorUserId: input.actorContext.actorId,
+          elevationId: input.elevationId,
+          state,
+          tenantId: input.targetTenantId,
+          timestamp: now,
         }),
     );
-    if (result.count !== 1) {
+    if (result !== 1) {
       await this.auditSink.record({
         action,
         actorId: input.actorContext.actorId,

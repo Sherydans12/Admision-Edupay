@@ -76,3 +76,16 @@ Resultados registrados tras la validación local de esta entrega. Comando base:
 
 La matriz se actualizará si una ejecución posterior cambia el resultado; no se declaran
 aprobaciones productivas ni G4 con esta evidencia.
+
+## Trusted platform boundary
+
+| ID | Test/archivo | Resultado | Estado |
+| --- | --- | --- | --- |
+| TRUST-01 | `trusted-platform-rls.integration.spec.ts` | platform GUCs no leen memberships | PASS |
+| TRUST-02 | `trusted-platform-rls.integration.spec.ts` | platform GUCs no insertan/actualizan outbox | PASS |
+| TRUST-03 | `trusted-platform-rls.integration.spec.ts` | platform GUCs no leen role assignments | PASS |
+| TRUST-04 | `trusted-platform-rls.integration.spec.ts` | actor B no lee elevation A | PASS |
+| TRUST-05 | `trusted-platform-rls.integration.spec.ts` | actor B no actualiza elevation A | PASS |
+| TRUST-06 | `trusted-platform-rls.integration.spec.ts` | start/resolve/close/revoke legítimos | PASS |
+| TRUST-07 | `trusted-platform-rls.integration.spec.ts` | elevation verificada produce contexto tenant normal | PASS |
+| TRUST-08 | `trusted-platform-rls.integration.spec.ts` | sin `admission.tenant_id`, tablas ordinarias siguen fail-closed | PASS |

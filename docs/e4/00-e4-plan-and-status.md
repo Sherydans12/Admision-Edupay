@@ -21,7 +21,7 @@
 | --- | --- | --- |
 | E4-A — Repository and toolchain foundation | `COMPLETE` | Monorepo pnpm instalable, lintable, typecheckable, testeable y compilable; web/API/worker separados |
 | E4-B — PostgreSQL, Prisma y PoC tenant/RLS | `COMPLETE` | PostgreSQL 15.14 real, migración Prisma 7.9.1 y `POC-01..POC-08` con 8/8 tests `PASS` |
-| E4-C — Identity/session/authorization foundation | `COMPLETE` | Sesión opaca, tenant resolution, autorización deny-by-default, SoD, SELF-ELEVATION y CSRF con tests |
+| E4-C — Identity/session/authorization foundation | `COMPLETE` | Sesión opaca, tenant resolution, autorización deny-by-default, SoD, SELF-ELEVATION, CSRF y frontera platform/RLS endurecida con tests |
 | E4-D — Operational foundation | `COMPLETE` | Correlación, logs sanitizados, errores, health/readiness, auditoría, outbox, adapters y CI |
 | E4-E — G4 readiness | `NOT_STARTED` | Esta ronda sólo endurece E4-C/D; G4 permanece `NO APROBADA` |
 

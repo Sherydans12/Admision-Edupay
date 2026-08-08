@@ -45,7 +45,13 @@ con eventos de inicio/cierre/revocación/denegación. Expiración, cierre o revo
 a denegar; no se convierte en acceso permanente de la sesión.
 
 La elevación se crea y resuelve mediante una transacción PostgreSQL marcada únicamente
-como `TRUSTED PLATFORM OPERATION`; el registro persistido se verifica por actor, tenant,
+como `TRUSTED PLATFORM OPERATION`. Esa operación instala sólo los GUC transaction-local
+`admission.platform_operation`, `admission.platform_actor_id` y
+`admission.platform_target_tenant_id`; nunca instala `admission.tenant_id` y no expone un
+`Prisma TransactionClient`. El detalle interno sólo entrega operaciones de
+`SupportElevation`. La policy platform puede administrar exclusivamente la fila propia
+de `support_elevations`; memberships, roles, outbox y demás tablas tenant-owned siguen
+fail-closed sin tenant context. El registro persistido se verifica por actor, tenant,
 purpose, scopes, categories, estado y expiry antes de producir un contexto elevado.
 
 ## CSRF
