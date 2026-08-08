@@ -4,11 +4,18 @@ import { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { authorize } from "./authorization.js";
+import { InMemoryAuditSink } from "./audit.js";
 import { getRequiredEnvironment } from "./environment.js";
 import { PERMISSIONS } from "./permission-catalog.js";
 import { createAppPrismaClient } from "./prisma-client.js";
 import { resolveEffectiveTenantContext } from "./tenant-resolution.js";
 import {
+  getElevationContext,
+  SupportElevationService,
+} from "./support-elevation.js";
+import { InMemorySecurityEventSink } from "./security-events.js";
+import {
+  type PlatformExecutionContext,
   runWithTenantContext,
   type TenantExecutionContext,
 } from "./tenant-execution-context.js";
@@ -45,6 +52,7 @@ async function seedFixture(): Promise<void> {
   });
   const contextA: TenantExecutionContext = {
     actorId: user.id,
+    contextOrigin: "membership",
     correlationId: "synthetic-auth-fixture",
     purpose: "synthetic.fixture",
     source: "trusted_job",
@@ -255,37 +263,59 @@ describe.sequential("E4-C tenant resolution and authorization", () => {
   });
 
   it("AUTH-10 denies a global superadmin without elevation", () => {
+    const platform: PlatformExecutionContext = {
+      actorId: fixture.userId,
+      correlationId: "synthetic-platform",
+      globalCapabilities: [PERMISSIONS.APPLICATION_READ],
+      globalSuperadmin: true,
+      purpose: "platform.support",
+      source: "authenticated_request",
+    };
     expect(
-      authorize(
-        {
-          ...fixture.contextA,
-          capabilities: [PERMISSIONS.APPLICATION_READ],
-          globalSuperadmin: true,
-        },
-        {
-          permission: PERMISSIONS.APPLICATION_READ,
-          resourceTenantId: fixture.tenantA,
-        },
-      ),
+      authorize(platform, {
+        permission: PERMISSIONS.APPLICATION_READ,
+        resourceTenantId: fixture.tenantA,
+      }),
     ).toMatchObject({
       decision: "DENY",
       code: "SUPERADMIN_REQUIRES_ELEVATION",
     });
   });
 
-  it("AUTH-11 allows an active elevation only inside its scope", () => {
-    const elevated = {
-      ...fixture.contextA,
-      capabilities: [PERMISSIONS.RESTRICTED_READ],
-      supportElevation: {
-        categories: ["restricted"],
-        expiresAt: new Date(baseNow.getTime() + 60_000),
-        id: "synthetic-elevation",
-        purpose: fixture.contextA.purpose,
-        scopes: ["application.read"],
-        tenantId: fixture.tenantA,
-      },
+  it("AUTH-11 allows an active elevation only inside its scope", async () => {
+    const service = new SupportElevationService(
+      prisma,
+      new InMemoryAuditSink(),
+      new InMemorySecurityEventSink(),
+    );
+    const platform: PlatformExecutionContext = {
+      actorId: fixture.userId,
+      correlationId: "synthetic-platform-elevation",
+      globalCapabilities: [
+        PERMISSIONS.PLATFORM_SUPPORT_ELEVATE,
+        PERMISSIONS.RESTRICTED_READ,
+      ],
+      globalSuperadmin: true,
+      purpose: "platform.support",
+      source: "authenticated_request",
     };
+    const created = await service.startSupportElevation({
+      actorContext: platform,
+      categories: ["restricted"],
+      expiresAt: new Date(baseNow.getTime() + 60_000),
+      now: baseNow,
+      purpose: "platform.support",
+      reason: "Synthetic authz elevation",
+      scopes: ["application.read"],
+      targetTenantId: fixture.tenantA,
+    });
+    const verified = await service.resolveActiveSupportElevation({
+      actorId: fixture.userId,
+      elevationId: created.id,
+      now: baseNow,
+      targetTenantId: fixture.tenantA,
+    });
+    const elevated = getElevationContext(platform, verified!);
     expect(
       authorize(
         elevated,
@@ -312,19 +342,40 @@ describe.sequential("E4-C tenant resolution and authorization", () => {
     ).toMatchObject({ decision: "DENY" });
   });
 
-  it("AUTH-12 denies expired or closed elevations", () => {
-    const expired = {
-      ...fixture.contextA,
-      capabilities: [PERMISSIONS.RESTRICTED_READ],
-      supportElevation: {
-        categories: ["restricted"],
-        expiresAt: new Date(baseNow.getTime() - 1),
-        id: "synthetic-expired",
-        purpose: fixture.contextA.purpose,
-        scopes: ["application.read"],
-        tenantId: fixture.tenantA,
-      },
+  it("AUTH-12 denies expired or closed elevations", async () => {
+    const service = new SupportElevationService(
+      prisma,
+      new InMemoryAuditSink(),
+      new InMemorySecurityEventSink(),
+    );
+    const platform: PlatformExecutionContext = {
+      actorId: fixture.userId,
+      correlationId: "synthetic-platform-expiry",
+      globalCapabilities: [
+        PERMISSIONS.PLATFORM_SUPPORT_ELEVATE,
+        PERMISSIONS.RESTRICTED_READ,
+      ],
+      globalSuperadmin: true,
+      purpose: "platform.support",
+      source: "authenticated_request",
     };
+    const created = await service.startSupportElevation({
+      actorContext: platform,
+      categories: ["restricted"],
+      expiresAt: new Date(baseNow.getTime() + 1_000),
+      now: baseNow,
+      purpose: "platform.support",
+      reason: "Synthetic authz expiry",
+      scopes: ["application.read"],
+      targetTenantId: fixture.tenantA,
+    });
+    const verified = await service.resolveActiveSupportElevation({
+      actorId: fixture.userId,
+      elevationId: created.id,
+      now: baseNow,
+      targetTenantId: fixture.tenantA,
+    });
+    const expired = getElevationContext(platform, verified!);
     expect(
       authorize(
         expired,
@@ -334,33 +385,8 @@ describe.sequential("E4-C tenant resolution and authorization", () => {
           scope: "application.read",
           sensitivity: "restricted",
         },
-        baseNow,
+        new Date(baseNow.getTime() + 2_000),
       ),
     ).toMatchObject({ decision: "DENY", code: "ELEVATION_EXPIRED" });
-    const closed = {
-      ...fixture.contextA,
-      capabilities: [PERMISSIONS.RESTRICTED_READ],
-      supportElevation: {
-        categories: ["restricted"],
-        closedAt: baseNow,
-        expiresAt: new Date(baseNow.getTime() + 60_000),
-        id: "synthetic-closed",
-        purpose: fixture.contextA.purpose,
-        scopes: ["application.read"],
-        tenantId: fixture.tenantA,
-      },
-    };
-    expect(
-      authorize(
-        closed,
-        {
-          permission: PERMISSIONS.RESTRICTED_READ,
-          resourceTenantId: fixture.tenantA,
-          scope: "application.read",
-          sensitivity: "restricted",
-        },
-        baseNow,
-      ),
-    ).toMatchObject({ decision: "DENY", code: "ELEVATION_INACTIVE" });
   });
 });

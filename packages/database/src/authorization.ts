@@ -1,4 +1,7 @@
-import type { TenantExecutionContext } from "./tenant-execution-context.js";
+import type {
+  PlatformExecutionContext,
+  TenantExecutionContext,
+} from "./tenant-execution-context.js";
 import {
   PERMISSIONS,
   type PermissionKey,
@@ -11,6 +14,7 @@ export type AuthorizationDenyCode =
   | "SENSITIVITY_NOT_ALLOWED"
   | "SEPARATION_OF_DUTIES"
   | "TENANT_MISMATCH"
+  | "TENANT_CONTEXT_REQUIRED"
   | "PURPOSE_MISMATCH"
   | "SUPERADMIN_REQUIRES_ELEVATION"
   | "ELEVATION_EXPIRED"
@@ -30,6 +34,14 @@ export interface AuthorizationRequirement {
 
 export type AuthorizationDecision =
   { decision: "ALLOW" } | { code: AuthorizationDenyCode; decision: "DENY" };
+export type AuthorizationContext =
+  PlatformExecutionContext | TenantExecutionContext;
+
+function isTenantContext(
+  context: AuthorizationContext,
+): context is TenantExecutionContext {
+  return "tenantId" in context;
+}
 
 function includesScope(
   scopes: readonly string[] | undefined,
@@ -47,37 +59,49 @@ function elevationIsActive(
   return (
     elevation !== undefined &&
     elevation.tenantId === context.tenantId &&
-    elevation.closedAt === undefined &&
-    elevation.revokedAt === undefined &&
     elevation.expiresAt > now
   );
 }
 
 export function authorize(
-  context: TenantExecutionContext,
+  context: AuthorizationContext,
   requirement: AuthorizationRequirement,
   now = new Date(),
 ): AuthorizationDecision {
-  if (
-    context.globalSuperadmin === true &&
-    context.supportElevation === undefined &&
-    requirement.permission !== PERMISSIONS.PLATFORM_SUPPORT_ELEVATE
-  ) {
-    return { code: "SUPERADMIN_REQUIRES_ELEVATION", decision: "DENY" };
+  if (requirement.permission === PERMISSIONS.PLATFORM_SUPPORT_ELEVATE) {
+    if (
+      isTenantContext(context) ||
+      context.globalSuperadmin !== true ||
+      context.globalCapabilities?.includes(
+        PERMISSIONS.PLATFORM_SUPPORT_ELEVATE,
+      ) !== true
+    ) {
+      return { code: "MISSING_PERMISSION", decision: "DENY" };
+    }
+    if (
+      requirement.purpose !== undefined &&
+      requirement.purpose !== context.purpose
+    ) {
+      return { code: "PURPOSE_MISMATCH", decision: "DENY" };
+    }
+    return { decision: "ALLOW" };
+  }
+
+  if (!isTenantContext(context)) {
+    return {
+      code:
+        context.globalSuperadmin === true
+          ? "SUPERADMIN_REQUIRES_ELEVATION"
+          : "TENANT_CONTEXT_REQUIRED",
+      decision: "DENY",
+    };
   }
 
   if (
     context.supportElevation !== undefined &&
     !elevationIsActive(context, now)
   ) {
-    return {
-      code:
-        context.supportElevation.closedAt !== undefined ||
-        context.supportElevation.revokedAt !== undefined
-          ? "ELEVATION_INACTIVE"
-          : "ELEVATION_EXPIRED",
-      decision: "DENY",
-    };
+    return { code: "ELEVATION_EXPIRED", decision: "DENY" };
   }
 
   if (
@@ -92,10 +116,10 @@ export function authorize(
   }
 
   const contextScopeAllowed = includesScope(context.scopes, requirement.scope);
-  const elevationScopeAllowed =
-    context.supportElevation?.scopes.includes("*") === true ||
-    (requirement.scope !== undefined &&
-      context.supportElevation?.scopes.includes(requirement.scope) === true);
+  const elevationScopeAllowed = includesScope(
+    context.supportElevation?.scopes,
+    requirement.scope,
+  );
   if (!contextScopeAllowed && !elevationScopeAllowed) {
     return { code: "MISSING_SCOPE", decision: "DENY" };
   }
@@ -126,15 +150,6 @@ export function authorize(
     return { code: "SEPARATION_OF_DUTIES", decision: "DENY" };
   }
 
-  if (
-    context.supportElevation !== undefined &&
-    !context.supportElevation.scopes.includes("*") &&
-    requirement.scope !== undefined &&
-    !context.supportElevation.scopes.includes(requirement.scope)
-  ) {
-    return { code: "MISSING_SCOPE", decision: "DENY" };
-  }
-
   return { decision: "ALLOW" };
 }
 
@@ -146,7 +161,7 @@ export class ForbiddenError extends Error {
 }
 
 export function authorizeOrThrow(
-  context: TenantExecutionContext,
+  context: AuthorizationContext,
   requirement: AuthorizationRequirement,
   now = new Date(),
 ): void {

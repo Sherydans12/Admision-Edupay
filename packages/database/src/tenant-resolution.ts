@@ -70,6 +70,7 @@ export async function resolveEffectiveTenantContext(
         context: {
           actorId: input.authenticatedUserId,
           capabilities,
+          contextOrigin: "membership",
           correlationId: input.correlationId,
           effectiveActorId: input.authenticatedUserId,
           membershipId: membership.id,

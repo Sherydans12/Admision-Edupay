@@ -44,6 +44,9 @@ export {
 export {
   SupportElevationService,
   getElevationContext,
+  type CloseSupportElevationInput,
+  type ResolveActiveSupportElevationInput,
+  type StartSupportElevationInput,
 } from "./support-elevation.js";
 export {
   StructuredLogger,
@@ -56,12 +59,17 @@ export {
   type TenantResolutionResult,
 } from "./tenant-resolution.js";
 export {
+  assertTenantContext,
   getRequiredTenantContext,
+  PlatformContextTenantError,
   runWithTenantContext,
   TenantContextMissingError,
+  type PlatformExecutionContext,
+  type VerifiedSupportElevation,
   type TenantExecutionContext,
 } from "./tenant-execution-context.js";
 export {
   withTenantCandidateTransaction,
+  withTrustedPlatformSupportTransaction,
   withTenantTransaction,
 } from "./tenant-transaction.js";

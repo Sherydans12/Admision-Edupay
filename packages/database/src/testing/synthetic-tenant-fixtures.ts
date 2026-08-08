@@ -13,6 +13,7 @@ export function syntheticAuthenticatedRequestContext(
 ): TenantExecutionContext {
   return {
     actorId: `synthetic-request-principal-${tenant.toLowerCase()}`,
+    contextOrigin: "synthetic_test",
     correlationId: `synthetic-request-correlation-${tenant.toLowerCase()}`,
     purpose: "E4_B_RLS_REQUEST_POC",
     source: "authenticated_request",
@@ -26,6 +27,7 @@ export function syntheticTrustedJobContext(
 ): TenantExecutionContext {
   return {
     actorId: "synthetic-system-worker",
+    contextOrigin: "synthetic_test",
     correlationId: `synthetic-job-correlation-${tenant.toLowerCase()}`,
     purpose: "E4_B_RLS_JOB_POC",
     source: "trusted_job",

@@ -29,6 +29,7 @@ CREATE TABLE "platform_sessions" (
     CONSTRAINT "platform_sessions_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "platform_users"("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 CREATE UNIQUE INDEX "platform_sessions_token_hash_key" ON "platform_sessions"("token_hash");
+CREATE UNIQUE INDEX "platform_sessions_rotated_from_session_id_key" ON "platform_sessions"("rotated_from_session_id");
 CREATE INDEX "platform_sessions_user_id_revoked_at_idx" ON "platform_sessions"("user_id", "revoked_at");
 CREATE INDEX "platform_sessions_idle_expires_at_absolute_expires_at_idx" ON "platform_sessions"("idle_expires_at", "absolute_expires_at");
 
@@ -156,8 +157,22 @@ CREATE POLICY "role_assignments_tenant_isolation" ON "role_assignments" AS PERMI
 ALTER TABLE "support_elevations" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "support_elevations" FORCE ROW LEVEL SECURITY;
 CREATE POLICY "support_elevations_tenant_isolation" ON "support_elevations" AS PERMISSIVE FOR ALL TO admission_app
-  USING ("tenant_id" = NULLIF(current_setting('admission.tenant_id', true), '')::UUID)
-  WITH CHECK ("tenant_id" = NULLIF(current_setting('admission.tenant_id', true), '')::UUID);
+  USING (
+    "tenant_id" = NULLIF(current_setting('admission.tenant_id', true), '')::UUID
+    OR (
+      current_setting('admission.platform_operation', true) = 'support_elevation'
+      AND "tenant_id" = NULLIF(current_setting('admission.tenant_id', true), '')::UUID
+      AND "actor_user_id" = NULLIF(current_setting('admission.actor_id', true), '')::UUID
+    )
+  )
+  WITH CHECK (
+    "tenant_id" = NULLIF(current_setting('admission.tenant_id', true), '')::UUID
+    OR (
+      current_setting('admission.platform_operation', true) = 'support_elevation'
+      AND "tenant_id" = NULLIF(current_setting('admission.tenant_id', true), '')::UUID
+      AND "actor_user_id" = NULLIF(current_setting('admission.actor_id', true), '')::UUID
+    )
+  );
 
 ALTER TABLE "outbox_messages" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "outbox_messages" FORCE ROW LEVEL SECURITY;

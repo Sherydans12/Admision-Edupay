@@ -9,6 +9,7 @@ import {
 
 const SYNTHETIC_CONTEXT: TenantExecutionContext = {
   actorId: "synthetic-request-principal",
+  contextOrigin: "synthetic_test",
   correlationId: "synthetic-correlation-a",
   purpose: "E4_B_RLS_POC",
   source: "authenticated_request",
