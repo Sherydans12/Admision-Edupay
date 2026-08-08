@@ -1,9 +1,10 @@
 # ADR-0001: Alineación del stack con EduPay
 
-- **Estado:** PROPOSED
+- **Estado:** ACCEPTED
 - **Fecha:** 2026-08-06
-- **Decisor propuesto:** Nicolás Sena
-- **Compuerta objetivo:** G2 — arquitectura, antes de scaffolding
+- **Decisor:** Nicolás Sena
+- **Compuerta:** G2 — `APPROVED / CLOSED`
+- **Aprobación:** 2026-08-08 sobre `15b49e284ca642761f2df744ce73bb6a3d10e289`
 - **Fuente:** SRC-005
 
 ## Contexto
@@ -57,53 +58,58 @@ Compartir lenguaje/contratos o algunas capas, pero divergir en componentes justi
 
 **Riesgos:** frontera más compleja, tooling duplicado y riesgo de divergencia gradual sin gobernanza.
 
-## Recomendación
+## Decisión
 
-Adoptar la **Opción A: utilizar el mismo stack principal de EduPay** para reducir fragmentación operativa y reutilizar conocimientos, contratos y validaciones, siempre que la etapa de arquitectura confirme que satisface seguridad, multitenancy, archivos, auditoría, rendimiento y operación.
+Se adopta la **Opción A: utilizar el mismo stack principal de EduPay** para reducir fragmentación operativa y reutilizar conocimientos, contratos y validaciones, manteniendo dominios, repositorios, datos y sesiones independientes.
 
-Esta recomendación no está aprobada y no autoriza instalar dependencias ni iniciar scaffolding.
+La decisión fue aceptada en G2. No implica adoptar cPanel/Passenger ni autoriza por sí sola scaffolding, dependencias o implementación fuera de las compuertas posteriores.
 
-## Decisiones expresamente no tomadas
+## Evidencia E2
 
-- monorepo o multirepo;
-- reutilización de paquetes o repositorios concretos;
-- proveedor/arquitectura de archivos;
-- proveedor de correo;
-- sistema de colas;
-- mecanismo definitivo de integración;
-- estrategia de despliegue;
-- uso de cPanel/Passenger para Admisión;
-- arquitectura física multiempresa;
-- proveedor de identidad y estrategia de sesión;
-- topología de ambientes, contenedores o CI/CD.
+La evaluación comparativa de E2 en [`docs/e2/02-stack-evaluation.md`](../e2/02-stack-evaluation.md) confirma que la alineación principal reduce curva y fragmentación sin exigir compartir repositorio, base de datos, tablas, sesiones ni ciclo de despliegue con EduPay.
 
-Docker Compose figura únicamente como práctica local vigente de EduPay; no se crea ni adopta en esta etapa.
+E2 mantiene NestJS 11, TypeScript, Prisma 7, Next.js 16, React 19, PostgreSQL 15 y OpenAPI 3 como referencia inicial, verificando compatibilidad y mantenimiento antes de instalar dependencias. La alineación no incluye adoptar cPanel/Passenger: el runtime de Admisión debe satisfacer workers, scheduler, archivos privados, antivirus, observabilidad y recuperación conforme a ADR-0005.
 
-## Condiciones para aceptar
+## Decisiones fuera del alcance de esta ADR
 
-1. Confirmar compatibilidad de versiones y mantenimiento.
-2. Evaluar restricciones de cPanel/Passenger frente a trabajos asíncronos, archivos y escalabilidad.
-3. Definir estrategia de tenancy y probar defensas en profundidad.
-4. Modelar amenazas, sesiones, autorización y auditoría.
-5. Evaluar operación, observabilidad, backups y recuperación.
-6. Comparar costos y reversibilidad con al menos una alternativa.
-7. Validar contrato de integración sin compartir tablas.
-8. Registrar decisiones diferidas en ADR separados cuando corresponda.
+Esta ADR decide únicamente alineación de stack. Las decisiones complementarias se registran separadamente:
+
+- monorepo, workspaces y paquetes permitidos: `E2-D-003`;
+- arquitectura de archivos: ADR-0004; proveedor aún diferido;
+- correo y jobs: `E2-D-011/012`; proveedores aún diferidos;
+- mecanismo definitivo de integración EduPay: diferido a E7/G7;
+- deployment y uso de cPanel/Passenger: ADR-0005;
+- arquitectura física multiempresa: ADR-0003;
+- identidad y estrategia de sesión: `E2-D-007`;
+- CI/CD ejecutable e infraestructura: fuera de E2.
+
+Docker Compose figura únicamente como práctica local vigente de EduPay; su uso en Admisión debe concretarse en la fundación técnica conforme a las decisiones aprobadas.
+
+## Condiciones aceptadas
+
+1. Confirmar compatibilidad de versiones y mantenimiento antes del scaffolding definitivo.
+2. No heredar cPanel/Passenger por similitud tecnológica; aplicar ADR-0005.
+3. Mantener estrategia de tenancy y defensas en profundidad de ADR-0003.
+4. Mantener sesiones, autorización y auditoría como diseños explícitos independientes del framework.
+5. Validar operación, observabilidad, backups y recuperación en las compuertas técnicas correspondientes.
+6. Mantener costos y reversibilidad visibles antes de aprovisionamiento.
+7. Mantener integración EduPay sin tablas compartidas y con contrato técnico diferido a E7/G7.
+8. Registrar cambios arquitectónicos posteriores mediante ADR y revisión de impacto.
 
 ## Seguridad, privacidad y multitenancy
 
-Compartir stack no comparte contexto de seguridad. Admisión debe implementar autorización por tenant/recurso/propósito, datos sensibles, archivos privados, auditoría de lecturas y separación de dominios. Prisma/PostgreSQL o Passport JWT, si se adoptan, no resuelven por sí solos aislamiento ni sesiones seguras.
+Compartir stack no comparte contexto de seguridad. Admisión debe implementar autorización por tenant/recurso/propósito, datos sensibles, archivos privados, auditoría de lecturas y separación de dominios. Prisma/PostgreSQL o Passport no resuelven por sí solos aislamiento ni sesiones seguras.
 
 ## Validación y reversibilidad
 
-Antes de aceptar este ADR se requiere un spike o análisis arquitectónico explícitamente autorizado, sin datos reales, que evalúe los riesgos anteriores. La decisión debe poder revisarse antes del primer esquema persistente o contrato público. Tras scaffolding y datos, el costo de reversión aumenta significativamente.
+Antes del primer esquema persistente deberán validarse compatibilidad de versiones, RLS/pooling, sesiones y runtime según las ADR relacionadas. El PoC obligatorio de tenant/RLS/Prisma definido en ADR-0003 debe cumplirse antes de G4. Cambios posteriores al scaffolding o contratos públicos aumentan significativamente el costo de reversión.
 
-## Consecuencias si se acepta
+## Consecuencias de la decisión
 
 - El equipo priorizará convenciones compatibles con EduPay.
 - Cada reutilización deberá mantener límites de dominio.
-- El despliegue y la integración seguirán necesitando ADR propios.
-- Las versiones exactas se validarán en el momento de fundación técnica; no se instalan por este documento.
+- El despliegue y la integración conservan decisiones propias.
+- Las versiones exactas se validarán en el momento de fundación técnica.
 
 ## Referencias
 
@@ -111,3 +117,6 @@ Antes de aceptar este ADR se requiere un spike o análisis arquitectónico expl�
 - D-007, D-010 y Q-401 en `docs/09-open-questions.md`.
 - `docs/07-edupay-integration-boundary.md`.
 - `docs/06-multitenancy-security.md`.
+- `docs/e2/02-stack-evaluation.md`.
+- `docs/e2/11-e2-decision-workbook.md` (`E2-D-002`).
+- `docs/approvals/G2-architecture-approval-2026-08-08.md`.
