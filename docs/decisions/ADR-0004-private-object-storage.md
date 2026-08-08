@@ -1,9 +1,10 @@
 # ADR-0004: Almacenamiento privado de documentos
 
-- **Estado:** PROPOSED / RECOMMENDED_FOR_G2
+- **Estado:** ACCEPTED
 - **Fecha:** 2026-08-08
-- **Decisores propuestos:** Nicolás Sena y responsables de arquitectura/seguridad/operación
-- **Compuerta:** G2
+- **Decisor:** Nicolás Sena
+- **Compuerta:** G2 — `APPROVED / CLOSED`
+- **Aprobación:** 2026-08-08 sobre `15b49e284ca642761f2df744ce73bb6a3d10e289`
 
 ## Contexto y requisitos
 
@@ -17,13 +18,13 @@ Las postulaciones incluyen documentos de menores y potencialmente categorías re
 
 El filesystem local acopla archivos al runtime y dificulta escalado/recuperación. Un proveedor integral reduce operación pero aumenta lock-in y exige evaluación contractual.
 
-## Decisión propuesta
+## Decisión
 
 Usar object storage privado S3-compatible detrás de un adaptador. Cada carga usa key aleatoria y pasa por cuarentena, validación de tamaño/MIME/firma, escaneo antimalware y promoción a storage aprobado. No existirán buckets públicos.
 
 Las lecturas requieren autorización vigente por tenant/recurso/sensibilidad/propósito. Se usarán URLs firmadas breves o streaming autorizado según sensibilidad. Se registran hash, versiones y auditoría de upload/read/download/delete.
 
-El proveedor comercial y región quedan diferidos; esta ADR aprueba sólo el patrón si G2 la acepta.
+La decisión fue aceptada en G2. El proveedor comercial y región continúan diferidos hasta resolver Q-203, requisitos contractuales, costo y residencia.
 
 ## Consecuencias
 
@@ -53,3 +54,4 @@ E4/E5 deberán probar MIME falso, malware de prueba seguro, archivo dañado/prot
 - [`docs/e2/05-files-security-architecture.md`](../e2/05-files-security-architecture.md)
 - [`docs/e2/10-threat-model.md`](../e2/10-threat-model.md)
 - `E2-D-009/010` en [`docs/e2/11-e2-decision-workbook.md`](../e2/11-e2-decision-workbook.md)
+- [`docs/approvals/G2-architecture-approval-2026-08-08.md`](../approvals/G2-architecture-approval-2026-08-08.md)
