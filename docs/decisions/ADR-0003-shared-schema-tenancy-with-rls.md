@@ -1,9 +1,10 @@
 # ADR-0003: Shared-schema tenancy con defensa RLS
 
-- **Estado:** PROPOSED / RECOMMENDED_FOR_G2
+- **Estado:** ACCEPTED_WITH_CONDITION
 - **Fecha:** 2026-08-08
-- **Decisores propuestos:** Nicolás Sena y responsables de arquitectura/seguridad
-- **Compuerta:** G2
+- **Decisor:** Nicolás Sena
+- **Compuerta:** G2 — `APPROVED / CLOSED`
+- **Aprobación:** 2026-08-08 sobre `15b49e284ca642761f2df744ce73bb6a3d10e289`
 
 ## Contexto y requisitos
 
@@ -18,9 +19,9 @@ Admisión es SaaS multiempresa y debe negar fugas entre tenants (`AC-050`, `AC-0
 
 Las dos primeras ofrecen fronteras físicas mayores pero multiplican migraciones y operación desde el MVP. Shared schema concentra riesgo de consulta, pero permite defensas aplicativas y de base coherentes.
 
-## Decisión propuesta
+## Decisión
 
-Usar shared database/shared schema con `tenantId` obligatorio en todo agregado tenant-owned. El tenant efectivo se resuelve server-side desde sesión/membership o elevación, nunca desde un body/query como autoridad. Esta dirección fue registrada por Nicolás Sena como HD-03, con condición obligatoria antes de G4.
+Usar shared database/shared schema con `tenantId` obligatorio en todo agregado tenant-owned. El tenant efectivo se resuelve server-side desde sesión/membership o elevación, nunca desde un body/query como autoridad.
 
 Aplicar defensa en profundidad:
 
@@ -31,6 +32,23 @@ Aplicar defensa en profundidad:
 - deny cuando no exista contexto;
 - RLS en tablas tenant-owned desde primera persistencia, condicionada a un PoC de Prisma, pooling, migraciones y roles DB antes de G4;
 - pruebas negativas cross-tenant obligatorias.
+
+La decisión fue aceptada en G2 con condición obligatoria de PoC previa a G4.
+
+## Condición obligatoria antes de G4
+
+El PoC sintético debe demostrar:
+
+1. request con tenant correcto;
+2. job con tenant correcto;
+3. ausencia de tenant context = `DENY`;
+4. intento cross-tenant = `DENY`;
+5. pooling sin fuga de tenant context;
+6. compatibilidad de Prisma con transacciones y RLS;
+7. rol de aplicación separado del rol de migraciones;
+8. comportamiento fail-closed.
+
+Si RLS no puede aplicarse con garantías, no se deshabilita silenciosamente. El diseño vuelve a revisión arquitectónica y debe aprobarse una defensa equivalente antes de continuar hacia G4.
 
 ## Consecuencias
 
@@ -57,10 +75,11 @@ Se evita una base por tenant durante el piloto. Backup/restore por tenant es má
 
 ## Validación y reversibilidad
 
-El PoC sintético previo a G4 debe demostrar: request con tenant correcto; job con tenant correcto; ausencia de tenant context = `DENY`; intento cross-tenant = `DENY`; pooling sin fuga de contexto; compatibilidad de Prisma con transacciones y RLS; rol de aplicación separado del rol de migraciones; y comportamiento fail-closed. Si RLS no puede aplicarse con garantías, no se deshabilita silenciosamente: G4 debe volver a revisión arquitectónica y aprobar una defensa equivalente antes de persistir datos.
+Además del PoC previo a G4, E4/E5 deben mantener pruebas negativas cross-tenant y validaciones de pooling/contexto. La estrategia puede revisarse si evidencia técnica demuestra una limitación material, pero nunca degradando silenciosamente la defensa.
 
 ## Referencias
 
 - [`docs/e2/04-multitenancy-authorization-architecture.md`](../e2/04-multitenancy-authorization-architecture.md)
 - [`docs/e2/09-testing-strategy.md`](../e2/09-testing-strategy.md)
 - `E2-D-005/006` en [`docs/e2/11-e2-decision-workbook.md`](../e2/11-e2-decision-workbook.md)
+- [`docs/approvals/G2-architecture-approval-2026-08-08.md`](../approvals/G2-architecture-approval-2026-08-08.md)
