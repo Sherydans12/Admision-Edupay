@@ -206,7 +206,7 @@ Clasificación usada: `PUBLIC`, `INTERNAL`, `PERSONAL`, `RESTRICTED`, `HIGHLY_RE
 - **Autorización/tenant:** membresía `offering.manage` conceptual y scope; referencias del mismo tenant.
 - **Auditoría/comunicaciones:** creación/cambios; ninguna comunicación familiar hasta publicación.
 - **Postcondición/aceptación:** oferta borrador inequívoca por tenant/sede/año/curso.
-- **Pendientes:** definición de duplicados y señal de disponibilidad.
+- **Pendientes:** definición de duplicados y configuración concreta del texto/señal de disponibilidad por oferta; la capacidad funcional de las categorías ya está confirmada.
 
 ### UC-CAP-001 — Definir cupos
 

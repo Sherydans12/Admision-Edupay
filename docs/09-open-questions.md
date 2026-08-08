@@ -76,7 +76,7 @@ Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
 | A-003 | Originalmente se asumió aplicabilidad variable de entrevista/evaluación | SRC-001/SRC-002 | REEMPLAZADO para piloto por D-015; conservar por C-009 |
 | A-004 | Una familia gestiona varios estudiantes/postulaciones | SRC-001, D-013 | CONFIRMADO |
 | A-005 | Datos enviados no cambian al editar perfil | D-002/D-003 | CONFIRMADO |
-| A-006 | Institución configura señal de disponibilidad | SRC-001 | VALIDAR EN G1 |
+| A-006 | La institución configura la señal de disponibilidad; el MVP muestra categorías sin cantidades exactas por defecto | SRC-001, Q-103 | RESUELTA EN DISEÑO FUNCIONAL; `PILOT_CONFIGURATION_PENDING` |
 | A-007 | Elegibilidad, cupo, oferta y matrícula son hechos distintos | Q-004 | CONFIRMADO |
 | A-008 | Actividades pueden reprogramarse | Requisito base | VALIDAR REGLAS EN G1 |
 | A-009 | EduPay es dominio separado | SRC-001/SRC-004 | CONFIRMADO |
@@ -92,7 +92,7 @@ Derivadas de `SRC-004`, aprobadas por Nicolás Sena el 2026-08-06.
 | C-002 | `ACCEPTED` ambiguo | Dimensiones separadas; aceptación expresa del piloto antes del handoff conforme a Q-310 | RESUELTA EN NÚCLEO |
 | C-003 | Multitenancy obligatoria vs etapa tardía | Q-002: primer incremento; etapa tardía = hardening | RESUELTA |
 | C-004 | Configuración libre vs estructura común | Versiones y constructor controlado D-003/D-020 | RESUELTA EN PRINCIPIO |
-| C-005 | Disponibilidad visible vs confidencialidad de cupos | Definir señal institucional | ABIERTA G1 |
+| C-005 | Disponibilidad visible vs confidencialidad de cupos | La familia ve disponibilidad categórica: `Postulaciones abiertas`, `Cupos limitados`, `Lista de espera` o `Proceso cerrado`; no se muestran cantidades exactas por defecto. El cupo numérico es información operacional interna. La oferta puede permanecer abierta sin cupo inmediato si la institución lo configura y postular no garantiza vacante. Texto final, valores concretos y configuración por oferta: `PILOT_CONFIGURATION_PENDING`. | RESUELTA EN DISEÑO FUNCIONAL |
 | C-006 | Admisión menciona obligación que pertenece a EduPay | D-021/D-022 fijan propiedad; contrato sigue abierto | RESUELTA EN PROPIEDAD |
 | C-007 | Historial inmutable vs eliminación | Matriz de retención/legal pendiente | ABIERTA G2/G5 |
 | C-008 | Perfil reutilizable vs aislamiento tenant | D-002 | RESUELTA |

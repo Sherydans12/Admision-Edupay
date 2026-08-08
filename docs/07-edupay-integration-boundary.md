@@ -88,7 +88,7 @@ sequenceDiagram
     Bridge-->>Admission: Actualiza sincronización técnica
     EduPay->>EduPay: Genera deuda anual y concepto de matrícula
     Payments->>EduPay: Consulta obligaciones
-    Family->>Payments: Realiza pago externo a Admisión
+    Family->>Payments: Realiza pago en portal externo
     EduPay-->>Bridge: Evento de matrícula por definir
     Bridge-->>Admission: Resultado de negocio confirmado
     Admission-->>Family: Proyecta estado final
@@ -176,7 +176,6 @@ El estado técnico no reemplaza el estado de admisión:
 
 ## Preguntas de integración futura
 
-- **Q-309:** ¿Qué estado exacto utiliza EduPay antes del pago de matrícula y qué evento contractual confirma que la matrícula quedó realizada? Responsable: Nicolás Sena; resolver antes de aprobar el contrato de integración.
 - **Q-301:** ¿Cuál es el sistema maestro y el identificador externo de institución, año, curso, persona y estudiante?
 - **Q-302:** ¿Qué evento o condición contractual inicia el procesamiento técnico del handoff?
 - **Q-303:** ¿EduPay recibe un comando o deriva la operación mediante otro mecanismo?

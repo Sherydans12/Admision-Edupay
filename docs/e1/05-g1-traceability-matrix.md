@@ -14,7 +14,7 @@ Las 33 preguntas objetivo tienen estado `APPROVED_PRODUCT` por aprobación de Ni
 
 | Criterio G1 | Preguntas/contradicciones | Decisiones heredadas | Evidencia faltante | Responsable de aprobación | Estado | Entrega objetivo |
 | --- | --- | --- | --- | --- | --- | --- |
-| Q-101 a Q-184 resueltas para piloto | Todas las filas funcionales siguientes; C-005/C-009/C-011/C-013/C-014 | D-001 a D-020 | Acta de decisiones y documentos actualizados | Nicolás Sena + autoridad institucional por tema | `OPEN` | E1-B/E1-C |
+| Q-101 a Q-184 resueltas para piloto | Todas las filas funcionales siguientes; C-005 resuelta; C-009/C-011/C-013/C-014 | D-001 a D-020 | Acta de decisiones y documentos actualizados | Nicolás Sena + autoridad institucional por tema | `OPEN` | E1-B/E1-C |
 | Borde funcional de integración resuelto | Q-310, C-002/C-006 | D-021 a D-024 | Secuencia decisión-oferta-aceptación-handoff documentada; contrato técnico posterior | Nicolás Sena + representante institucional; EduPay después para contrato | `FUNCTIONALLY_RESOLVED` | E1-B |
 | Proceso validado por responsables reales | Todos los journeys | D-014 a D-017 | Registro de reunión con Admisión, Dirección y actividades | Representante institucional | `OPEN` | E1-B |
 | Datos sensibles justificados/minimizados | Q-104, C-013 | D-004/D-005 | Finalidad, obligatoriedad, audiencia y etapa por dato; legal antes de datos reales/piloto productivo | Institución + Nicolás Sena; responsable legal en compuerta pre-datos-reales | `OPEN` | E1-B / hito legal posterior |
@@ -29,7 +29,7 @@ Abreviaturas de aprobación: `NS` Nicolás Sena; `RI` representante instituciona
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Q-101 | D-002/D-013 | FR-APP-001/003/004 | J-FAM-001/002; J-ADM-001 | UC-APP-001 | NS+RI | `PROPOSED` | Combinaciones permitidas por estudiante/oferta | E1-B |
 | Q-102 | D-002/D-003 | FR-APP-004 | J-FAM-001/003; J-ADM-001 | UC-APP-001/003 | NS+ADM | `PROPOSED` | Clave funcional de duplicado y excepciones | E1-B |
-| Q-103 | C-005; A-006 | FR-APP-002 | J-FAM-001/007; J-ADM-001 | UC-ADM-001/UC-CAP-001 | CUP+DIR | `PROPOSED` | Señal/texto de disponibilidad | E1-B |
+| Q-103 | C-005 (resuelta); A-006 | FR-APP-002 | J-FAM-001/007; J-ADM-001 | UC-ADM-001/UC-CAP-001 | CUP+DIR | `PROPOSED` | Categorías funcionales confirmadas; texto final y configuración por oferta `PILOT_CONFIGURATION_PENDING` | E1-B |
 | Q-104 | C-013; D-004 | FR-FRM-002 a 010; NFR-PRV-002/003 | J-FAM-001; J-ADM-007 | UC-FRM-001/002 | RI+NS | `NEEDS_DECISION` | Matriz finalidad-obligatoriedad-audiencia-etapa por dato | E1-B |
 | Q-105 | D-013; C-002 | FR-ID-003/006; FR-COM-006 | J-FAM-001/002/010 | UC-FAM-003; UC-APP-003/006/007 | RI+NS | `PROPOSED` | Facultades por adulto/acción y conflictos | E1-B |
 | Q-106 | D-004 | FR-ID-004; NFR-SEC-006/007 | J-FAM-001 | UC-FAM-004 | RI+NS | `PROPOSED` | Evidencia y momento de verificación | E1-B |
@@ -48,7 +48,7 @@ Abreviaturas de aprobación: `NS` Nicolás Sena; `RI` representante instituciona
 | Q-145 | D-003 | FR-ACT-004/005; FR-AUD-004 | J-ADM-004; J-DIR-001 | UC-ACT-005 | ACT+ADM+DIR | `PROPOSED` | Autoridad/proceso de corrección | E1-B |
 | Q-160 | D-016 | FR-DEC-003 a 007 | J-ADM-004; J-DIR-001 | UC-DEC-001/003 | ADM+DIR+RI | `NEEDS_DECISION` | Criterios, evidencia y fundamentos | E1-B |
 | Q-161 | D-016 | FR-DEC-004 | J-ADM-004; J-DIR-001 | UC-DEC-001/003 | DIR+NS | `PARTIAL` | Personas, suplencias y excepciones | E1-B |
-| Q-162 | C-005 | FR-CAP-001/002 | J-ADM-004/006 | UC-CAP-001 | CUP+DIR | `NEEDS_DECISION` | Concepto y fuente de cupo de admisión | E1-B |
+| Q-162 | C-005 (resuelta) | FR-CAP-001/002 | J-ADM-004/006 | UC-CAP-001 | CUP+DIR | `NEEDS_DECISION` | Valores y configuración concreta del cupo operacional; no cambia la señal categórica familiar | E1-B |
 | Q-163 | C-002 | FR-CAP-002/003 | J-FAM-008/010; J-ADM-006 | UC-CAP-001/003/004; UC-APP-007 | CUP+DIR+ADM | `NEEDS_DECISION` | Momento/duración/liberación de reserva | E1-B |
 | Q-164 | D-008 | FR-CAP-004 | J-FAM-009; J-ADM-006 | UC-CAP-002/003 | DIR+CUP+RI | `NEEDS_DECISION` | Orden, prioridades y desempates | E1-B |
 | Q-165 | — | FR-CAP-005; FR-COM-001 | J-FAM-007/009 | UC-APP-005/UC-CAP-002 | DIR+COM | `PROPOSED` | Visibilidad y texto de espera | E1-B |
@@ -89,7 +89,7 @@ Estas cuatro contradicciones ya no bloquean conceptualmente el inicio de E1-B. G
 
 | ID | Riesgo abierto | Preguntas/UC afectados | Evidencia para cerrar o avanzar | Entrega |
 | --- | --- | --- | --- | --- |
-| C-005 | Señal de disponibilidad puede prometer cupo | Q-103, Q-162; UC-ADM-001/UC-CAP-001 | Política y texto aprobados | E1-B |
+| C-005 | La contradicción funcional está resuelta; queda configuración concreta de señal y cupos | Q-103, Q-162; UC-ADM-001/UC-CAP-001 | Texto institucional, valores concretos y configuración por oferta | `PILOT_CONFIGURATION_PENDING` |
 | C-009 | Detalles de ejecución aún no definidos | Q-140; UC-ACT-003/006 | Catálogo versionado, excepciones, repetición, reprogramación y cierre; validación institucional ya registrada | E1-B |
 | C-011 | Catálogo concreto aún no definido | Q-120; UC-DOC-001/003 | Tabla curso/periodo/condición/equivalente; validación institucional ya registrada | E1-B |
 | C-013 | Legalidad y ciclo de vida aún pendientes | Q-104/Q-144/Q-183; formularios/actividades/exportación | Matriz funcional registrada; legal/retención antes de datos reales | E1-B y etapas posteriores |

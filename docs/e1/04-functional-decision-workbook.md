@@ -40,7 +40,7 @@ Las validaciones institucionales de C-009, C-011, C-013 y C-014 están registrad
 - **Aprobación/límite/documentos:** Nicolás Sena + representante institucional; antes de E1-B. Afecta journeys J-FAM-001/002, UC-APP-001 y política de ofertas.
 - **Pregunta al colegio:** “¿Una familia puede postular al mismo estudiante a más de un curso u otra sede durante el mismo proceso?”
 - **Estado histórico:** `PROPOSED`.
-- **Estado consolidado:** `APPROVED_PRODUCT`.
+- **Estado consolidado:** `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`; configuración concreta del piloto pendiente.
 
 ### Q-102 — ¿Qué identifica un duplicado y qué excepciones existen?
 
@@ -55,12 +55,11 @@ Las validaciones institucionales de C-009, C-011, C-013 y C-014 están registrad
 
 ### Q-103 — ¿Disponibilidad exacta, categórica o sólo convocatoria?
 
-- **Contexto/fuentes/condicionantes:** C-005, A-006, FR-APP-002. **Situación:** abierta.
-- **Opciones:** A) número exacto; transparente, pero cambia rápido y puede crear expectativas. B) categorías (“disponible”, “limitada”, “lista de espera”); orienta con menor precisión engañosa. C) sólo convocatoria abierta; simple, pero no informa escasez.
-- **Impactos:** familia: B ayuda a decidir sin promesa; operación: requiere regla de actualización; tenant: señal configurable; seguridad: no exponer capacidad interna ni datos de terceros.
-- **Recomendación/razón:** **B**, acompañada de texto “sujeto a revisión y cupos”; permite evolución y reduce interpretación de garantía.
-- **Aprobación/límite/documentos:** responsable de cupos + Dirección + Nicolás Sena; antes de E1-B. Afecta UC-ADM-001/UC-CAP-001 y proyección familiar.
-- **Pregunta al colegio:** “¿Qué información de disponibilidad quieren mostrar: cantidad exacta, una señal general o sólo que la convocatoria está abierta?”
+- **Contexto/fuentes/condicionantes:** C-005, A-006, FR-APP-002. **Situación:** resuelta en diseño funcional.
+- **Opciones históricas:** A) número exacto; transparente, pero cambia rápido y puede crear expectativas. B) categorías; orienta con menor precisión engañosa. C) sólo convocatoria abierta; simple, pero no informa escasez.
+- **Decisión aprobada:** la familia ve `Postulaciones abiertas`, `Cupos limitados`, `Lista de espera` o `Proceso cerrado`; no se muestran cantidades exactas por defecto. Una convocatoria puede mantenerse abierta sin cupo inmediato si la institución lo configura y postular no garantiza vacante.
+- **Impactos/límites:** familia: recibe una señal sin promesa de vacante; operación: conserva el cupo numérico como información interna; tenant: configura texto y valores por oferta; seguridad: no expone capacidad interna ni datos de terceros.
+- **Pendiente:** `PILOT_CONFIGURATION_PENDING` para texto institucional final, valores concretos de cupos y configuración de cada oferta.
 - **Estado histórico:** `PROPOSED`.
 - **Estado consolidado:** `APPROVED_PRODUCT`.
 
@@ -280,14 +279,13 @@ Las validaciones institucionales de C-009, C-011, C-013 y C-014 están registrad
 
 ### Q-162 — ¿Capacidad total, cupo de admisión o vacante disponible?
 
-- **Contexto/fuentes/condicionantes:** FR-CAP-001/002, C-005. **Situación:** abierta.
+- **Contexto/fuentes/condicionantes:** FR-CAP-001/002, C-005. **Situación:** resuelta en diseño funcional; queda detalle operacional/configuración pendiente.
 - **Opciones:** A) capacidad total del curso; estable, no refleja ocupación. B) cupos asignados al proceso de admisión; operativo y controlable. C) vacante calculada dinámicamente con matrícula EduPay; precisa a futuro, acopla etapa actual.
 - **Impactos:** familia: no debe interpretarlo como garantía; operación: B permite planificación; tenant: por oferta; seguridad: capacidad interna restringida.
 - **Recomendación/razón:** **B** para Admisión, manteniendo separado el total académico y cualquier confirmación de EduPay.
-- **Aprobación/límite/documentos:** responsable de cupos + Dirección; antes de E1-B.
-- **Pregunta al colegio:** “Cuando hablan de cupos, ¿se refieren a capacidad total del curso o a vacantes reservadas para este proceso?”
+- **Aprobación/límite/documentos:** el cupo numérico es información operacional interna y no se muestra por defecto; valores concretos y configuración de cada oferta son `PILOT_CONFIGURATION_PENDING`.
 - **Estado histórico:** `NEEDS_DECISION`.
-- **Estado consolidado:** `APPROVED_PRODUCT`; valores y responsables pendientes.
+- **Estado consolidado:** `APPROVED_PRODUCT`; valores y configuración concreta pendientes.
 
 ### Q-163 — ¿Cuándo se reserva y cuánto dura reserva/oferta?
 

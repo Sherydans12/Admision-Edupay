@@ -94,7 +94,7 @@ Esto crea una fuerte preferencia de alineación, no una adopción definitiva. `A
 - **C-002 — Aceptación ambigua:** decisión favorable, reserva, comunicación, respuesta familiar, handoff y matrícula no son equivalentes. Resuelta conceptualmente mediante `Q-004`; el botón de aceptación del piloto sigue abierto.
 - **C-003 — Multiinstitución tardía:** el roadmap parecía postergar multitenancy. Resuelta mediante `Q-002`: existe desde el primer incremento; la etapa tardía es onboarding y hardening.
 - **C-004 — Libertad versus estructura:** las instituciones configuran formularios y procesos sin alterar el núcleo. Resuelta en principio mediante versiones, constructor controlado y `D-003`.
-- **C-005 — Disponibilidad visible:** sigue abierto si se mostrarán cantidades, categorías o sólo convocatoria.
+- **C-005 — Disponibilidad visible:** resuelta en diseño funcional: la familia ve categorías (`Postulaciones abiertas`, `Cupos limitados`, `Lista de espera`, `Proceso cerrado`) sin cantidades exactas por defecto; texto, valores concretos y configuración por oferta quedan `PILOT_CONFIGURATION_PENDING`.
 - **C-006 — Obligación de pago:** resuelta en propiedad: EduPay gestiona obligaciones y pagos; queda abierto el contrato y disparador.
 - **C-007 — Auditoría versus eliminación:** sigue pendiente de política legal de retención, minimización y seudonimización.
 - **C-008 — Perfil familiar versus tenant:** resuelta mediante `D-002`: perfil familiar global controlado e instantánea institucional versionada.
