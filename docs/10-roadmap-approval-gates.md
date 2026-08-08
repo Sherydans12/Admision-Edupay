@@ -7,9 +7,9 @@ El roadmap es secuencial en decisiones, no necesariamente en toda actividad expl
 ```mermaid
 flowchart LR
     E0["E0 Descubrimiento"] --> G0{"G0 Aprobada / cerrada"}
-    G0 --> E1["E1 Diseño funcional — autorizada"]
-    E1 --> G1{"G1 Aprobar comportamiento"}
-    G1 --> E2["E2 Arquitectura"]
+    G0 --> E1["E1 Diseño funcional — cerrada"]
+    E1 --> G1{"G1 Aprobada / cerrada"}
+    G1 --> E2["E2 Arquitectura — autorizada"]
     E2 --> G2{"G2 Aprobar decisiones técnicas"}
     G2 --> E3["E3 Prototipo UX"]
     E3 --> G3{"G3 Validar experiencia"}
@@ -66,48 +66,34 @@ El cierre no autoriza implementación, scaffolding, stack definitivo, datos real
 
 ## E1 — Diseño funcional
 
-**Estado:** AUTORIZADA; **E1-A — `CLOSED / PRODUCT DECISIONS RECORDED`**; **E1-B — `CLOSED / OPERATIONAL BASELINE APPROVED`**; **E1-C — `IN PROGRESS / READY FOR G1 REVIEW`**. Esta autorización cubre diseño funcional, no implementación.
+**Estado:** `CLOSED / FUNCTIONAL SPECIFICATION APPROVED`.
 
-E1 se divide en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`. El cierre de E1-B fue aprobado explícitamente sobre `b39150aaf933eda10a3030b9f2d69c6957df8449` y se registra en `docs/approvals/E1-B-functional-closure-2026-08-08.md`. Este cierre no aprueba G1 ni autoriza implementación.
+- E1-A — `CLOSED / PRODUCT DECISIONS RECORDED`.
+- E1-B — `CLOSED / OPERATIONAL BASELINE APPROVED`.
+- E1-C — `CLOSED / FUNCTIONAL SPECIFICATION APPROVED`.
+- Commit funcional aprobado en G1: `e233927659b0709d37de8c4b66b55439a854e0e1`.
+- Registro G1: `docs/approvals/G1-functional-approval-2026-08-08.md`.
 
-### Objetivo
-
-Validar el proceso real con usuarios y convertir requisitos en comportamientos y reglas verificables.
-
-### Entregables
-
-- Mapa de actores, journeys y casos de uso.
-- Catálogo de oferta, formulario y requisitos documentales del piloto.
-- Constructor de formularios: tipos, validaciones, reglas, sensibilidad y permisos.
-- Máquina de estados y actividades aprobada, incluyendo excepciones.
-- Ciclo de recomendación de Admisión y decisión de Dirección.
-- Política de cupos, reserva, espera, expiración y reapertura.
-- Proyección de estados/mensajes para familias.
-- Matriz roles × permisos × alcance × sensibilidad.
-- Reglas de comunicación, reportes y SLA funcionales.
-- Criterios de aceptación y trazabilidad actualizada.
+E1 consolidó comportamiento funcional, 58 criterios de aceptación, 22 escenarios end-to-end, backlog funcional de 22 P0/6 P1/5 P2, diferidos clasificados y trazabilidad integral. El cierre no autoriza implementación.
 
 ### G1 — Aprobación funcional
 
-**Estado:** `NO APROBADA`.
+**Estado:** `APPROVED / CLOSED`.
 
-La posición funcional de producto para las preguntas objetivo está registrada y E1-B tiene cierre humano explícito. El borde funcional de integración está definido: Admisión es dueña del proceso; EduPay es dominio separado; el handoff ocurre después de aceptación familiar expresa; no se comparten tablas; la integración futura debe ser idempotente; y los estados técnicos no equivalen a matrícula. Q-301 a Q-309 siguen abiertas como dependencias de E7/G7, no como requisito de G1. C-013 conserva `LEGAL_VALIDATION_PENDING` como condición antes de datos reales/piloto productivo, no como bloqueo del comportamiento funcional.
+- **Aprobación:** `2026-08-08T06:20:00-04:00`.
+- **Commit funcional aprobado:** `e233927659b0709d37de8c4b66b55439a854e0e1`.
+- **PR:** #4 — `E1-C: Consolidate functional specification for G1`.
+- **Aprobador funcional:** Nicolás Sena.
+- **Resultado de readiness:** `PASS_WITH_DEFERRED`, sin bloqueantes funcionales materiales.
+- **Etapa autorizada:** E2 — Arquitectura, después de la fusión del PR #4.
 
-E1-C consolidó para revisión:
+Q-310 permanece `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`. Q-301 a Q-309 continúan como `FUTURE_INTEGRATION_PENDING` para E7/G7. C-013 conserva `LEGAL_VALIDATION_PENDING` antes de datos reales/piloto productivo. Q-201 a Q-210 permanecen para E2 y compuertas posteriores según corresponda.
 
-- especificación funcional canónica;
-- 58 criterios de aceptación funcionales verificables;
-- 22 escenarios felices, alternos, excepcionales y de seguridad;
-- backlog funcional con 22 P0, 6 P1 y 5 P2;
-- fuera de alcance y diferidos clasificados;
-- trazabilidad integral y checklist `PASS_WITH_DEFERRED`;
-- borrador de paquete de aprobación sin registrar una decisión.
-
-G1 continúa `NO APROBADA` porque falta la revisión y aprobación humana explícita sobre el commit definitivo de E1-C. No se identificó un bloqueo funcional material.
-
-Q-301 a Q-309, Q-201 a Q-210 y la validación legal de C-013 permanecen en sus compuertas futuras y no reabren E1-B ni bloquean G1.
+G1 aprueba comportamiento funcional, criterios de aceptación, escenarios, backlog y clasificación de diferidos. No autoriza código, scaffolding, dependencias, datos reales ni integración técnica con EduPay.
 
 ## E2 — Arquitectura
+
+**Estado:** `AUTHORIZED TO START` después de la fusión del PR #4. G2 continúa `NO APROBADA`.
 
 ### Objetivo
 
@@ -128,12 +114,16 @@ Elegir opciones reversibles y documentar decisiones necesarias para seguridad, c
 
 ### G2 — Aprobación arquitectónica
 
+**Estado:** `NO APROBADA`.
+
 - ADR críticos aprobados.
 - Monorepo/multirepo, archivos, correo, colas, integración, despliegue y tenancy física decididos sólo cuando corresponda.
 - Preguntas Q-201 a Q-210 abordadas al nivel necesario.
 - Revisión de seguridad, privacidad, operación y costos.
 - Prueba conceptual sólo si fue autorizada y eliminable.
 - No existen dependencias o decisiones irreversibles sin dueño.
+
+G2 debe aprobar explícitamente la arquitectura antes de continuar a E3. E2 no autoriza implementación productiva ni datos reales.
 
 ## E3 — Prototipo UX
 
