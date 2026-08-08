@@ -1,9 +1,10 @@
 # ADR-0005: Runtime y deployment de Admisión
 
-- **Estado:** PROPOSED / RECOMMENDED_FOR_G2
+- **Estado:** ACCEPTED
 - **Fecha:** 2026-08-08
-- **Decisores propuestos:** Nicolás Sena, sponsor y responsables de arquitectura/operación
-- **Compuerta:** G2
+- **Decisor:** Nicolás Sena
+- **Compuerta:** G2 — `APPROVED / CLOSED`
+- **Aprobación:** 2026-08-08 sobre `15b49e284ca642761f2df744ce73bb6a3d10e289`
 
 ## Contexto y requisitos
 
@@ -18,11 +19,11 @@ La solución propuesta necesita Next.js SSR, API NestJS, worker/scheduler persis
 
 cPanel puede servir aplicaciones Node, pero su capacidad concreta para workers persistentes, escaneo, cron exclusivo y despliegues coordinados no está acreditada. VPS entrega control con costo operativo. Una plataforma administrada reduce operación con costo y lock-in.
 
-## Decisión propuesta
+## Decisión
 
 Adoptar runtime Linux containerizado para web, API y worker, detrás de reverse proxy. Preferir un modelo híbrido: runtime controlado y PostgreSQL/object storage administrados cuando presupuesto, residencia y condiciones lo permitan.
 
-La selección de proveedor, región y aprovisionamiento queda fuera de esta ADR y requiere comparación comercial. cPanel sólo podría reconsiderarse si demuestra todos los requisitos operativos mediante evidencia.
+La decisión fue aceptada en G2. La selección de proveedor, región y aprovisionamiento queda fuera de esta ADR y requiere comparación comercial. cPanel sólo podrá reconsiderarse si demuestra todos los requisitos operativos mediante evidencia.
 
 ## Consecuencias
 
@@ -45,7 +46,7 @@ Base, storage y servicios internos permanecen privados; secretos no se versionan
 
 ## Operación, recuperación y costos
 
-Se requieren monitoreo, backups, restore y rollback ensayado. RPO inicial de 1 hora y RTO inicial de 4 horas son objetivos técnicos, no SLA, compromiso comercial, garantía legal ni compromiso de disponibilidad. Deben revalidarse con proveedor, volumen, costo y operación reales antes de infraestructura.
+Se requieren monitoreo, backups, restore y rollback ensayado. RPO inicial de 1 hora y RTO inicial de 4 horas son objetivos técnicos aceptados en G2, no SLA, compromiso comercial, garantía legal ni compromiso de disponibilidad. Deben revalidarse con proveedor, volumen, costo y operación reales antes de infraestructura.
 
 ## Validación y reversibilidad
 
@@ -56,3 +57,4 @@ Antes de producción se valida worker, scheduler, antivirus, restore, despliegue
 - [`docs/e2/08-deployment-and-environments.md`](../e2/08-deployment-and-environments.md)
 - [`docs/e2/07-audit-observability-recovery.md`](../e2/07-audit-observability-recovery.md)
 - `E2-D-014/016` en [`docs/e2/11-e2-decision-workbook.md`](../e2/11-e2-decision-workbook.md)
+- [`docs/approvals/G2-architecture-approval-2026-08-08.md`](../approvals/G2-architecture-approval-2026-08-08.md)
