@@ -14,7 +14,7 @@ E2 — Arquitectura está `CLOSED / ARCHITECTURE APPROVED`. G2 está `APPROVED /
 
 La arquitectura aprobada usa modular monolith, monorepo independiente, stack TypeScript/NestJS/Next.js/React/Prisma/PostgreSQL, shared schema + `tenantId` + RLS condicionada a PoC, sesión opaca server-side para el web MVP, object storage privado S3-compatible, jobs/outbox en PostgreSQL y runtime Linux containerizado. RPO 1 hora y RTO 4 horas son objetivos técnicos iniciales, no SLA.
 
-E3 — Prototipo UX está `IN PROGRESS / READY FOR UX DECISIONS` en la rama `docs/e3-ux-prototype`. La consolidación contiene IA, 42 pantallas conceptuales, wireflows P0, workspace de expediente, estados, visibilidad, accesibilidad, formularios, capacidad/oferta, sesión, board, 20 tareas de validación y checklist G3 `PASS_WITH_DEFERRED`. G3 continúa `NO APROBADA`; E4, implementación, scaffolding, dependencias, infraestructura, datos reales e integración técnica con EduPay continúan no autorizados.
+E3 — Prototipo UX está `IN PROGRESS / READY FOR G3 REVIEW` en la rama `docs/e3-ux-prototype`. La consolidación contiene IA, 42 pantallas conceptuales, wireflows P0, workspace de expediente, estados, visibilidad, accesibilidad, formularios, capacidad/oferta, sesión, board, 20 tareas de validación y checklist G3 `PASS_WITH_DEFERRED`. HUX-001..HUX-005 están resueltas; HUX-005 incorpora UX-D-010 para confirmaciones de acciones críticas y el copy distingue disponibilidad del proceso de una oferta de admisión emitida. G3 continúa `NO APROBADA`; E4, implementación, scaffolding, dependencias, infraestructura, datos reales e integración técnica con EduPay continúan no autorizados.
 
 Registros formales principales:
 
@@ -96,14 +96,14 @@ Registros formales principales:
 | `docs/e3/11-session-security-ux.md` | Sesión y seguridad UX. |
 | `docs/e3/12-prototype-board.md` | Board consolidado de baja fidelidad. |
 | `docs/e3/13-prototype-validation-scenarios.md` | 20 tareas sintéticas de validación. |
-| `docs/e3/14-ux-decision-workbook.md` | UX-D y decisiones humanas requeridas. |
+| `docs/e3/14-ux-decision-workbook.md` | UX-D y decisiones humanas resueltas. |
 | `docs/e3/15-g3-readiness-checklist.md` | Readiness G3. |
 | `docs/approvals/G3-ux-approval-DRAFT.md` | Borrador G3, `DRAFT / NOT APPROVED`. |
 
 ## Cómo continuar
 
-1. Resolver HUX-001..HUX-005 y revisar el borrador G3.
-2. Mantener G3 como `NO APROBADA` hasta la decisión humana explícita.
+1. Realizar la revisión formal de G3 sobre la evidencia E3 y las HUX ya resueltas.
+2. Mantener G3 como `NO APROBADA` hasta una decisión humana explícita de la compuerta.
 3. Mantener implementación, scaffolding e infraestructura bloqueados hasta las compuertas posteriores.
 4. Si G3 se aprueba, iniciar E4 conforme al roadmap, sin saltar G4.
 5. Ejecutar el PoC obligatorio de tenant/RLS/Prisma antes de G4.
