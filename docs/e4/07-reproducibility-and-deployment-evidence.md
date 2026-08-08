@@ -8,7 +8,7 @@
 | Rama | `feat/e4-technical-foundation` |
 | Base main | `6b2549333e25b65a44c97423a718b70a8d38937f` |
 | PR | #7 — E4: Establish technical foundation and G4 readiness |
-| Evidencia commit | `EVIDENCE_COMMIT_PENDING` hasta consolidar el paquete |
+| Evidencia commit | `dc59f4ae529f66a0a13530f9feb7238ac86d28db` |
 | Estado | `PASS_WITH_DEFERRED` para readiness; G4 `NO APROBADA` |
 
 Esta evidencia demuestra una corrida local/development desde un volumen PostgreSQL

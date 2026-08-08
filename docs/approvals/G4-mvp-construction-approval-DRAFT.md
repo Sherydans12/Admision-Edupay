@@ -12,7 +12,7 @@ creado, revisado, commiteado, enviado al PR o mantenido en draft.
 | PR | #7 — E4: Establish technical foundation and G4 readiness |
 | Rama | `feat/e4-technical-foundation` |
 | Base main | `6b2549333e25b65a44c97423a718b70a8d38937f` |
-| Commit de evidencia | `EVIDENCE_COMMIT_PENDING` |
+| Commit de evidencia | `dc59f4ae529f66a0a13530f9feb7238ac86d28db` |
 | E4-A | `COMPLETE` |
 | E4-B | `COMPLETE` |
 | E4-C | `COMPLETE` |
