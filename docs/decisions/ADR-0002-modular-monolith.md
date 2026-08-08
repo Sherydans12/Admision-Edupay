@@ -1,9 +1,10 @@
 # ADR-0002: Modular monolith para Admisión
 
-- **Estado:** PROPOSED / RECOMMENDED_FOR_G2
+- **Estado:** ACCEPTED
 - **Fecha:** 2026-08-08
-- **Decisores propuestos:** Nicolás Sena y responsable de operación/arquitectura
-- **Compuerta:** G2
+- **Decisor:** Nicolás Sena
+- **Compuerta:** G2 — `APPROVED / CLOSED`
+- **Aprobación:** 2026-08-08 sobre `15b49e284ca642761f2df744ce73bb6a3d10e289`
 
 ## Contexto y requisitos
 
@@ -17,11 +18,13 @@ El MVP requiere consistencia fuerte entre cupos, reservas, ofertas y aceptación
 
 Microservicios elevan costo de despliegue, trazabilidad, autorización y consistencia distribuida. Un monolito sin fronteras reduce costo inicial pero degrada ownership y futura extracción.
 
-## Decisión propuesta
+## Decisión
 
 Adoptar un modular monolith. Identity, Tenancy, Configuration, Family, Applications, Forms, Documents, Activities, Review, Decisions, Capacity, Waitlist, Offers, Communications, Reporting, Audit, Platform Administration y EduPay Boundary serán módulos con APIs internas y ownership de escritura explícitos.
 
 Web, API y worker podrán ejecutarse como procesos separados usando el mismo código modular. Ningún módulo accede directamente a tablas propiedad de otro; las dependencias se verifican por reglas de importación y pruebas.
+
+La decisión fue aceptada en G2.
 
 ## Consecuencias
 
@@ -55,3 +58,4 @@ Antes de G4 se verificarán reglas de imports, transacciones y ejecución separa
 - [`docs/e2/01-architecture-overview.md`](../e2/01-architecture-overview.md)
 - [`docs/e2/06-concurrency-and-consistency.md`](../e2/06-concurrency-and-consistency.md)
 - `E2-D-001` en [`docs/e2/11-e2-decision-workbook.md`](../e2/11-e2-decision-workbook.md)
+- [`docs/approvals/G2-architecture-approval-2026-08-08.md`](../approvals/G2-architecture-approval-2026-08-08.md)
