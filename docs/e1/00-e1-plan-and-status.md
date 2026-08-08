@@ -4,147 +4,117 @@
 
 | Campo | Valor |
 | --- | --- |
-| Entrega | E1-A — Base funcional y paquete de decisiones |
-| Estado | `PRODUCT DECISIONS APPROVED / INSTITUTIONAL VALIDATION PENDING` |
+| Entrega | E1 — Diseño funcional |
+| Estado | E1-A `CLOSED`; E1-B `CLOSED / OPERATIONAL BASELINE APPROVED`; E1-C autorizada para iniciar |
 | Compuerta vigente | E1 autorizada; G1 `NO APROBADA` |
-| Base revisada | `main` en `162851c7add2c44cca8840835298e437047b334f` |
+| Base revisada | E1-B aprobada sobre `b39150aaf933eda10a3030b9f2d69c6957df8449` |
 | Naturaleza | Documentación funcional; no autoriza implementación |
-| Registro de aprobación | `docs/approvals/E1-A-functional-decisions-2026-08-06.md` |
-| Aprobación consolidada | `2026-08-06T22:09:00-04:00` por Nicolás Sena |
+| Registro principal E1-B | `docs/e1/07-institutional-validation-baseline.md`, `docs/e1/08-pilot-operational-rules.md`, `docs/e1/09-pilot-configuration-matrix.md` |
+| Acta de cierre E1-B | `docs/approvals/E1-B-functional-closure-2026-08-08.md` |
+| Aprobación de cierre E1-B | `2026-08-08T05:45:00-04:00` por Nicolás Sena |
 
 ## Clasificación de la información
 
 - **Hecho confirmado:** contenido respaldado por `SRC-001` a `SRC-005` o por el estado verificable del repositorio.
-- **Decisión aprobada:** D-001 a D-024 y el cierre G0, sin modificar su significado.
-- **Propuesta:** recomendación histórica de esta entrega antes de la aprobación consolidada.
-- **Decisión aprobada de producto:** posición funcional fijada por Nicolás Sena el 2026-08-06T22:09:00-04:00.
+- **Decisión aprobada:** D-001 a D-024 y los cierres formales registrados, sin modificar su significado.
+- **Decisión aprobada de producto:** posición funcional fijada por Nicolás Sena.
 - **Supuesto de trabajo:** interpretación reversible usada para completar el análisis.
 - **Pregunta abierta:** asunto sin resolución o con detalle pendiente.
-- **Validación institucional pendiente:** respuesta que debe confirmar Colegio Conquistadores mediante su representante y los responsables operativos.
-
-Ninguna recomendación de E1-A equivale a aprobación institucional, funcional, legal o arquitectónica.
+- **Validación institucional registrada:** C-009, C-011, C-013 y C-014 tienen posición institucional/funcional confirmada; sus detalles operativos o legales pendientes conservan sus estados.
 
 ## Objetivo de E1
 
 Convertir la fundación aprobada en comportamientos funcionales verificables: actores, recorridos, casos de uso, reglas, excepciones, permisos conceptuales y decisiones del piloto. E1 debe terminar con evidencia suficiente para que personas autorizadas aprueben o devuelvan el comportamiento en G1, sin seleccionar tecnología ni implementar.
 
-## División propuesta de E1
+## División de E1
 
-| Entrega | Propósito | Resultado esperado | Dependencia humana |
-| --- | --- | --- | --- |
-| E1-A | Establecer actores, journeys, casos de uso y paquete de preguntas | Base funcional trazable y guía de validación | Revisar recomendaciones y asignar responsables |
-| E1-B | Incorporar decisiones institucionales al detalle funcional | Catálogos, reglas, excepciones, estados visibles y permisos refinados | Resoluciones registradas sobre el workbook E1-A |
-| E1-C | Consolidar y verificar la especificación funcional | Criterios de aceptación, backlog priorizado y evidencia para G1 | Aprobación del comportamiento completo |
+| Entrega | Propósito | Estado |
+| --- | --- | --- |
+| E1-A | Establecer actores, journeys, casos de uso y paquete de preguntas | `CLOSED / PRODUCT DECISIONS RECORDED` |
+| E1-B | Incorporar decisiones institucionales al detalle funcional | `CLOSED / OPERATIONAL BASELINE APPROVED` |
+| E1-C | Consolidar y verificar la especificación funcional, criterios de aceptación, backlog y evidencia para G1 | AUTORIZADA PARA INICIAR después de la fusión del PR #3 |
 
-La división es **PROPOSED**. No crea compuertas nuevas ni permite avanzar por silencio.
+La división no crea compuertas nuevas. G1 sólo puede aprobarse mediante decisión humana explícita.
 
 ```mermaid
 flowchart LR
-    A["E1-A: base y opciones"] --> H1{"Decisiones humanas registradas"}
-    H1 -->|Suficientes para continuar| B["E1-B: detalle validado"]
-    H1 -->|Faltan respuestas| A
-    B --> H2{"Validación institucional"}
-    H2 -->|Ajustes| B
-    H2 -->|Conforme| C["E1-C: consolidación"]
+    A["E1-A: base y opciones"] --> B["E1-B: detalle validado"]
+    B --> C["E1-C: consolidación"]
     C --> G1{"G1: aprobación funcional"}
     G1 -->|No aprobada| C
     G1 -->|Aprobación humana explícita| E2["E2: arquitectura"]
 ```
 
-## Alcance de E1-A
+## Alcance cerrado de E1-B
 
-- Identificar actores, responsabilidades, límites, delegaciones y separaciones de funciones.
-- Documentar recorridos principales, alternativos y excepcionales de familias y personal.
-- Crear casos de uso funcionales con autorización conceptual y aislamiento por tenant.
-- Preparar opciones y recomendaciones para Q-101 a Q-108, Q-120 a Q-124, Q-140 a Q-145, Q-160 a Q-167, Q-180 a Q-184 y Q-310.
-- Relacionar preguntas, contradicciones, decisiones, requisitos, journeys, casos de uso y evidencia.
-- Preparar una reunión de validación con Colegio Conquistadores.
+E1-B consolidó:
 
-## Fuera de alcance
+- respuestas institucionales de C-009, C-011, C-013 y C-014;
+- configuración versionada de actividades, intentos, excepciones, reprogramaciones, repeticiones y cierres;
+- requisitos documentales configurables, equivalencias, exenciones y origen físico excepcional;
+- minimización y acceso de PIE/NEE/salud, excluyendo ingreso familiar del formulario MVP;
+- postulación asistida;
+- diferenciación entre Administrador Institucional Máximo y Superadministrador Global;
+- responsables confirmados y separación Admisión/Secretaría/Dirección;
+- cupos, reservas, ofertas, lista de espera, plazos, citas y actividades;
+- recomendación de Admisión y decisión de Dirección;
+- comunicaciones, dashboard, reportes y exportaciones;
+- borde funcional con EduPay, con Q-310 funcionalmente resuelta.
 
-- Cerrar E1 o aprobar G1.
+## Fuera de alcance de E1-B
+
+- Aprobar G1.
 - Aprobar o modificar ADR-0001.
 - Código, scaffolding, dependencias, endpoints, DTO, SQL, modelos físicos o componentes visuales.
 - Selección de stack, identidad, correo, archivos, antivirus, colas, despliegue o topología multiempresa.
 - Integración ejecutable con EduPay o definición de API.
-- Conclusiones legales, uso de datos reales o políticas institucionales inventadas.
-- Resolver Q-201 a Q-210 o Q-301 a Q-309; sólo se registran dependencias.
+- Conclusiones legales o uso de datos reales.
+- Resolver Q-201 a Q-210 o Q-301 a Q-309.
 
-## Fuentes utilizadas
-
-- `AGENTS.md` y `README.md`.
-- `docs/00-vision-scope.md` a `docs/11-pilot-colegio-conquistadores-2027.md`.
-- `docs/approvals/G0-foundation-closure-2026-08-06.md`.
-- `docs/decisions/ADR-0000-decision-process.md`.
-- `docs/decisions/ADR-0001-stack-alignment-with-edupay.md`.
-- `SRC-001` a `SRC-005`, sólo mediante las extracciones autorizadas del repositorio.
-
-## Estado heredado
+## Estado actual
 
 | Elemento | Estado | Clasificación |
 | --- | --- | --- |
 | G0 | `APPROVED / CLOSED` | Decisión aprobada; no se reabre |
 | E1 | `AUTORIZADA` para diseño funcional | Decisión aprobada |
-| E1-A | `PRODUCT DECISIONS APPROVED / INSTITUTIONAL VALIDATION PENDING` | Aprobación funcional consolidada; no cierra G1 |
-| G1 | `NO APROBADA` | Hecho confirmado |
+| E1-A | `CLOSED / PRODUCT DECISIONS RECORDED` | Acta histórica |
+| E1-B | `CLOSED / OPERATIONAL BASELINE APPROVED` | Aprobación humana explícita registrada |
+| E1-C | `AUTHORIZED TO START` después de la fusión del PR #3 | Consolidación y evidencia para G1 |
+| G1 | `NO APROBADA` | Requiere E1-C y aprobación humana explícita |
 | ADR-0001 | `PROPOSED` | Propuesta arquitectónica fuera de alcance |
 | Datos reales | No autorizados | Límite aprobado |
 | Implementación | No autorizada | Límite aprobado |
 
-## Decisiones aprobadas heredadas
+## Preguntas y dependencias conservadas
 
-- D-001 a D-010: semántica, snapshot, versionado, autorización, soporte, archivos, integración desacoplada, espera con confirmación humana, accesibilidad y ADR.
-- D-011 a D-024: alcance del piloto, grupo familiar, citas, evaluación, separación Admisión/Dirección, correo, formulario controlado, propiedad de pagos y handoff.
+- Q-101 a Q-184 tienen posición funcional registrada; los valores específicos aún no definidos se tratan como configuración previa al piloto cuando corresponda.
+- Q-310 está `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`: la aceptación familiar expresa precede al handoff.
+- Q-301 a Q-309 permanecen `FUTURE_INTEGRATION_PENDING` y se resolverán en E7/G7.
+- Q-201 a Q-210 permanecen abiertas para etapas de arquitectura/seguridad/operación cuando corresponda.
+- C-013 conserva `LEGAL_VALIDATION_PENDING` antes de datos reales/piloto productivo.
 
-Esta entrega referencia esas decisiones; no las reemplaza, renumera ni amplía.
+## Clasificación de pendientes posterior a E1-B
 
-## Preguntas que deben resolverse
+- **`PILOT_CONFIGURATION_PENDING`:** nombres de suplentes; personas concretas de entrevista/evaluación; duración exacta; valores concretos de cupos; catálogo de personalidad por curso; prioridades especiales; textos finales de email; anticipación del recordatorio; SLA numéricos; nombres finales de plantillas.
+- **`PRE_PILOT_LEGAL_PENDING`:** C-013 legal, responsable legal/normativo, retención/eliminación y conservación/devolución física.
+- **`FUTURE_INTEGRATION_PENDING`:** Q-301 a Q-309 y contrato EduPay.
+- **`OPEN_SECURITY_AND_OPERATION_QUESTIONS`:** Q-201 a Q-210 según sus compuertas posteriores.
 
-| Grupo | IDs | Resultado requerido antes de G1 |
-| --- | --- | --- |
-| Oferta, formulario y familia | Q-101 a Q-108 | Decisiones de producto aprobadas; detalle/validación institucional pendiente |
-| Documentos | Q-120 a Q-124 | Decisiones de producto aprobadas; C-011 y detalle operativo pendientes |
-| Actividades | Q-140 a Q-145 | Decisiones de producto aprobadas; C-009, pautas y responsables pendientes |
-| Decisión, cupos y espera | Q-160 a Q-167 | Decisiones de producto aprobadas; personas, criterios y cifras pendientes |
-| Comunicaciones y reportes | Q-180 a Q-184 | Decisiones de producto aprobadas; plantillas, valores y procedimiento pendientes |
-| Handoff | Q-310 | Secuencia funcional aprobada; Q-301 a Q-309 y contrato pendientes |
+Ninguno de estos elementos reabre E1-B. Sí deben permanecer trazados en la etapa que corresponda.
 
-También requieren validación o hito: C-009, C-011 y C-014 antes de G1; la justificación funcional y validación legal posterior de C-013. Q-201/Q-202 y Q-301 a Q-309 siguen pendientes en sus compuertas.
+## Objetivo inmediato de E1-C
 
-## Criterios de salida de E1-A
+E1-C debe limitarse a:
 
-E1-A está documentalmente terminada cuando:
+- consolidar la especificación funcional canónica;
+- definir criterios de aceptación verificables;
+- consolidar casos felices, alternos y excepciones;
+- priorizar backlog MVP y fuera de alcance;
+- resolver inconsistencias de trazabilidad;
+- preparar evidencia y paquete de decisión para G1.
 
-1. actores y responsabilidades están identificados;
-2. journeys principales, variantes y excepciones están documentados;
-3. casos de uso tienen trazabilidad a FR, preguntas y riesgos;
-4. todas las preguntas objetivo aparecen en el workbook;
-5. cada pregunta abierta contiene opciones y recomendación concreta;
-6. existe una guía utilizable para validación institucional;
-7. ninguna propuesta se presenta como aprobación;
-8. G1 y ADR-0001 conservan sus estados;
-9. no se introduce código, arquitectura ni datos reales.
-
-La aprobación de producto registrada cumple la parte de decisión de E1-A. Completar la validación institucional pendiente permitirá preparar E1-B; no autoriza iniciarla automáticamente.
-
-## Bloqueos de E1-B
-
-- Validaciones institucionales y detalles operativos para C-009, C-011, C-013 y C-014.
-- Definición de campos y documentos por curso, periodo y condición.
-- Autoridades y delegaciones operativas, incluida separación recomendación/decisión.
-- Reglas de citas, inasistencia, cupos, reservas, lista de espera, vencimiento y reapertura.
-- Proyección familiar, plantillas, reportes y plazos operacionales.
-- Decisión sobre aceptación de vacante y Q-310.
-
-E1-B no se inicia todavía. Cuando se autorice, incorporará las respuestas institucionales como `APPROVED`, `MODIFIED`, `REJECTED` o `PENDING`; los pendientes bloqueantes permanecerán visibles.
-
-## Supuestos de trabajo usados
-
-- Los roles son capacidades y una misma persona puede acumular varios, sujeto a conflictos y mínimo privilegio.
-- El piloto mantiene confirmación humana para promoción de lista de espera por D-008.
-- Los estados familiares propuestos son proyecciones y requieren validación de contenido.
-- Las referencias a automatización describen comportamiento tentativo, no tecnología.
+E1-C no autoriza arquitectura, código, stack, API, integración ejecutable ni datos reales.
 
 ## Siguiente compuerta humana
 
-La siguiente acción humana es ejecutar la guía `06-institutional-validation-guide.md` para confirmar C-009, C-011, C-013, C-014 y los detalles operativos. Nicolás Sena ya aprobó la posición funcional de producto; Arturo Javier Galleguillos Trigo y los responsables de Admisión/Dirección deben validar las reglas institucionales. El responsable legal/normativo continúa pendiente para los hitos previos a datos reales. E1-B no se inicia todavía y G1 seguirá `NO APROBADA` hasta completar E1.
+Tras completar E1-C, debe solicitarse aprobación funcional G1 de manera explícita. Hasta entonces G1 continúa `NO APROBADA`, E2/G2 no están autorizadas y `ADR-0001` permanece `PROPOSED`.

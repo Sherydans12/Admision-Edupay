@@ -2,14 +2,14 @@
 
 ## Propósito
 
-Esta guía permite revisar E1-A en una reunión con Arturo Javier Galleguillos Trigo, personal de Admisión, Dirección y quienes realizarán entrevistas o evaluaciones. No contiene respuestas atribuidas al colegio. La posición funcional de producto de BaseLogic/EduPay ya fue aprobada por Nicolás Sena; la reunión debe validar reglas institucionales y completar detalles operativos, no volver a votar esas decisiones de producto.
+Esta guía fue preparada para revisar E1-A y ahora sirve como registro de seguimiento de E1-B con Arturo Javier Galleguillos Trigo, personal de Admisión, Dirección y quienes realizarán entrevistas o evaluaciones. La posición institucional/funcional confirmada por Nicolás Sena para C-009, C-011, C-013 y C-014 está registrada en [`07-institutional-validation-baseline.md`](07-institutional-validation-baseline.md). La guía ya no trata esas cuatro contradicciones como bloqueantes de inicio; se usa para completar sus detalles operativos y los hitos legales pendientes.
 
 No registrar en esta guía datos personales de familias, estudiantes o trabajadores. Usar ejemplos sintéticos y mencionar cargos, no información de contacto.
 
 ## Resultado esperado de la reunión
 
 - Confirmar si los recorridos aprobados reflejan la operación real.
-- Resolver o asignar dueño/fecha a las validaciones y detalles que bloquean E1-B.
+- Resolver o asignar dueño/fecha a los detalles operativos que quedan en E1-B.
 - Distinguir decisión de producto, validación institucional y asunto legal posterior.
 - Registrar desacuerdos sin forzar una respuesta.
 - Mantener G1 `NO APROBADA` hasta completar E1.
@@ -28,6 +28,12 @@ No registrar en esta guía datos personales de familias, estudiantes o trabajado
 ## Decisiones de producto que no se reabren en esta reunión
 
 Quedan fijadas para el MVP: disponibilidad categórica; un adulto responsable con cuenta; portal como fuente oficial y postulación asistida; captura mínima; catálogo documental versionado; actividades obligatorias en el piloto y configurables en el núcleo; reserva junto a oferta; promoción humana de espera; historial familiar seguro; correo automático único; y handoff a EduPay después de aceptación expresa. Si el colegio necesita una excepción o cambio, registrar `MODIFICADO` o `PENDIENTE` con impacto y responsable, sin presentarlo como una decisión ya aprobada.
+
+## Reglas operativas ya definidas para el piloto
+
+El detalle operativo posterior está consolidado en [`08-pilot-operational-rules.md`](08-pilot-operational-rules.md) y [`09-pilot-configuration-matrix.md`](09-pilot-configuration-matrix.md). Para esta guía se consideran definidos: cupos manuales configurables; aceptación y corrección de 3 días hábiles; 2 reprogramaciones normales; tolerancia de 15 minutos; presencialidad de entrevista/evaluación; solicitud de cambio sin botón obligatorio de confirmación; resultados simples internos; recomendación/decisión separadas; lista de espera con orden de ingreso por defecto y promoción humana; Secretaría como apoyo sin recomendación/decisión/cupos/promoción/exportación masiva por defecto; y dashboard/reportes operativos iniciales.
+
+La agenda pendiente de la guía se concentra en suplencias, ejecutores concretos, duración, catálogo de personalidad por curso, prioridades, plantillas finales, recordatorio de oferta, SLA adicionales, conservación física y validación legal de C-013.
 
 ## Cómo registrar cada tema
 
@@ -59,36 +65,35 @@ Una conversación sin registro no cuenta como aprobación.
 ### 3. Documentos
 
 - **Por qué se pregunta:** SRC-002 dice “cuando corresponda” y SRC-003 pide informes 2025/2026.
-- **Recomendación:** catálogo por curso, periodo y condición; aceptar equivalentes definidos; conservar versiones y exenciones justificadas.
-- **Preguntas de validación:** ¿qué curso/periodo/equivalente se registra?, ¿quién ocupa cada rol de revisión/exención?, ¿qué formatos, plazos e intentos concretos se usarán?
+- **Validación registrada:** requisito configurable por institución, año/proceso, curso/nivel, oferta y condición; basta el último informe vigente/disponible o equivalente del establecimiento anterior; puede existir exención autorizada con requisito, actor, motivo, fecha, alcance y auditoría; no se exigen rígidamente 2025 y 2026.
+- **Preguntas de detalle:** ¿qué catálogo concreto del piloto se configura por curso/nivel y condición?, ¿quién ocupa cada rol de revisión/exención?, ¿qué formatos, plazos e intentos se usarán?
 - **Trazabilidad:** Q-120 a Q-124, C-011; UC-DOC-001 a 003.
 
 ### 4. Información sensible
 
 - **Por qué se pregunta:** PIE, NEE, tratamientos, salud e ingreso familiar pueden causar daño si se piden sin finalidad o se muestran a roles amplios.
-- **Recomendación:** captura progresiva, opcional/condicional hasta justificar; acceso por propósito; separar ingreso familiar de decisión académica por defecto.
+- **Validación registrada:** PIE/NEE opcionales y progresivos para apoyos; salud/tratamientos sólo por necesidad funcional concreta y mínimo detalle; ingreso familiar fuera del formulario MVP y del análisis académico; acceso restringido por rol/propósito y auditable.
 - **Preguntas de validación por cada dato:** ¿qué finalidad institucional concreta se confirma?, ¿quién queda autorizado?, ¿en qué etapa se captura?, ¿qué detalle debe revisar el responsable legal antes de datos reales?
 - **Trazabilidad:** Q-104, C-013; UC-FRM-001/UC-ACT-005/UC-ADM-003.
 
 ### 5. Entrevista del apoderado
 
-- **Por qué se pregunta:** se confirma la actividad, pero faltan pauta, modalidad y excepciones.
+- **Por qué se pregunta:** se confirma la actividad y la presencialidad del MVP, pero faltan pauta, duración, ejecutores, suplencias y reglas detalladas de acceso/cierre.
 - **Recomendación:** cita asignada por colegio, pauta estructurada, datos mínimos y conclusión restringida.
 - **Preguntas de validación:** ¿quién ocupa/suple el rol?, ¿qué pauta y modalidad concreta usará el colegio?, ¿qué conclusión necesita registrar y quién la revisa?
 - **Trazabilidad:** Q-141 a Q-145; UC-ACT-003 a 005.
 
 ### 6. Evaluación diagnóstica
 
-- **Por qué se pregunta:** D-015 la exige para todo el piloto, mientras una fuente permite variación; C-009 sigue pendiente.
-- **Recomendación:** mantenerla configurable; para el piloto marcarla obligatoria sólo después de confirmación institucional expresa; definir repetición/exención.
-- **Preguntas de validación C-009:** ¿qué pauta, repetición y exención concreta se aplicará?, ¿quién accede a la conclusión?, ¿qué redacción institucional confirma la obligatoriedad del piloto?
+- **Validación registrada:** entrevista de apoderado y evaluación diagnóstica obligatorias para todos los postulantes de 1º básico a 4º medio del piloto; configuración versionada por tenant/proceso/año/oferta/curso/tipo; excepciones, reprogramación, repetición y cierre con motivo e historia auditada.
+- **Preguntas de detalle C-009:** ¿qué pauta, duración, ejecutores, suplencias y criterios concretos se aplicarán?, ¿quién accede a la conclusión según propósito?
 - **Trazabilidad:** Q-140, Q-144/Q-145, C-009; UC-ACT-003/005.
 
 ### 7. Reprogramaciones e inasistencias
 
-- **Por qué se pregunta:** hoy no hay límites, tolerancia ni efecto aprobados.
-- **Recomendación:** solicitud registrada, historial de horarios y revisión humana antes de cerrar un caso por inasistencia.
-- **Preguntas de detalle:** ¿cuántos cambios, anticipación y tolerancia se configuran?, ¿quién revisa la primera inasistencia?, ¿qué tarea se crea?
+- **Por qué se pregunta:** la regla inicial del piloto debe quedar vinculada a la configuración versionada y a las tareas operativas.
+- **Validación registrada:** si una evaluación no puede completarse, se registra y normalmente se reprograma; el piloto usa 2 reprogramaciones normales y 15 minutos de tolerancia. Eximir o cerrar es excepcional y exige actor autorizado, motivo y auditoría.
+- **Preguntas de detalle:** ¿qué suplencias, duración, tareas y criterio de cierre se aplican?, ¿quién revisa la inasistencia?
 - **Trazabilidad:** Q-142/Q-143; UC-ACT-002/004.
 
 ### 8. Recomendación de Admisión
@@ -129,8 +134,8 @@ Una conversación sin registro no cuenta como aprobación.
 ### 13. Postulación asistida
 
 - **Por qué se pregunta:** portal exclusivo puede excluir; correo/papel paralelo reduce trazabilidad.
-- **Recomendación:** portal principal con operador asistido autorizado, registro de origen/consentimiento/autoría y revisión familiar.
-- **Preguntas de validación C-014:** ¿qué personal prestará apoyo?, ¿cómo se verifica autorización?, ¿podrá enviar con el adulto presente?, ¿qué evidencia institucional se conservará?
+- **Validación registrada:** portal como fuente oficial; Admisión/Secretaría pueden asistir presencialmente; el funcionario autorizado completa, carga y envía con el apoderado presente; se conserva tenant, operador, rol, fecha/hora, origen asistido, adulto presente, autorización/consentimiento y acciones. Documentación física excepcional se digitaliza al requisito con origen `PHYSICAL_DOCUMENT`.
+- **Preguntas de detalle C-014:** ¿qué personal y suplencias prestarán apoyo?, ¿qué evidencia concreta se conservará?, ¿qué regla institucional/legal rige conservación o devolución del papel?
 - **Trazabilidad:** Q-107/C-014; UC-ADM-002.
 
 ### 14. Aceptación de vacante

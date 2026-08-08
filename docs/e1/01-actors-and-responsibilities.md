@@ -36,12 +36,14 @@ Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar,
 
 | Actor | Objetivo | Responsabilidades | Acciones tentativamente permitidas | Acciones prohibidas | Datos mínimos y sensibilidad | Alcance institucional |
 | --- | --- | --- | --- | --- | --- | --- |
-| Encargado de admisión | Coordinar el proceso y emitir recomendación | Clasificar casos, coordinar revisión/agenda, consolidar y recomendar | Ver casos de su alcance; asignar; observar; coordinar; recomendar; preparar comunicaciones autorizadas | Tomar decisión final; revelar notas; autoasignarse permisos | Identidad/postulación `RESTRICTED`; sensibles sólo por permiso específico; deliberación `HIGHLY_RESTRICTED` | Tenant, sede, año, curso o casos asignados |
+| Responsable de Admisión — Roxana Henríquez | Coordinar el proceso y emitir recomendación | Clasificar casos, revisar documentos según permiso, consultar actividades/resultados/comentarios autorizados, coordinar agenda, consolidar, recomendar, administrar cupos/espera y preparar/confirmar comunicaciones | Ver casos de su alcance; solicitar correcciones; asignar/reprogramar; recomendar; ajustar cupos; promover según regla; preparar/confirmar comunicaciones | Tomar decisión final; revelar resultados internos a familia; autoasignarse permisos | Identidad/postulación `RESTRICTED`; sensibles y resultados sólo por permiso específico; deliberación `HIGHLY_RESTRICTED` | Tenant, sede, año, curso o casos asignados |
 | Revisor documental | Resolver requisitos documentales asignados | Revisar versión segura; aceptar, observar, rechazar o proponer exención | Ver metadatos/archivo necesario; registrar dictamen y motivo | Ver datos no requeridos; borrar historia; eximir sin autoridad | Documentos `RESTRICTED`; algunos `HIGHLY_RESTRICTED` | Requisitos/casos asignados dentro del tenant |
 | Entrevistador del apoderado | Realizar y concluir entrevista | Preparar actividad, registrar asistencia y conclusión restringida | Ver agenda y datos mínimos; registrar pauta/conclusión | Decidir admisión; ver evaluación o finanzas sin propósito; comunicar resultado | Contacto `PERSONAL`; pauta/deliberación `HIGHLY_RESTRICTED` | Actividades asignadas |
 | Evaluador del estudiante | Aplicar evaluación diagnóstica | Registrar asistencia, aplicación y conclusión bajo pauta | Ver datos mínimos y apoyos expresamente autorizados | Usar datos de salud fuera del propósito; decidir o publicar resultado | Menor/evaluación/salud `RESTRICTED/HIGHLY_RESTRICTED` | Evaluaciones asignadas |
-| Dirección | Adoptar decisión final o devolver recomendación | Revisar antecedentes permitidos, justificar decisión/devolución | Aprobar, rechazar o devolver; consultar evidencia necesaria | Alterar evidencia/recomendación histórica; comunicar por cambio intermedio; administrar su permiso | Resumen, recomendación y evidencia `RESTRICTED/HIGHLY_RESTRICTED` | Tenant y oferta bajo autoridad delegada |
+| Dirección | Adoptar disposición final o devolver recomendación | Revisar antecedentes permitidos, justificar disposición/devolución | Aprobar, poner en lista de espera, rechazar o devolver; consultar evidencia necesaria | Alterar evidencia/recomendación histórica; comunicar por cambio intermedio; administrar su permiso | Resumen, recomendación y evidencia `RESTRICTED/HIGHLY_RESTRICTED` | Tenant y oferta bajo autoridad delegada |
 | Administrador institucional | Configurar operación y membresías delegadas | Mantener oferta, formularios, requisitos, plantillas y accesos | Crear/editar configuración; publicar si tiene permiso separado; delegar dentro de límite | Autoelevarse; leer contenido sensible por ser administrador; cambiar versiones publicadas | Configuración `INTERNAL`; membresías `RESTRICTED`; contenido sólo por permiso adicional | Un tenant y scopes delegados |
+| Administrador Institucional Máximo | Administrar o supervisar la operación completa de su institución | Mantener configuración, membresías, operación, documentos, decisiones, auditoría, permisos y categorías restringidas cuando su función lo requiera | Acceder explícitamente a todas las categorías funcionales de su tenant con permiso, propósito y auditoría | Actuar sobre otro tenant; omitir propósito, permiso o auditoría; delegar más allá de su límite | Todas las categorías del tenant según matriz final; restringidas y altamente restringidas con control reforzado | Un único tenant; no es equivalente a administrador institucional normal |
+| Secretaría | Prestar apoyo operativo y administrativo | Realizar postulación asistida; cargar/digitalizar documentos; marcar recepción; corregir datos administrativos dentro de permisos; asignar/reprogramar citas | Asistir a la familia; cargar documentos; gestionar agenda; registrar contacto manual | Emitir recomendación; aprobar/rechazar; modificar cupos; promover lista de espera; exportar masivamente por defecto | Datos aportados/documentos según tarea `RESTRICTED`; salud/PIE/NEE sólo si existe permiso expreso | Tenant y caso/tarea asignados |
 | Operador de postulación asistida | Ayudar a una familia si C-014 se aprueba | Identificar canal, explicar autoría, transcribir y dejar evidencia | Crear borrador asistido; cargar lo entregado; entregar control o enviar sólo según autorización aprobada | Inventar respuestas; actuar sin autorización; ver otros casos; decidir/revisar | Datos aportados `RESTRICTED/HIGHLY_RESTRICTED`; evidencia de asistencia | Caso puntual y ventana temporal |
 | Encargado de comunicaciones | Preparar mensajes correctos y autorizados | Mantener plantillas, audiencia, horario y seguimiento de fallos | Preparar/aprobar/enviar según separación configurada | Comunicar resultado sin decisión; incluir datos innecesarios; cambiar estado de negocio | Contacto `PERSONAL`; resultado mínimo `RESTRICTED`; plantillas `INTERNAL` | Tenant, propósito y campañas operativas autorizadas |
 | Responsable de cupos | Mantener capacidad, reservas y espera | Registrar ajustes justificados, verificar disponibilidad y promover con control | Definir/ajustar cupos; reservar/liberar; proponer o ejecutar promoción autorizada | Cambiar decisión; sobreofertar; alterar orden sin evidencia | Oferta/capacidad `INTERNAL`; postulante mínimo `RESTRICTED` | Oferta, sede, año y curso asignados |
@@ -50,12 +52,13 @@ Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar,
 
 | Actor | Conflictos y separación de funciones | Delegaciones posibles | Preguntas pendientes | Requisitos | Casos de uso |
 | --- | --- | --- | --- | --- | --- |
-| Encargado de admisión | Recomienda, no decide por D-016; comunicar requiere decisión autorizada | Coordinación a revisores/agenda; suplencia formal | Q-121, Q-142, Q-160, Q-181, Q-184 | FR-DEC-001 a 007; FR-ADM-001/002 | UC-DEC-001/002; UC-COM-001 |
+| Responsable de Admisión — Roxana Henríquez | Recomienda, no decide por D-016; administra cupos/espera y confirma comunicaciones según flujo | Coordinación a revisores/agenda; suplencia formal pendiente | Q-121, Q-142, Q-160, Q-181, Q-184 | FR-DEC-001 a 009; FR-ADM-001/002/009 | UC-DEC-001/002; UC-COM-001 |
 | Revisor documental | Exención puede requerir autoridad distinta; no revisar propia carga asistida | Reasignación por tipo documental | Q-121 a Q-124 | FR-DOC-003 a 008 | UC-DOC-001/002 |
 | Entrevistador del apoderado | No decide; corrección de conclusión requiere control | Suplente calificado para actividad | Q-142 a Q-145 | FR-ACT-002 a 005 | UC-ACT-001 a 005 |
 | Evaluador del estudiante | No decide; acceso sensible sólo por asignación/propósito | Suplente calificado | Q-140, Q-142 a Q-145 | FR-ACT-001 a 005 | UC-ACT-002/004/005 |
 | Dirección | No modifica recomendación; devolución no publica resultado | Aprobador suplente formal, nunca recomendador del mismo caso salvo excepción aprobada | Q-160, Q-161, Q-167 | FR-DEC-004 a 007 | UC-DEC-003/004 |
 | Administrador institucional | Edición y publicación separables; no autoelevación | Administradores acotados por función | Q-121, Q-183 | FR-FRM-001/008 a 012; FR-ADM-003 a 008 | UC-ADM-001 a 006 |
+| Secretaría | Apoyo, carga y agenda; no recomendación, decisión, cupos, promoción ni exportación masiva por defecto | Operadores autorizados según tarea | Q-107, Q-121, Q-141, C-014 | FR-APP-003/008; FR-DOC-002/009; FR-ACT-002; FR-AUD-001/004 | UC-ADM-002; UC-ACT-003; UC-DOC-001/002 |
 | Operador de postulación asistida | No revisar/decidir el caso creado; autoría familiar e institucional diferenciada | Operadores temporales formados | Q-107/C-014 | FR-APP-003/008; FR-AUD-001/004 | UC-ADM-007 |
 | Encargado de comunicaciones | Preparación, aprobación y envío pueden separarse | Suplente por tenant y propósito | Q-180 a Q-182 | FR-COM-002 a 007 | UC-COM-001 |
 | Responsable de cupos | Ajuste y promoción pueden exigir doble control; no alterar criterios | Suplente por oferta | Q-162 a Q-167 | FR-CAP-001 a 005 | UC-CAP-001 a 004 |
@@ -64,7 +67,7 @@ Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar,
 
 | Actor | Objetivo | Responsabilidades | Acciones tentativamente permitidas | Acciones prohibidas | Datos mínimos y sensibilidad | Alcance institucional |
 | --- | --- | --- | --- | --- | --- | --- |
-| Superadministrador | Operar tenants y salud de plataforma | Alta/suspensión administrativa, soporte sin contenido y auditoría de plataforma | Gestionar metadatos; iniciar flujo de soporte | Leer contenido institucional por defecto; suplantar; resolver reglas del colegio | Metadatos `INTERNAL`; sin contenido por defecto | Plataforma; tenant explícito para cualquier acción excepcional |
+| Superadministrador Global | Operar la plataforma y soporte transversal | Alta/suspensión administrativa, salud del servicio, metadatos y soporte excepcional | Gestionar metadatos; iniciar una elevación explícita y auditable | Leer contenido institucional sin elevación; acceso silencioso o permanente; resolver reglas del colegio | Metadatos `INTERNAL`; contenido sólo en alcance elevado | Plataforma; cualquier contenido de tenant requiere elevación |
 | Soporte técnico con elevación temporal | Diagnosticar incidente autorizado | Usar ticket, propósito, tiempo y alcance mínimo; dejar auditoría | Acceso puntual aprobado; lectura o corrección mínima si el procedimiento lo permite | Acceso permanente, exploratorio o transversal; exportar; ocultar su intervención | Sólo datos indispensables; puede alcanzar `RESTRICTED` bajo control reforzado | Tenant/recurso/ventana exactos de la elevación |
 | Sistema de correo | Entregar notificaciones operativas | Recibir mensaje minimizado, devolver estado técnico | Procesar destinatario, plantilla renderizada y correlación mínima | Decidir resultado; recibir expediente, salud o notas; afirmar entrega sin evidencia | Contacto y contenido mínimo `PERSONAL/RESTRICTED` | Comunicación de un tenant; proveedor aún no seleccionado |
 | EduPay | Gestionar registro académico/financiero y confirmar resultados propios | Crear/vincular partes, asociación académica y obligaciones según contrato futuro | Recibir handoff mínimo; responder estado técnico/de negocio | Acceder a documentos, salud, evaluación o notas; escribir datos de Admisión; inferir autorización por identificador | Identidad y relación académica mínima `RESTRICTED`; payload pendiente Q-305 | Mapeo contractual de tenant; dominio separado por D-007 |
@@ -74,11 +77,25 @@ Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar,
 
 | Actor | Conflictos y separación de funciones | Delegaciones posibles | Preguntas pendientes | Requisitos | Casos de uso |
 | --- | --- | --- | --- | --- | --- |
-| Superadministrador | Administración global no implica acceso; elevación separada | A operadores de plataforma dentro de alcance | Q-205 diferida | FR-ADM-007; NFR-TEN-003 | UC-AUD-001 |
+| Superadministrador Global | Administración global no implica acceso; elevación separada y temporal | A operadores de plataforma dentro de alcance | Q-205 diferida; `SELF-ELEVATION` aprobada conceptualmente sólo para MVP | FR-ADM-007; NFR-TEN-003 | UC-AUD-001 |
 | Soporte temporal | Solicitante, aprobador y ejecutor deberían separarse cuando el riesgo lo exija | No transferible durante sesión | Q-205 diferida | FR-ADM-007; NFR-SEC-012 | UC-AUD-001 |
 | Sistema de correo | Estado técnico no cambia negocio | Proveedor futuro sujeto a decisión arquitectónica | Q-181; Q-404 diferida | FR-COM-002 a 007 | UC-COM-001 |
-| EduPay | Autoridad académica/financiera, no sobre admisión | Operadores propios fuera de esta matriz | Q-301 a Q-310; sólo Q-310 en E1 | FR-INT-001 a 008 | UC-INT-001 a 005 |
+| EduPay | Autoridad académica/financiera, no sobre admisión | Operadores propios fuera de esta matriz | Q-301 a Q-309 como integración futura; Q-310 `FUNCTIONALLY_RESOLVED` en E1 | FR-INT-001 a 008 | UC-INT-001 a 005 |
 | Portal de pagos | Pago no equivale a decisión de admisión | Según dominio EduPay | Q-309 diferida | FR-INT-006/007 | UC-INT-005 |
+
+## Asignación operativa E1-B
+
+| Responsabilidad | Persona/rol inicial | Regla |
+| --- | --- | --- |
+| Máxima administración del tenant | Arturo Javier Galleguillos Trigo, Sostenedor | Administrador Institucional Máximo; no es Dirección y no actúa fuera del tenant |
+| Operación principal de Admisión | Roxana Henríquez | Revisa, recomienda, administra cupos/espera y prepara/confirmar comunicaciones; no decide casos |
+| Apoyo administrativo y agenda | Secretaría | Postulación asistida, documentos y citas; sin recomendación, decisión, cupos, promoción o exportación masiva por defecto |
+| Ejecución de entrevista | Configurable por institución/oferta/actividad | Cargo y persona concretos pendientes |
+| Ejecución de evaluación | Configurable por institución/oferta/actividad | Cargo y persona concretos pendientes |
+| Decisión final | Dirección | Director/a o persona con capacidad Dirección; suplencia pendiente |
+| Suplencias | Responsables de Admisión, evaluador y Dirección | Obligatoria conceptualmente; nombres pendientes |
+
+La persona que emite una recomendación no puede ejecutar la decisión final del mismo caso.
 
 ## Matriz RACI provisional
 
@@ -105,11 +122,18 @@ Existe un único adulto responsable con cuenta. Ese adulto puede editar, enviar,
 | Reintentar integración | I | A | — | — | I | — | — | — | I | R/C | C |
 | Exportar información | A | R/C | — | — | C | — | — | — | I si propia | C excepcional | — |
 
+## Reglas E1-B de autorización
+
+- El Administrador Institucional Máximo sólo actúa dentro de su tenant y no convierte su rol en autoridad global.
+- El Superadministrador Global puede acceder a contenido institucional únicamente después de una elevación explícita, tenant-specific, scope-specific, temporal, justificada y auditable.
+- En el MVP, `SELF-ELEVATION` es válida como acción explícita del Superadministrador Global; no es lectura implícita. La elevación registra actor, tenant, motivo, alcance, categorías, inicio, expiración, resultado y auditoría.
+- Evaluador, profesional o rol expresamente autorizado y Administrador Institucional Máximo pueden acceder a PIE/NEE/salud sólo por propósito. Entrevistadores, revisores generales y personal completo de Admisión no acceden automáticamente.
+
 ## Validaciones pendientes
 
-- Confirmar quién ocupa y reemplaza cada actor institucional.
-- Confirmar si entrevista y evaluación son funciones distintas.
-- Aprobar quién puede eximir, ajustar cupos, publicar, exportar y reabrir.
+- Confirmar nombres de suplentes y delegaciones operativas.
+- Confirmar el cargo/persona ejecutora de entrevista y evaluación; ambos siguen configurables.
+- Aprobar quién puede eximir, publicar, exportar y reabrir; cupos y promoción ya quedan definidos para Responsable de Admisión y Administrador Máximo, con Dirección sólo si se configura.
 - Resolver los conflictos cuando una persona acumula roles.
-- Validar el acceso a PIE/NEE, salud, evaluaciones e ingreso familiar por propósito.
-- Definir la modalidad de postulación asistida antes de asignar `OP`.
+- Validar el acceso operativo a PIE/NEE, salud y evaluaciones por propósito; el ingreso familiar está fuera del formulario MVP y queda separado si existe un proceso financiero.
+- Completar el detalle operativo de postulación asistida y las reglas de conservación/devolución física.

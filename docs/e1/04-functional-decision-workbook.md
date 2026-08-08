@@ -2,7 +2,7 @@
 
 ## Uso y autoridad
 
-Este es el artefacto principal de revisión humana de E1-A. Las opciones A/B/C que siguen se conservan como análisis histórico; la posición canónica aprobada está en el registro siguiente. Las decisiones D-001 a D-024 se heredan aprobadas; las opciones incompatibles con ellas se muestran sólo para explicar el límite y no reabrir G0.
+Este es el artefacto principal de revisión humana de E1-A y su consolidación E1-B. Las opciones A/B/C que siguen se conservan como análisis histórico; la posición canónica aprobada está en el registro y el addendum institucional al final. Las decisiones D-001 a D-024 se heredan aprobadas; las opciones incompatibles con ellas se muestran sólo para explicar el límite y no reabrir G0.
 
 Estados del workbook:
 
@@ -10,6 +10,9 @@ Estados del workbook:
 - `APPROVED_PRODUCT`: decisión funcional aprobada por Nicolás Sena el `2026-08-06T22:09:00-04:00`.
 - `NEEDS_DECISION`: no hay resolución institucional y la elección bloquea detalle posterior.
 - `PARTIAL`: existe una decisión heredada o evidencia parcial, pero faltan reglas operativas.
+- `INSTITUTIONALLY_VALIDATED`: posición institucional/funcional confirmada para el piloto; no elimina pendientes operativos o legales.
+- `OPERATIONAL_DETAIL_PENDING`: faltan personas, cantidades, plazos, pautas, catálogos o procedimientos.
+- `LEGAL_VALIDATION_PENDING`: falta validación normativa antes de datos reales.
 
 La columna mental “impacto multiempresa” siempre exige configuración por tenant/versión y nunca una regla por nombre del colegio. Las fechas límite se expresan por compuerta porque no existen fechas calendario aprobadas.
 
@@ -24,7 +27,7 @@ La aprobación está formalizada en [`E1-A-functional-decisions-2026-08-06.md`](
 | Decisión, cupos y espera | Q-160–Q-167 | Pauta de Admisión y decisión humana separadas; cupos de admisión separados; reserva junto a oferta; espera versionada y promoción humana; sin posición exacta; elección dentro del colegio; reaperturas autorizadas. |
 | Comunicaciones, reportes y handoff | Q-180–Q-184, Q-310 | Correo automático único y portal oficial; plantillas/estados; historial familiar seguro; reportes mínimos/auditados; objetivos por etapa; handoff posterior a aceptación expresa. |
 
-Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los detalles operativos y Q-301 a Q-309 permanecen visibles.
+Las validaciones institucionales de C-009, C-011, C-013 y C-014 están registradas; sus detalles operativos, C-013 legal y Q-301 a Q-309 permanecen visibles según su compuerta correspondiente.
 
 ## Oferta, formulario y familia
 
@@ -37,7 +40,7 @@ Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los 
 - **Aprobación/límite/documentos:** Nicolás Sena + representante institucional; antes de E1-B. Afecta journeys J-FAM-001/002, UC-APP-001 y política de ofertas.
 - **Pregunta al colegio:** “¿Una familia puede postular al mismo estudiante a más de un curso u otra sede durante el mismo proceso?”
 - **Estado histórico:** `PROPOSED`.
-- **Estado consolidado:** `APPROVED_PRODUCT`.
+- **Estado consolidado:** `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`; configuración concreta del piloto pendiente.
 
 ### Q-102 — ¿Qué identifica un duplicado y qué excepciones existen?
 
@@ -52,12 +55,11 @@ Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los 
 
 ### Q-103 — ¿Disponibilidad exacta, categórica o sólo convocatoria?
 
-- **Contexto/fuentes/condicionantes:** C-005, A-006, FR-APP-002. **Situación:** abierta.
-- **Opciones:** A) número exacto; transparente, pero cambia rápido y puede crear expectativas. B) categorías (“disponible”, “limitada”, “lista de espera”); orienta con menor precisión engañosa. C) sólo convocatoria abierta; simple, pero no informa escasez.
-- **Impactos:** familia: B ayuda a decidir sin promesa; operación: requiere regla de actualización; tenant: señal configurable; seguridad: no exponer capacidad interna ni datos de terceros.
-- **Recomendación/razón:** **B**, acompañada de texto “sujeto a revisión y cupos”; permite evolución y reduce interpretación de garantía.
-- **Aprobación/límite/documentos:** responsable de cupos + Dirección + Nicolás Sena; antes de E1-B. Afecta UC-ADM-001/UC-CAP-001 y proyección familiar.
-- **Pregunta al colegio:** “¿Qué información de disponibilidad quieren mostrar: cantidad exacta, una señal general o sólo que la convocatoria está abierta?”
+- **Contexto/fuentes/condicionantes:** C-005, A-006, FR-APP-002. **Situación:** resuelta en diseño funcional.
+- **Opciones históricas:** A) número exacto; transparente, pero cambia rápido y puede crear expectativas. B) categorías; orienta con menor precisión engañosa. C) sólo convocatoria abierta; simple, pero no informa escasez.
+- **Decisión aprobada:** la familia ve `Postulaciones abiertas`, `Cupos limitados`, `Lista de espera` o `Proceso cerrado`; no se muestran cantidades exactas por defecto. Una convocatoria puede mantenerse abierta sin cupo inmediato si la institución lo configura y postular no garantiza vacante.
+- **Impactos/límites:** familia: recibe una señal sin promesa de vacante; operación: conserva el cupo numérico como información interna; tenant: configura texto y valores por oferta; seguridad: no expone capacidad interna ni datos de terceros.
+- **Pendiente:** `PILOT_CONFIGURATION_PENDING` para texto institucional final, valores concretos de cupos y configuración de cada oferta.
 - **Estado histórico:** `PROPOSED`.
 - **Estado consolidado:** `APPROVED_PRODUCT`.
 
@@ -73,14 +75,14 @@ Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los 
 | NEE | Preparar apoyos y accesibilidad con propósito explícito | Opcional/condicional | Evaluador/rol especializado; Dirección sólo resumen necesario | Antes de actividad pertinente | Barreras o evaluación no adaptada | Discriminación, sobreexposición y datos del menor |
 | Tratamientos | Sólo ajustes de seguridad/actividad si el colegio justifica necesidad | Opcional; no preguntar detalle clínico por defecto | Profesional/rol mínimo autorizado | Lo más tarde posible antes de actividad | No anticipar una necesidad concreta | Captura excesiva de salud y responsabilidad operativa |
 | Salud | Gestionar una necesidad concreta y urgente, no historia general | Opcional/condicional, granular | Rol designado por propósito; nunca exportación general | Antes de actividad cuando aplique | Riesgo de no disponer de adaptación/alerta necesaria | Alto impacto de privacidad y uso impropio |
-| Ingreso familiar | Sólo finalidad institucional expresa y separada de decisión académica | Recomendado no obligatorio para admisión hasta justificación | Rol financiero específico; no entrevistador/evaluador por defecto | Después de resultado o en trámite separado si basta | No ejecutar beneficio/segmentación autorizada | Sesgo, discriminación, exposición financiera y abandono |
+| Ingreso familiar | Fuera del formulario de admisión MVP y del análisis académico | No se solicita en admisión; proceso financiero separado si corresponde | Rol financiero específico en proceso separado | Fuera del formulario MVP | No aplica a admisión | Sesgo, discriminación, exposición financiera y abandono |
 
 - **Impactos:** familia: B reduce preguntas invasivas; operación: exige propósito/audiencia por campo; tenant: cada institución configura sin bajar controles; privacidad: acceso por campo, auditoría y retención futura.
 - **Recomendación/razón:** **B ajustada por aprobación de producto**: captura progresiva y mínima; PIE/NEE opcionales o condicionales para apoyos; no historia clínica general; tratamientos/salud sólo ante necesidad funcional, adaptación o seguridad concreta; ingreso familiar fuera del formulario de admisión MVP y, si corresponde, en trámite financiero separado.
 - **Aprobación/límite/documentos:** representante institucional + Nicolás Sena antes de G1; responsable legal/normativo antes de datos reales. Afecta formulario, permisos, journeys y UC-FRM-001/002.
 - **Pregunta al colegio:** “Para cada dato, ¿qué decisión o apoyo concreto permite, quién necesita verlo y en qué momento? Si no hay una finalidad clara, proponemos no pedirlo.”
 - **Estado histórico:** `NEEDS_DECISION`.
-- **Estado consolidado:** `APPROVED_PRODUCT`; `INSTITUTIONAL_VALIDATION_PENDING` y `LEGAL_VALIDATION_PENDING` por C-013.
+- **Estado consolidado:** `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-013 y `LEGAL_VALIDATION_PENDING` antes de datos reales/piloto productivo.
 
 ### Q-105 — ¿Qué adulto puede editar, enviar, aceptar o desistir?
 
@@ -220,14 +222,14 @@ Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los 
 
 ### Q-143 — ¿Presencial, remota o híbrida; ubicación/enlace?
 
-- **Contexto/fuentes/condicionantes:** FR-ACT-006 diferida para integraciones de calendario/videollamada. **Situación:** abierta.
+- **Contexto/fuentes/condicionantes:** FR-ACT-006 diferida para integraciones de calendario/videollamada. Para el piloto la entrevista y la evaluación son presenciales; ubicación y duración aún requieren detalle.
 - **Opciones:** A) sólo presencial; simple, menos accesible. B) modalidad configurable por actividad con ubicación o enlace minimizado; flexible. C) híbrida siempre; compleja e innecesaria.
 - **Impactos:** familia: B acomoda casos; operación: plantillas/modos; tenant: modalidad configurada; seguridad: enlaces no públicos y sin datos en URLs.
-- **Recomendación/razón:** **B** a nivel funcional, sin integrar proveedor; el piloto puede seleccionar presencial si el colegio lo confirma.
+- **Recomendación/razón:** **B** a nivel funcional, sin integrar proveedor; para el piloto se fija presencialidad y se mantiene la modalidad configurable por actividad para evolución.
 - **Aprobación/límite/documentos:** Admisión + entrevistadores/evaluadores; antes de E1-B.
-- **Pregunta al colegio:** “¿Las actividades serán presenciales, remotas o dependerán del caso? ¿Qué información de ubicación debe recibir la familia?”
+- **Pendiente de detalle:** ubicación exacta, duración y reglas para una modalidad futura remota o híbrida.
 - **Estado histórico:** `PROPOSED`.
-- **Estado consolidado:** `APPROVED_PRODUCT`; modalidad concreta pendiente.
+- **Estado consolidado:** `DEFINED_FOR_PILOT`; ubicación, duración y modalidad futura pendientes.
 
 ### Q-144 — ¿Pauta, resultado y confidencialidad detallada?
 
@@ -277,14 +279,13 @@ Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los 
 
 ### Q-162 — ¿Capacidad total, cupo de admisión o vacante disponible?
 
-- **Contexto/fuentes/condicionantes:** FR-CAP-001/002, C-005. **Situación:** abierta.
+- **Contexto/fuentes/condicionantes:** FR-CAP-001/002, C-005. **Situación:** resuelta en diseño funcional; queda detalle operacional/configuración pendiente.
 - **Opciones:** A) capacidad total del curso; estable, no refleja ocupación. B) cupos asignados al proceso de admisión; operativo y controlable. C) vacante calculada dinámicamente con matrícula EduPay; precisa a futuro, acopla etapa actual.
 - **Impactos:** familia: no debe interpretarlo como garantía; operación: B permite planificación; tenant: por oferta; seguridad: capacidad interna restringida.
 - **Recomendación/razón:** **B** para Admisión, manteniendo separado el total académico y cualquier confirmación de EduPay.
-- **Aprobación/límite/documentos:** responsable de cupos + Dirección; antes de E1-B.
-- **Pregunta al colegio:** “Cuando hablan de cupos, ¿se refieren a capacidad total del curso o a vacantes reservadas para este proceso?”
+- **Aprobación/límite/documentos:** el cupo numérico es información operacional interna y no se muestra por defecto; valores concretos y configuración de cada oferta son `PILOT_CONFIGURATION_PENDING`.
 - **Estado histórico:** `NEEDS_DECISION`.
-- **Estado consolidado:** `APPROVED_PRODUCT`; valores y responsables pendientes.
+- **Estado consolidado:** `APPROVED_PRODUCT`; valores y configuración concreta pendientes.
 
 ### Q-163 — ¿Cuándo se reserva y cuánto dura reserva/oferta?
 
@@ -400,17 +401,68 @@ Las validaciones institucionales pendientes de C-009, C-011, C-013 y C-014, los 
 
 ## Momento funcional del handoff
 
-### Q-310 — ¿Handoff tras aprobación de Dirección o tras aceptación familiar explícita?
+### Q-310 — Momento funcional del handoff
 
-- **Contexto/fuentes/condicionantes:** D-021 a D-024, FR-INT-005/006/008, C-002. EduPay necesita estudiante y asociación académica antes de obligaciones. El mecanismo/API y Q-301 a Q-309 quedan fuera de E1-A. **Situación:** bloqueante G1.
+- **Contexto/fuentes/condicionantes:** D-021 a D-024, FR-INT-005/006/008, C-002. EduPay necesita estudiante y asociación académica antes de obligaciones. El mecanismo/API y Q-301 a Q-309 quedan fuera del borde funcional de E1. **Situación histórica:** estuvo abierta durante E1-A; su estado actual es `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`.
 - **Opciones:** A) inmediatamente después de decisión favorable; adelanta preparación y reduce espera, pero transfiere casos que podrían rechazar/no formalizar y exige compensación. B) después de aceptación expresa de oferta; prueba intención, reduce trabajo/transferencia, agrega una acción/plazo. C) después del pago o formalización; máxima certeza, pero puede ser circular porque EduPay necesita crear/vincular estudiante/asociación para generar obligaciones y permitir pago.
 - **Impactos:** familia: B explica un paso claro antes de matrícula; operación: requiere seguimiento de oferta/vencimiento; tenant: regla contractual/configurable, no global por colegio; privacidad: B minimiza transferencias innecesarias; seguridad: evento idempotente y separado de matrícula.
-- **Recomendación/razón:** **B aprobada por producto**. Secuencia: Admisión recomienda; Dirección decide favorable; se reserva/emite oferta; se comunica plazo; el adulto único facultado acepta; Admisión crea handoff; EduPay crea/vincula estudiante, adulto y asociación; EduPay genera obligaciones; familia paga fuera de Admisión; EduPay comunica estados posteriores. Si se rechaza/desiste/vence, se libera reserva y no se inicia handoff. C no es disparador porque puede impedir la preparación necesaria para el pago; Q-301 a Q-309 siguen abiertas.
+- **Decisión/razón:** **B aprobada funcionalmente**. Secuencia canónica: Admisión recomienda; Dirección decide favorable; se reserva/emite oferta; se comunica plazo; el adulto único facultado acepta; Admisión solicita handoff; EduPay crea/vincula estudiante, adulto y asociación; EduPay genera obligaciones; familia paga fuera de Admisión; EduPay comunica estados posteriores. Si se rechaza/desiste/vence, se libera reserva y no se inicia handoff. C no es disparador porque puede impedir la preparación necesaria para el pago; Q-301 a Q-309 siguen abiertas como contrato futuro.
 - **Riesgos:** aceptación duplicada/vencida, reserva inmovilizada, desistimiento durante handoff, divergencia y significado futuro de matrícula. Mitigar funcionalmente con hitos separados, confirmación humana, plazos, idempotencia y estado técnico distinto del negocio.
-- **Aprobación/límite/documentos:** Nicolás Sena + representante institucional + Admisión/Dirección; antes de E1-B para fijar journey. Propietarios de ambos dominios resolverán contrato/Q-301 a Q-309 antes de integración.
-- **Pregunta al colegio:** “Después de un resultado favorable, ¿la familia debe aceptar la vacante antes de que preparemos sus datos en EduPay, o el colegio necesita iniciar esa preparación inmediatamente?”
+- **Aprobación/límite/documentos:** Nicolás Sena + representante institucional + Admisión/Dirección; la decisión funcional fija el journey. Propietarios de ambos dominios resolverán contrato/Q-301 a Q-309 antes de integración.
+- **Límite actual:** `AdmissionOfferAccepted` o equivalente funcional es la precondición aprobada para solicitar handoff. No se fija API, protocolo, evento técnico ni nombre contractual definitivo.
 - **Estado histórico:** `NEEDS_DECISION`.
-- **Estado consolidado:** `APPROVED_PRODUCT`; Q-301 a Q-309 y contrato EduPay pendientes.
+- **Estado consolidado:** `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`; Q-301 a Q-309 y contrato EduPay permanecen pendientes como integración futura.
+
+## Addendum E1-B — Validación institucional incorporada
+
+La respuesta institucional/funcional confirmada por Nicolás Sena el `2026-08-06` se registra como fuente posterior a las recomendaciones históricas del workbook. Este addendum prevalece sobre los textos que todavía describan C-009, C-011, C-013 o C-014 como validación institucional pendiente.
+
+| Contradicción | Estado consolidado | Regla incorporada | Pendiente que permanece |
+| --- | --- | --- | --- |
+| C-009 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Entrevista de apoderado y evaluación diagnóstica obligatorias para todos los cursos del piloto; configuración versionada por tenant/proceso/año/oferta/curso/tipo; excepciones, reprogramación, repetición y cierre con motivo e historia auditable | Personas, suplencias, pautas, modalidades, cantidades, tolerancias y autoridad concreta de cierre |
+| C-011 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Requisito configurable; último informe vigente/disponible o equivalente del establecimiento anterior; exención autorizada con requisito, actor, motivo, fecha, alcance y auditoría; no 2025/2026 rígidos | Catálogo concreto del piloto |
+| C-013 | `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING` | PIE/NEE opcionales y progresivos para apoyos; salud/tratamientos sólo por necesidad funcional concreta; ingreso familiar fuera del formulario MVP; acceso restringido por propósito y auditable | Fundamento normativo, textos, retención, eliminación/anonimización, titulares y matriz legal |
+| C-014 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Portal como fuente oficial; asistencia presencial de Admisión/Secretaría con adulto presente y evidencia; documento físico digitalizado al requisito con origen conceptual `PHYSICAL_DOCUMENT` | Personal, suplencias, evidencias detalladas y conservación/devolución física |
+
+### Reglas funcionales derivadas
+
+- Una actividad no completada se registra y normalmente se reprograma. Exenta, cerrada, no completada y completada son estados distintos.
+- Cada intento de evaluación conserva secuencia, fecha, responsable, estado, motivo de repetición, resultado/conclusión y relación con el intento anterior. No hay reemplazo silencioso.
+- La obligación de entrevista/evaluación se configura por tenant, proceso/año, oferta, curso/nivel y tipo de actividad; no se hardcodea.
+- El Administrador Institucional Máximo es distinto del administrador institucional normal y sólo actúa dentro de su tenant. El Superadministrador Global requiere elevación explícita para contenido institucional; `SELF-ELEVATION` está aprobada conceptualmente para el MVP y siempre es auditable.
+
+### Preguntas actualizadas por la validación
+
+| Pregunta | Estado E1-B | Actualización funcional |
+| --- | --- | --- |
+| Q-104 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-013; `LEGAL_VALIDATION_PENDING` | PIE/NEE progresivos y opcionales; salud mínima por necesidad; ingreso familiar fuera del formulario MVP |
+| Q-107 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-014; `OPERATIONAL_DETAIL_PENDING` | Portal oficial y postulación asistida con adulto presente, operador, origen, consentimiento y acciones |
+| Q-120 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-011; `OPERATIONAL_DETAIL_PENDING` | Informe vigente/disponible o equivalente; aplicabilidad configurable; no años rígidos |
+| Q-140 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-009; `OPERATIONAL_DETAIL_PENDING` | Actividades obligatorias en piloto; excepciones, repetición, reprogramación y cierre auditados |
+| Q-142 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-009; `OPERATIONAL_DETAIL_PENDING` | No completada → registrar y reprogramar; eximir/cerrar sólo excepcionalmente con motivo y auditoría |
+| Q-144 | `APPROVED_PRODUCT`; `INSTITUTIONALLY_VALIDATED` por C-009/C-013; pendientes operativos y legales | Resultados y datos sensibles por rol/propósito; no acceso automático de Admisión general |
+
+## Addendum E1-B — Detalle operativo definido para el piloto
+
+Las filas siguientes complementan el addendum institucional anterior. Se usa `DEFINED_FOR_PILOT` sólo para marcar el detalle operativo inicial; `APPROVED_PRODUCT` se conserva cuando la decisión de producto sigue siendo la fuente. Estos detalles no cierran G1 por sí solos; E1-B queda pendiente de revisión humana de cierre.
+
+| Tema | Definición inicial del piloto | Estado | Pendiente que permanece |
+| --- | --- | --- | --- |
+| Responsables | Administrador Institucional Máximo: Arturo Javier Galleguillos Trigo, Sostenedor. Responsable de Admisión: Roxana Henríquez. Secretaría apoya operación y agenda. | `DEFINED_FOR_PILOT` | Suplentes y ejecutores concretos de entrevista/evaluación |
+| Cupos | Número manual por curso/año; Responsable de Admisión y Administrador Máximo pueden modificar directamente con auditoría. | `DEFINED_FOR_PILOT` | Valores concretos, señal familiar y configuración final de Dirección |
+| Aceptación | 3 días hábiles, configurable; familia y personal ven vencimiento y tiempo restante. | `DEFINED_FOR_PILOT` | Calendario institucional |
+| Corrección documental | 3 días hábiles, configurable; requisito exacto, portal, correo y límite visible; sin rechazo automático por vencimiento. | `DEFINED_FOR_PILOT` | Plantillas y escalamiento |
+| Actividades | Presenciales en MVP; sin botón obligatorio de confirmación; solicitud de cambio en portal. | `DEFINED_FOR_PILOT` | Duración, ejecutores y modalidad futura |
+| Reprogramación | 2 normales y 15 minutos de tolerancia, configurables; familia solicita con motivo, Admisión/Secretaría asignan. | `DEFINED_FOR_PILOT` | Reglas detalladas de excepciones |
+| Inasistencia | Primera no cierra; segunda injustificada permite cierre manual por Responsable de Admisión o Dirección; nunca cierre automático por contador. | `DEFINED_FOR_PILOT` | Procedimiento y evidencia de justificación |
+| Resultado de actividad | `FAVORABLE`, `NO_FAVORABLE`, `INCONCLUSO`; comentario interno opcional; no es decisión final. | `DEFINED_FOR_PILOT` | Pauta avanzada futura |
+| Recomendación | `RECOMENDAR_ADMISION`, `NO_RECOMENDAR_ADMISION`, `DEVOLVER_A_REVISION`; fundamento obligatorio, interna y versionada. | `DEFINED_FOR_PILOT` | Pauta institucional completa |
+| Decisión | `APROBADO`, `LISTA_DE_ESPERA`, `RECHAZADO`, `DEVUELTO_A_REVISION`; fundamento/motivo obligatorio; aprobado crea reserva/oferta/comunicación preparada; espera no crea oferta ni plazo. | `DEFINED_FOR_PILOT` | Suplencias, prioridades y autoridad concreta de reapertura |
+| Lista de espera | Orden de ingreso por defecto; prioridades no definidas; promoción humana por Responsable de Admisión o Administrador Máximo; Secretaría no promueve. | `DEFINED_FOR_PILOT` | Prioridades y desempate |
+| Oferta de espera | 3 días hábiles, igual que oferta normal; origen visible al personal y vencimiento libera cupo. | `DEFINED_FOR_PILOT` | Recordatorio y textos finales |
+| Reportes/exportaciones | Catálogo operativo inicial; no archivos sensibles en Excel/CSV; Responsable de Admisión y Administrador Máximo exportan dentro de tenant; Secretaría no masiva por defecto. | `DEFINED_FOR_PILOT` | Columnas, periodicidad y legalidad |
+
+La fuente operativa detallada es [`08-pilot-operational-rules.md`](08-pilot-operational-rules.md) y la matriz de parámetros es [`09-pilot-configuration-matrix.md`](09-pilot-configuration-matrix.md).
 
 ## Documentos afectados por pregunta
 
@@ -469,4 +521,4 @@ Esta tabla completa el campo **documentos afectados** de cada ficha. `A/R/J/UC/T
 7. Pautas estructuradas, versiones y separación estricta Admisión/Dirección.
 8. Cupo de admisión separado, reserva al emitir oferta y promoción de espera con confirmación humana.
 9. Historial familiar de hitos seguros y correo con plantillas versionadas.
-10. Handoff después de aceptación expresa, sujeto a aprobación humana de Q-310.
+10. Handoff después de aceptación expresa; Q-310 queda `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`.

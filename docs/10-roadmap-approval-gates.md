@@ -56,7 +56,7 @@ Establecer lenguaje común, alcance, evidencia, requisitos iniciales, riesgos y 
 - **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor de Colegio Particular Conquistadores.
 - **Fuentes:** SRC-001 a SRC-005.
 - **Decisiones incluidas:** D-001 a D-024.
-- **Contradicciones:** C-009, C-011 y C-014 diferidas a G1; C-010 resuelta; C-013 diferida con hitos.
+- **Contradicciones:** C-009, C-011 y C-014 `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING`; C-010 resuelta; C-013 `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
 - **ADR-0001:** `PROPOSED`.
 - **Etapa autorizada:** E1 — Diseño funcional.
 
@@ -66,9 +66,9 @@ El cierre no autoriza implementación, scaffolding, stack definitivo, datos real
 
 ## E1 — Diseño funcional
 
-**Estado:** AUTORIZADA; **E1-A — `PRODUCT DECISIONS APPROVED / INSTITUTIONAL VALIDATION PENDING`**. E1-B no iniciada. Esta autorización cubre diseño funcional, no implementación.
+**Estado:** AUTORIZADA; **E1-A — `CLOSED / PRODUCT DECISIONS RECORDED`**; **E1-B — `CLOSED / OPERATIONAL BASELINE APPROVED`**; **E1-C — autorizada para iniciar después de la fusión del PR #3**. Esta autorización cubre diseño funcional, no implementación.
 
-E1 se divide provisionalmente en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`; la división no agrega aprobaciones automáticas. E1-B depende de validaciones humanas registradas sobre `docs/e1/04-functional-decision-workbook.md`; esta aprobación no basta para iniciarla.
+E1 se divide en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`. El cierre de E1-B fue aprobado explícitamente sobre `b39150aaf933eda10a3030b9f2d69c6957df8449` y se registra en `docs/approvals/E1-B-functional-closure-2026-08-08.md`. Este cierre no aprueba G1 ni autoriza implementación.
 
 ### Objetivo
 
@@ -89,16 +89,21 @@ Validar el proceso real con usuarios y convertir requisitos en comportamientos y
 
 ### G1 — Aprobación funcional
 
-**Estado:** NO APROBADA. Requiere resolver sus criterios y asuntos diferidos antes del cierre.
+**Estado:** `NO APROBADA`.
 
-La posición funcional de producto para las 33 preguntas objetivo está aprobada por Nicolás Sena, pero G1 permanece `NO APROBADA` porque siguen pendientes las validaciones institucionales, detalles operativos, dependencia legal de C-013 y el contrato Q-301 a Q-309.
+La posición funcional de producto para las preguntas objetivo está registrada y E1-B tiene cierre humano explícito. El borde funcional de integración está definido: Admisión es dueña del proceso; EduPay es dominio separado; el handoff ocurre después de aceptación familiar expresa; no se comparten tablas; la integración futura debe ser idempotente; y los estados técnicos no equivalen a matrícula. Q-301 a Q-309 siguen abiertas como dependencias de E7/G7, no como requisito de G1. C-013 conserva `LEGAL_VALIDATION_PENDING` como condición antes de datos reales/piloto productivo, no como bloqueo del comportamiento funcional.
 
-- Preguntas Q-101 a Q-184 resueltas para el piloto.
-- Q-310 resuelta para fijar el momento del handoff.
-- Proceso validado por responsables reales.
-- Datos sensibles justificados y minimizados.
-- Casos felices, alternos y excepciones aprobados.
-- Backlog MVP priorizado y fuera de alcance explícito.
+G1 continúa `NO APROBADA` porque E1-C debe todavía:
+
+- consolidar la especificación funcional canónica;
+- definir criterios de aceptación funcionales verificables;
+- consolidar casos felices, alternos y excepciones;
+- priorizar backlog MVP y fuera de alcance;
+- resolver inconsistencias de trazabilidad remanentes;
+- preparar evidencia y paquete de aprobación;
+- obtener aprobación funcional humana explícita.
+
+Q-301 a Q-309, Q-201/Q-202 y la validación legal de C-013 permanecen en sus compuertas futuras y no reabren E1-B.
 
 ## E2 — Arquitectura
 
@@ -239,7 +244,7 @@ Implementar y certificar el handoff desacoplado aprobado.
 
 ### G7 — Aprobación de integración
 
-- Preguntas Q-301 a Q-310 cerradas, especialmente estado pre-pago y evento de matrícula.
+- Preguntas Q-301 a Q-309 cerradas, especialmente estado pre-pago y evento de matrícula; Q-310 ya llega funcionalmente resuelta desde E1.
 - Propietarios y SLA de ambos dominios.
 - Certificación en ambiente seguro con datos sintéticos.
 - Plan de activación, monitoreo y rollback.

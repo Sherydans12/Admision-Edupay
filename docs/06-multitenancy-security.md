@@ -38,7 +38,9 @@ Una familia no necesita una membresía administrativa del tenant. Obtiene acceso
 
 ### Personal de plataforma
 
-Ser superadministrador no debe equivaler a leer contenido institucional. Operaciones de soporte con datos requieren elevación temporal, ticket/motivo, alcance mínimo, aprobación cuando corresponda, aviso y auditoría reforzada.
+Ser Superadministrador Global no equivale a leer contenido institucional. Para consultar contenido de un tenant requiere una elevación explícita, temporal, específica de tenant y alcance, justificada y auditada. En el MVP se admite `SELF-ELEVATION`, pero sólo mediante una acción explícita previa; no es acceso silencioso ni permanente. El acceso ordinario a métricas, disponibilidad, configuración técnica y salud del servicio debe evitar leer contenido personal cuando no sea necesario.
+
+El Administrador Institucional Máximo es una capacidad/rol distinto del administrador institucional normal. Puede acceder explícitamente a las categorías funcionales restringidas de su propio tenant cuando su función lo requiera, sujeto a autenticación, permiso, propósito y auditoría. Nunca adquiere autoridad sobre otro tenant.
 
 ## Estrategia de pertenencia
 
@@ -88,6 +90,9 @@ Ejemplo conceptual: `application.health.read` puede requerir rol evaluador, asig
 - Nadie puede delegar privilegios superiores a su alcance.
 - Acciones de alto impacto pueden exigir autenticación reforzada o doble control; alcance pendiente.
 - Respuestas denegadas no confirman la existencia de recursos ajenos.
+- El Administrador Institucional Máximo sólo opera dentro del tenant de su membresía.
+- El Superadministrador Global debe registrar una elevación antes de leer contenido de un tenant, incluso cuando se autorice a sí mismo.
+- La elevación registra actor, tenant, motivo, alcance, categorías, inicio, expiración, resultado y auditoría.
 
 ## Clasificación propuesta de datos
 
@@ -97,7 +102,7 @@ Ejemplo conceptual: `application.health.read` puede requerir rol evaluador, asig
 | Interna | Configuración operativa no sensible | Membresía y tenant |
 | Personal | Contactos, domicilio, datos laborales | Propósito, minimización, cifrado y auditoría de cambios |
 | Restringida | Datos de menores, documentos, RUT | Permiso específico, auditoría de acceso y exportación limitada |
-| Altamente restringida | Salud, PIE/NEE, evaluaciones, ingreso familiar | Acceso por sección/campo, asignación, justificación y revisión periódica |
+| Altamente restringida | Salud, PIE/NEE, evaluaciones; ingreso familiar sólo si existe un proceso financiero separado | Acceso por sección/campo, asignación, justificación y revisión periódica |
 
 La clasificación final debe validarse con responsables legales, de seguridad y del colegio.
 
@@ -138,11 +143,14 @@ Un timeout o fallo del escáner debe cerrar de forma segura y permitir reintento
 - Cambios de configuración publicada, cupos y política de espera.
 - Envíos, correcciones, evaluaciones, decisiones, ofertas y respuestas.
 - Consentimientos y aceptación de documentos.
+- Excepciones, exenciones, reprogramaciones, repeticiones y cierres de actividades.
+- Postulaciones asistidas, presencia del adulto responsable y acciones del operador.
+- Documentos con origen físico y operador/fecha de digitalización.
 - Mensajes de integración, reintentos y confirmaciones.
 
 ### Contenido mínimo
 
-Actor, tipo de identidad, tenant/ámbito plataforma, acción, recurso opaco, resultado, marca temporal, correlación, canal y motivo cuando corresponda. No almacenar el contenido sensible completo en el evento; registrar referencias y cambios minimizados.
+Actor, tipo de identidad, tenant/ámbito plataforma, acción, recurso opaco, resultado, marca temporal, correlación, canal y motivo cuando corresponda. En una elevación registrar además alcance, categorías, inicio, expiración y resultado. No almacenar el contenido sensible completo en el evento; registrar referencias y cambios minimizados.
 
 La inmutabilidad debe ser práctica y verificable: acceso de escritura restringido, almacenamiento append-only o controles equivalentes, retención definida y monitoreo de integridad. La tecnología queda pendiente.
 
@@ -152,6 +160,9 @@ La inmutabilidad debe ser práctica y verificable: acceso de escritura restringi
 
 - Cada campo tiene propósito, obligatoriedad, audiencia y periodo tentativo.
 - Se evita pedir información “por si acaso”.
+- PIE/NEE se captura progresivamente sólo para preparar apoyos, adecuaciones o necesidades justificadas; no es elegibilidad general.
+- Salud/tratamientos se captura sólo ante una necesidad funcional concreta y con el mínimo detalle.
+- El ingreso familiar queda fuera del formulario de admisión MVP y se separa de cualquier proceso financiero futuro.
 - El consentimiento no sustituye otras obligaciones y debe validarse legalmente.
 
 ### Uso y compartición
