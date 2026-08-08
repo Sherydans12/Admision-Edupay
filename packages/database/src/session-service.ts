@@ -1,12 +1,9 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
-import type { PrismaClient } from "./generated/prisma/client.js";
-import { NoopAuditSink, type AuditSink } from "./audit.js";
-import {
-  NoopSecurityEventSink,
-  type SecurityEventSink,
-} from "./security-events.js";
+import type { Prisma, PrismaClient } from "./generated/prisma/client.js";
+import type { AuditSink } from "./audit.js";
 import { getSessionConfig, type SessionConfig } from "./session-config.js";
+import type { SecurityEventSink } from "./security-events.js";
 
 export interface IssuedSession {
   absoluteExpiresAt: Date;
@@ -22,11 +19,22 @@ export interface ResolvedSession {
   userId: string;
 }
 
-interface SessionServiceOptions {
-  auditSink?: AuditSink;
+export interface SessionServiceOptions {
+  auditSink: AuditSink;
   correlationId?: string;
-  securityEvents?: SecurityEventSink;
+  securityEvents: SecurityEventSink;
   sessionConfig?: SessionConfig;
+}
+
+interface LockedSessionRow {
+  absolute_expires_at: Date;
+  idle_expires_at: Date;
+  last_seen_at: Date;
+  revoked_at: Date | null;
+  session_id: string;
+  token_hash: string;
+  user_id: string;
+  user_status: "ACTIVE" | "SUSPENDED" | "DISABLED";
 }
 
 function hashToken(token: string): Buffer {
@@ -42,32 +50,35 @@ function isDigestEqual(storedHash: string, digest: Buffer): boolean {
   return stored.length === digest.length && timingSafeEqual(stored, digest);
 }
 
-function validAt(
-  row: { absoluteExpiresAt: Date; idleExpiresAt: Date; revokedAt: Date | null },
-  now: Date,
-) {
+function rowIsValid(row: LockedSessionRow, now: Date): boolean {
   return (
-    row.revokedAt === null &&
-    row.idleExpiresAt > now &&
-    row.absoluteExpiresAt > now
+    row.revoked_at === null &&
+    row.idle_expires_at > now &&
+    row.absolute_expires_at > now &&
+    row.user_status === "ACTIVE"
   );
 }
 
 export class SessionService {
-  private readonly auditSink: AuditSink;
   private readonly correlationId: string;
-  private readonly securityEvents: SecurityEventSink;
   private readonly sessionConfig: SessionConfig;
 
   constructor(
     private readonly prisma: PrismaClient,
-    options: SessionServiceOptions = {},
+    private readonly options: SessionServiceOptions,
   ) {
-    this.auditSink = options.auditSink ?? new NoopAuditSink();
     this.correlationId =
       options.correlationId ?? "synthetic-session-correlation";
-    this.securityEvents = options.securityEvents ?? new NoopSecurityEventSink();
     this.sessionConfig = options.sessionConfig ?? getSessionConfig();
+  }
+
+  private async recordInvalidSession(now: Date): Promise<void> {
+    await this.options.securityEvents.record({
+      code: "INVALID_SESSION",
+      correlationId: this.correlationId,
+      occurredAt: now,
+      result: "DENY",
+    });
   }
 
   async issueSession(userId: string, now = new Date()): Promise<IssuedSession> {
@@ -96,7 +107,7 @@ export class SessionService {
       },
     });
 
-    this.auditSink.record({
+    await this.options.auditSink.record({
       action: "SESSION_ISSUED",
       actorId: userId,
       correlationId: this.correlationId,
@@ -112,96 +123,173 @@ export class SessionService {
     return { absoluteExpiresAt, idleExpiresAt, sessionId: session.id, token };
   }
 
+  private async lockSession(
+    transaction: Prisma.TransactionClient,
+    tokenHash: string,
+  ): Promise<LockedSessionRow | undefined> {
+    const [row] = await transaction.$queryRaw<LockedSessionRow[]>`
+      SELECT
+        s.id AS session_id,
+        s.user_id,
+        s.token_hash,
+        s.last_seen_at,
+        s.idle_expires_at,
+        s.absolute_expires_at,
+        s.revoked_at,
+        u.status AS user_status
+      FROM platform_sessions s
+      JOIN platform_users u ON u.id = s.user_id
+      WHERE s.token_hash = ${tokenHash}
+      FOR UPDATE OF s
+    `;
+    return row;
+  }
+
   async resolveSession(
     token: string,
     now = new Date(),
   ): Promise<ResolvedSession | undefined> {
     if (token.trim() === "") {
+      await this.recordInvalidSession(now);
       return undefined;
     }
 
     const digest = hashToken(token);
-    const row = await this.prisma.platformSession.findUnique({
-      where: { tokenHash: digest.toString("hex") },
-      include: { user: true },
-    });
+    const result = await this.prisma.$transaction(async (transaction) => {
+      const row = await this.lockSession(transaction, digest.toString("hex"));
+      if (
+        row === undefined ||
+        !isDigestEqual(row.token_hash, digest) ||
+        !rowIsValid(row, now)
+      ) {
+        return undefined;
+      }
 
-    if (
-      row === null ||
-      !isDigestEqual(row.tokenHash, digest) ||
-      !validAt(row, now) ||
-      row.user.status !== "ACTIVE"
-    ) {
-      await this.securityEvents.record({
-        code: "INVALID_SESSION",
-        correlationId: this.correlationId,
-        occurredAt: now,
-        result: "DENY",
+      const nextIdleExpiry = new Date(
+        now.getTime() + this.sessionConfig.idleTtlSeconds * 1000,
+      );
+      const idleExpiresAt =
+        nextIdleExpiry < row.absolute_expires_at
+          ? nextIdleExpiry
+          : row.absolute_expires_at;
+      await transaction.platformSession.update({
+        data: { idleExpiresAt, lastSeenAt: now },
+        where: { id: row.session_id },
       });
-      return undefined;
-    }
-
-    const nextIdleExpiry = new Date(
-      now.getTime() + this.sessionConfig.idleTtlSeconds * 1000,
-    );
-    const idleExpiresAt =
-      nextIdleExpiry < row.absoluteExpiresAt
-        ? nextIdleExpiry
-        : row.absoluteExpiresAt;
-    await this.prisma.platformSession.update({
-      data: { idleExpiresAt, lastSeenAt: now },
-      where: { id: row.id },
+      return {
+        absoluteExpiresAt: row.absolute_expires_at,
+        idleExpiresAt,
+        sessionId: row.session_id,
+        userId: row.user_id,
+      };
     });
 
-    return {
-      absoluteExpiresAt: row.absoluteExpiresAt,
-      idleExpiresAt,
-      sessionId: row.id,
-      userId: row.userId,
-    };
+    if (result === undefined) {
+      await this.recordInvalidSession(now);
+    }
+    return result;
   }
 
   async rotateSession(
     token: string,
     now = new Date(),
   ): Promise<IssuedSession | undefined> {
-    const current = await this.resolveSession(token, now);
-    if (current === undefined) {
+    if (token.trim() === "") {
+      await this.recordInvalidSession(now);
       return undefined;
     }
+    const digest = hashToken(token);
+    const next = await this.prisma.$transaction(async (transaction) => {
+      const row = await this.lockSession(transaction, digest.toString("hex"));
+      if (
+        row === undefined ||
+        !isDigestEqual(row.token_hash, digest) ||
+        !rowIsValid(row, now)
+      ) {
+        return undefined;
+      }
 
-    await this.prisma.platformSession.update({
-      data: { revokedAt: now },
-      where: { id: current.sessionId },
+      await transaction.platformSession.update({
+        data: { revokedAt: now },
+        where: { id: row.session_id },
+      });
+      const tokenValue = randomBytes(32).toString("base64url");
+      const idleExpiresAt = new Date(
+        now.getTime() + this.sessionConfig.idleTtlSeconds * 1000,
+      );
+      const absoluteExpiresAt = new Date(
+        now.getTime() + this.sessionConfig.absoluteTtlSeconds * 1000,
+      );
+      const session = await transaction.platformSession.create({
+        data: {
+          absoluteExpiresAt,
+          idleExpiresAt,
+          issuedAt: now,
+          lastSeenAt: now,
+          rotatedFromSessionId: row.session_id,
+          tokenHash: hashTokenHex(tokenValue),
+          userId: row.user_id,
+        },
+      });
+      return {
+        absoluteExpiresAt,
+        idleExpiresAt,
+        sessionId: session.id,
+        token: tokenValue,
+        userId: row.user_id,
+        previousSessionId: row.session_id,
+      };
     });
-    const next = await this.issueSession(current.userId, now);
-    await this.prisma.platformSession.update({
-      data: { rotatedFromSessionId: current.sessionId },
-      where: { id: next.sessionId },
+
+    if (next === undefined) {
+      await this.recordInvalidSession(now);
+      return undefined;
+    }
+    await this.options.auditSink.record({
+      action: "SESSION_ROTATED",
+      actorId: next.userId,
+      correlationId: this.correlationId,
+      effectiveActorId: next.userId,
+      metadata: {
+        previousSessionId: next.previousSessionId,
+        sessionId: next.sessionId,
+      },
+      occurredAt: now,
+      purpose: "identity.session",
+      resourceId: next.sessionId,
+      resourceType: "PlatformSession",
+      result: "SUCCESS",
     });
-    return next;
+    return {
+      absoluteExpiresAt: next.absoluteExpiresAt,
+      idleExpiresAt: next.idleExpiresAt,
+      sessionId: next.sessionId,
+      token: next.token,
+    };
   }
 
   async revokeSession(token: string, now = new Date()): Promise<void> {
     const tokenHash = hashTokenHex(token);
-    const session = await this.prisma.platformSession.findUnique({
-      where: { tokenHash },
+    const changed = await this.prisma.$transaction(async (transaction) => {
+      const row = await this.lockSession(transaction, tokenHash);
+      if (row === undefined || row.revoked_at !== null) return undefined;
+      await transaction.platformSession.update({
+        data: { revokedAt: now },
+        where: { id: row.session_id },
+      });
+      return row;
     });
-    if (session === null) return;
+    if (changed === undefined) return;
 
-    await this.prisma.platformSession.update({
-      data: { revokedAt: now },
-      where: { id: session.id },
-    });
-    this.auditSink.record({
+    await this.options.auditSink.record({
       action: "SESSION_REVOKED",
-      actorId: session.userId,
+      actorId: changed.user_id,
       correlationId: this.correlationId,
-      effectiveActorId: session.userId,
-      metadata: { sessionId: session.id },
+      effectiveActorId: changed.user_id,
+      metadata: { sessionId: changed.session_id },
       occurredAt: now,
       purpose: "identity.session",
-      resourceId: session.id,
+      resourceId: changed.session_id,
       resourceType: "PlatformSession",
       result: "SUCCESS",
     });
@@ -215,7 +303,7 @@ export class SessionService {
       data: { revokedAt: now },
       where: { revokedAt: null, userId },
     });
-    this.auditSink.record({
+    await this.options.auditSink.record({
       action: "ALL_USER_SESSIONS_REVOKED",
       actorId: userId,
       correlationId: this.correlationId,
