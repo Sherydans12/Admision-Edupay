@@ -9,9 +9,9 @@ flowchart LR
     E0["E0 Descubrimiento"] --> G0{"G0 Aprobada / cerrada"}
     G0 --> E1["E1 Diseño funcional — cerrada"]
     E1 --> G1{"G1 Aprobada / cerrada"}
-    G1 --> E2["E2 Arquitectura — decisiones listas"]
-    E2 --> G2{"G2 Aprobar decisiones técnicas"}
-    G2 --> E3["E3 Prototipo UX"]
+    G1 --> E2["E2 Arquitectura — cerrada"]
+    E2 --> G2{"G2 Aprobada / cerrada"}
+    G2 --> E3["E3 Prototipo UX — autorizada"]
     E3 --> G3{"G3 Validar experiencia"}
     G3 --> E4["E4 Fundación técnica"]
     E4 --> G4{"G4 Autorizar construcción MVP"}
@@ -57,12 +57,9 @@ Establecer lenguaje común, alcance, evidencia, requisitos iniciales, riesgos y 
 - **Fuentes:** SRC-001 a SRC-005.
 - **Decisiones incluidas:** D-001 a D-024.
 - **Contradicciones:** C-009, C-011 y C-014 `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING`; C-010 resuelta; C-013 `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
-- **ADR-0001:** `PROPOSED`.
 - **Etapa autorizada:** E1 — Diseño funcional.
 
 Registro formal: `docs/approvals/G0-foundation-closure-2026-08-06.md`.
-
-El cierre no autoriza implementación, scaffolding, stack definitivo, datos reales ni integración ejecutable. Cambios sustantivos posteriores al commit aprobado requieren nueva revisión.
 
 ## E1 — Diseño funcional
 
@@ -74,7 +71,7 @@ El cierre no autoriza implementación, scaffolding, stack definitivo, datos real
 - Commit funcional aprobado en G1: `e233927659b0709d37de8c4b66b55439a854e0e1`.
 - Registro G1: `docs/approvals/G1-functional-approval-2026-08-08.md`.
 
-E1 consolidó comportamiento funcional, 58 criterios de aceptación, 22 escenarios end-to-end, backlog funcional de 22 P0/6 P1/5 P2, diferidos clasificados y trazabilidad integral. El cierre no autoriza implementación.
+E1 consolidó comportamiento funcional, 58 criterios de aceptación, 22 escenarios end-to-end, backlog funcional de 22 P0/6 P1/5 P2, diferidos clasificados y trazabilidad integral.
 
 ### G1 — Aprobación funcional
 
@@ -84,52 +81,46 @@ E1 consolidó comportamiento funcional, 58 criterios de aceptación, 22 escenari
 - **Commit funcional aprobado:** `e233927659b0709d37de8c4b66b55439a854e0e1`.
 - **PR:** #4 — `E1-C: Consolidate functional specification for G1`.
 - **Aprobador funcional:** Nicolás Sena.
-- **Resultado de readiness:** `PASS_WITH_DEFERRED`, sin bloqueantes funcionales materiales.
-- **Etapa autorizada:** E2 — Arquitectura, después de la fusión del PR #4.
+- **Resultado de readiness:** `PASS_WITH_DEFERRED`.
+- **Etapa autorizada:** E2 — Arquitectura.
 
-Q-310 permanece `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`. Q-301 a Q-309 continúan como `FUTURE_INTEGRATION_PENDING` para E7/G7. C-013 conserva `LEGAL_VALIDATION_PENDING` antes de datos reales/piloto productivo. Q-201 a Q-210 permanecen para E2 y compuertas posteriores según corresponda.
-
-G1 aprueba comportamiento funcional, criterios de aceptación, escenarios, backlog y clasificación de diferidos. No autoriza código, scaffolding, dependencias, datos reales ni integración técnica con EduPay.
+Q-310 permanece `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`. Q-301 a Q-309 continúan como `FUTURE_INTEGRATION_PENDING` para E7/G7. C-013 conserva `LEGAL_VALIDATION_PENDING` antes de datos reales/piloto productivo.
 
 ## E2 — Arquitectura
 
-**Estado:** `IN PROGRESS / READY FOR G2 REVIEW`. G2 continúa `NO APROBADA`.
+**Estado:** `CLOSED / ARCHITECTURE APPROVED`.
 
-La primera consolidación integral está documentada en `docs/e2/01..12`. Las ocho elecciones humanas están registradas en el workbook y el checklist concluye `PASS_WITH_DEFERRED`: no existe bloqueo arquitectónico material para revisión G2. E2-D-001..017 y ADR-0001..0005 siguen propuestas hasta la aprobación formal de G2.
+- **Commit arquitectónico aprobado:** `15b49e284ca642761f2df744ce73bb6a3d10e289`.
+- **PR:** #5 — `E2: Architecture design and G2 preparation`.
+- **Decisiones aprobadas:** E2-D-001 a E2-D-017.
+- **ADR-0001:** `ACCEPTED`.
+- **ADR-0002:** `ACCEPTED`.
+- **ADR-0003:** `ACCEPTED_WITH_CONDITION`.
+- **ADR-0004:** `ACCEPTED`.
+- **ADR-0005:** `ACCEPTED`.
+- **Registro:** `docs/approvals/G2-architecture-approval-2026-08-08.md`.
 
-### Objetivo
+La arquitectura aprobada establece modular monolith, monorepo independiente, stack alineado con EduPay sin compartir dominios/datos/sesiones, PostgreSQL, shared schema + `tenantId`, RLS condicionada a PoC, sesión opaca server-side, object storage privado, jobs/outbox PostgreSQL y runtime Linux containerizado.
 
-Elegir opciones reversibles y documentar decisiones necesarias para seguridad, consistencia y operación.
-
-### Entregables
-
-- Contextos y arquitectura lógica/de despliegue propuesta.
-- Alternativas de stack con criterios, costos y riesgos.
-- Recomendación de `ADR-0001` y ADR arquitectónicas críticas antes de scaffolding.
-- Modelo de datos lógico y estrategia concreta de tenancy.
-- Identidad, autorización, sesiones y soporte excepcional.
-- Archivos privados, escaneo, claves y secretos.
-- Auditoría, observabilidad, backups y recuperación.
-- Contratos conceptuales y pruebas de integración.
-- Modelo de amenazas y ADR.
-- Presupuesto y modelo de capacidad inicial.
+RPO inicial 1 hora y RTO inicial 4 horas son objetivos técnicos, no SLA contractual.
 
 ### G2 — Aprobación arquitectónica
 
-**Estado:** `NO APROBADA`.
+**Estado:** `APPROVED / CLOSED`.
 
-- ADR críticos aprobados.
-- Monorepo/multirepo, archivos, correo, colas, integración, despliegue y tenancy física decididos sólo cuando corresponda.
-- Preguntas Q-201 a Q-210 abordadas al nivel necesario.
-- Revisión de seguridad, privacidad, operación y costos.
-- Prueba conceptual sólo si fue autorizada y eliminable.
-- No existen dependencias o decisiones irreversibles sin dueño.
+- **Aprobación:** `2026-08-08T07:08:00-04:00`.
+- **Commit arquitectónico aprobado:** `15b49e284ca642761f2df744ce73bb6a3d10e289`.
+- **Aprobador:** Nicolás Sena.
+- **Resultado de readiness:** `PASS_WITH_DEFERRED`, sin bloqueantes arquitectónicos materiales.
+- **Etapa autorizada:** E3 — Prototipo UX, después de fusionar el PR #5.
 
-G2 debe aprobar explícitamente la arquitectura antes de continuar a E3. E2 no autoriza implementación productiva ni datos reales.
+Condición obligatoria: antes de G4 debe existir PoC sintética de tenant/RLS/Prisma que demuestre request/job correcto, ausencia de contexto y cross-tenant en deny, pooling sin fuga, Prisma/transacciones/RLS compatibles, roles DB separados y comportamiento fail-closed. Si falla, RLS no se deshabilita silenciosamente: requiere revisión arquitectónica y defensa equivalente aprobada.
 
-El borrador `docs/approvals/G2-architecture-approval-DRAFT.md` permanece `DRAFT / NOT APPROVED`. Q-301 a Q-309 siguen para E7/G7 y C-013 continúa como condición legal previa a datos reales/piloto productivo.
+G2 no autoriza código, scaffolding, dependencias, infraestructura, datos reales ni integración técnica con EduPay. Q-301 a Q-309 siguen para E7/G7. C-013 continúa como condición legal previa a datos reales/piloto productivo.
 
 ## E3 — Prototipo UX
+
+**Estado:** `AUTHORIZED TO START` después de la fusión del PR #5. G3 `NO APROBADA`.
 
 ### Objetivo
 
@@ -171,6 +162,7 @@ Crear la base mínima segura para implementar el MVP aprobado.
 
 ### G4 — Autorización de construcción MVP
 
+- PoC obligatorio tenant/RLS/Prisma aprobado o defensa equivalente revisada.
 - Pruebas de aislamiento multiempresa pasan.
 - Escaneo de secretos/dependencias y controles base pasan.
 - Despliegue y recuperación mínimos demostrados.
