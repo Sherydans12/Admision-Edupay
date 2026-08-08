@@ -2,7 +2,11 @@
 
 ## Modelo horizontal
 
-`PlatformUser`, `PlatformSession` y `Tenant` son control-plane global. `Membership`,
+`PlatformUser`, `PlatformSession` y `Tenant` son control-plane global: identifican la
+plataforma, mantienen sesiones y registran instituciones, por lo que no llevan un
+`tenantId` ambiental ni usan RLS tenant. Ese acceso global de DB no implica autorización
+global de casos de uso; los repositories/services exponen sólo operaciones estrechas.
+`Membership`,
 `RoleAssignment`, `SupportElevation` y `OutboxMessage` son tablas tenant-owned y usan
 `tenantId NOT NULL`, RLS `FORCE ROW LEVEL SECURITY`, policies explícitas y grants por
 migración. No se modelan postulaciones ni otros datos funcionales E5.
@@ -33,10 +37,16 @@ sensitivity, purpose y separación de funciones. Secretaría no puede recomendar
 decidir. Un actor que recomienda un recurso sintético no puede decidirlo. Un superadmin
 global sin elevación no obtiene acceso tenant ambiental.
 
-`SupportElevationService` exige actor autorizado, tenant, razón, propósito, scopes,
+`PlatformExecutionContext` es tenantless y representa operaciones globales. Un superadmin
+ordinario no puede ejecutar `withTenantTransaction` ni producir un `TenantExecutionContext`.
+`SupportElevationService` exige actor autorizado, tenant objetivo, razón, propósito, scopes,
 categorías y expiración. Produce un contexto separado, limitado al tenant y propósito,
-con eventos de inicio/cierre/denegación. Expiración, cierre o revocación vuelven a
-denegar; no se convierte en acceso permanente de la sesión.
+con eventos de inicio/cierre/revocación/denegación. Expiración, cierre o revocación vuelven
+a denegar; no se convierte en acceso permanente de la sesión.
+
+La elevación se crea y resuelve mediante una transacción PostgreSQL marcada únicamente
+como `TRUSTED PLATFORM OPERATION`; el registro persistido se verifica por actor, tenant,
+purpose, scopes, categories, estado y expiry antes de producir un contexto elevado.
 
 ## CSRF
 
@@ -44,9 +54,11 @@ La primitive `InMemoryCsrfService` usa secreto sincronizador hashado, permite m�
 seguros y exige para mutaciones token válido más `Origin`/`Referer` compatible. `HttpOnly`
 no se considera defensa CSRF. La estrategia queda lista para conectarse al borde HTTP
 cuando exista login real.
+Es una foundation/dev single-process: antes de multi-instancia se requiere un secreto
+compartido persistido o una estrategia stateless coherente.
 
 ## Evidencia
 
-Los tests SES-01..SES-12 y AUTH-01..AUTH-12 se ejecutan con Vitest; las pruebas de
+Los tests SES-01..SES-16, AUTH-01..AUTH-12, PLAT-01..03 y ELEV-01..08 se ejecutan con Vitest; las pruebas de
 persistencia usan PostgreSQL real y fixtures sintéticos. La matriz reproducible está en
 `docs/e4/06-e4-security-evidence.md`.

@@ -60,6 +60,9 @@ existe un paquete `shared` de dominio.
 - La sesión es opaque server-side: CSPRNG de 256 bits, hash SHA-256, expiración idle/absolute,
   rotación y revocación. La autorización es deny-by-default y la elevación de soporte es
   temporal, tenant-scoped y auditable.
+- `PlatformExecutionContext` es tenantless; `TenantExecutionContext` sólo nace de membership
+  o de una `VerifiedSupportElevation` resuelta desde DB. Rotation/resolution usan row locks
+  transactionales y existe índice único de sucesor.
 - E4-D añade correlación, logging JSON con redacción, errores uniformes, health/readiness,
   AuditEvent/SecurityEvent, outbox PostgreSQL y adapters no-op/fake sin proveedores externos.
 
@@ -82,7 +85,7 @@ existe un paquete `shared` de dominio.
 - El puerto local puede requerir ajuste coordinado si `55439` se ocupa en otro equipo.
 - El cliente Prisma generado no se versiona: todo ambiente debe ejecutar `pnpm db:generate`.
 - La CI incluye formato, calidad, tests, build, RLS, escaneo de secretos y auditoría de
-  dependencias; los actions externos aún usan tags versionados como deuda de hardening.
+  dependencias; `checkout` y `setup-node` están fijados por SHA.
 - Las credenciales Compose son públicas, sintéticas y exclusivas de desarrollo; no son un
   patrón para secretos ni infraestructura productiva.
 

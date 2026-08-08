@@ -1,7 +1,7 @@
 # E4 — Evidencia de seguridad
 
 Resultados registrados tras la validación local de esta entrega. Comando base:
-`pnpm test` (37 tests), `pnpm test:rls` (8 tests) y los checks raíz descritos en
+`pnpm test` (54 tests), `pnpm test:rls` (8 tests) y los checks raíz descritos en
 `docs/e4/01-local-development.md`.
 
 ## Sesión y CSRF
@@ -20,6 +20,10 @@ Resultados registrados tras la validación local de esta entrega. Comando base:
 | SES-10 | `identity-authorization.integration.spec.ts` | membership A no concede B | PASS |
 | SES-11 | `identity-authorization.integration.spec.ts` | sesión sola no concede permiso | PASS |
 | SES-12 | `operational-foundation.spec.ts` | CSRF inválido rechazado | PASS |
+| SES-13 | `identity-session.integration.spec.ts` | 20 rotations concurrentes producen un solo sucesor | PASS |
+| SES-14 | `identity-session.integration.spec.ts` | old token queda inválido después de rotation | PASS |
+| SES-15 | `identity-session.integration.spec.ts` | exactamente un `rotated_from_session_id` en DB | PASS |
+| SES-16 | `identity-session.integration.spec.ts` | revoke/resolve concurrente termina inválido | PASS |
 
 ## Autorización
 
@@ -37,6 +41,32 @@ Resultados registrados tras la validación local de esta entrega. Comando base:
 | AUTH-10 | `identity-authorization.integration.spec.ts` | superadmin sin elevation = DENY | PASS |
 | AUTH-11 | `operational.integration.spec.ts` | elevation correcta sólo en scope = ALLOW | PASS |
 | AUTH-12 | `operational.integration.spec.ts` | elevation expirada/otro tenant = DENY | PASS |
+
+## Platform context y SELF-ELEVATION
+
+| ID | Test/archivo | Resultado | Estado |
+| --- | --- | --- | --- |
+| PLAT-01 | `operational.integration.spec.ts` | contexto platform tenantless no ejecuta operación tenant-owned | PASS |
+| PLAT-02 | `operational.integration.spec.ts` | superadmin sin elevation no obtiene tenant context | PASS |
+| PLAT-03 | `operational.integration.spec.ts` | membership produce contexto tenant válido | PASS |
+| ELEV-01 | `operational.integration.spec.ts` | superadmin tenantless crea/resuelve elevation | PASS |
+| ELEV-02 | `operational.integration.spec.ts` | sin elevation no se produce contexto tenant | PASS |
+| ELEV-03 | `operational.integration.spec.ts` | elevation A no concede B | PASS |
+| ELEV-04 | `operational.integration.spec.ts` | elevation cerrada no resuelve | PASS |
+| ELEV-05 | `operational.integration.spec.ts` | elevation revocada no resuelve | PASS |
+| ELEV-06 | `operational.integration.spec.ts` | actor distinto no puede cerrar/revocar | PASS |
+| ELEV-07 | `operational.integration.spec.ts` | update inexistente no audita SUCCESS | PASS |
+| ELEV-08 | `operational.integration.spec.ts` | expiry produce DENY | PASS |
+
+## Audit y security sinks
+
+| ID | Test/archivo | Resultado | Estado |
+| --- | --- | --- | --- |
+| AUD-01 | `identity-session.integration.spec.ts` | issue emite `SESSION_ISSUED` | PASS |
+| AUD-02 | `identity-session.integration.spec.ts` | rotation emite `SESSION_ROTATED` | PASS |
+| AUD-03 | `operational.integration.spec.ts` | start/close elevation emite eventos correctos | PASS |
+| AUD-04 | `identity-session.integration.spec.ts` | sink async es awaited antes de retornar | PASS |
+| AUD-05 | `session-service.ts`, `support-elevation.ts`, `typecheck` | constructores exigen AuditSink/SecurityEventSink; Noop no es default | PASS |
 
 ## PostgreSQL RLS
 

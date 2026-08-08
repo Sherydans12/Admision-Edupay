@@ -93,8 +93,8 @@ pnpm security:secrets
 pnpm security:deps
 ```
 
-`pnpm test` ejecuta tests unitarios y de integración contra PostgreSQL real (excepto la
-suite RLS separada). `pnpm test:rls` requiere PostgreSQL real,
+`pnpm test` ejecuta tests unitarios y de integración contra PostgreSQL real (54 tests,
+excepto la suite RLS separada). `pnpm test:rls` requiere PostgreSQL real,
 bootstrap y migración aplicada; no utiliza mocks para afirmar aislamiento.
 
 ## Recuperación del entorno sintético

@@ -10,6 +10,9 @@ Los loggers emiten JSON con `timestamp`, `level`, `service`, `eventCode`,
 `correlationId` y `result`. La sanitización elimina tokens, cookies, passwords, CSRF,
 Authorization, URLs de base de datos, secretos y contenido sensible. `AuditEvent` y
 `SecurityEvent` son contratos separados del log operacional y usan metadata allowlisted.
+Los servicios sensibles reciben `AuditSink` y `SecurityEventSink` explícitos; no crean
+`Noop` implícitos. Sus métodos esperan sinks async antes de devolver éxito, y una falla
+del sink propaga error en lugar de aparentar auditoría exitosa.
 
 ## Errores y health
 
@@ -31,5 +34,5 @@ SDKs ni network calls.
 
 CI instala frozen, genera/aplica migraciones, ejecuta format/lint/typecheck/test/build,
 la PoC RLS real, escaneo de secretos de alta confianza y `pnpm audit --audit-level=high`.
-Los datos y credenciales del pipeline son sintéticos. Vulnerabilidades HIGH/CRITICAL se
-reportan y no se silencian.
+Los actions `checkout` y `setup-node` están fijados por SHA. Los datos y credenciales del
+pipeline son sintéticos. Vulnerabilidades HIGH/CRITICAL se reportan y no se silencian.
