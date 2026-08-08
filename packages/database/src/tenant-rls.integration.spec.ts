@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import { Pool } from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { getRequiredEnvironment } from "./environment.js";
 import { createAppPrismaClient } from "./prisma-client.js";
@@ -45,7 +45,7 @@ async function listForCurrentTenant() {
 }
 
 describe.sequential("ADR-0003 PostgreSQL/Prisma tenant RLS PoC", () => {
-  beforeAll(clearProbeRecords);
+  beforeEach(clearProbeRecords);
 
   afterAll(async () => {
     await appPrisma.$disconnect();
@@ -55,9 +55,6 @@ describe.sequential("ADR-0003 PostgreSQL/Prisma tenant RLS PoC", () => {
   it("POC-01 request context tenant A only sees tenant A", async () => {
     await runWithTenantContext(syntheticAuthenticatedRequestContext("A"), () =>
       createForCurrentTenant("request-a"),
-    );
-    await runWithTenantContext(syntheticTrustedJobContext("B"), () =>
-      createForCurrentTenant("job-b-seed"),
     );
 
     const records = await runWithTenantContext(
@@ -72,6 +69,10 @@ describe.sequential("ADR-0003 PostgreSQL/Prisma tenant RLS PoC", () => {
   });
 
   it("POC-02 trusted job context tenant B only sees tenant B", async () => {
+    await runWithTenantContext(syntheticTrustedJobContext("B"), () =>
+      createForCurrentTenant("job-b-seed"),
+    );
+
     const records = await runWithTenantContext(
       syntheticTrustedJobContext("B"),
       listForCurrentTenant,
@@ -134,6 +135,13 @@ describe.sequential("ADR-0003 PostgreSQL/Prisma tenant RLS PoC", () => {
   });
 
   it("POC-05 alternating and concurrent pooled transactions never leak tenants", async () => {
+    await runWithTenantContext(syntheticAuthenticatedRequestContext("A"), () =>
+      createForCurrentTenant("pool-a-seed"),
+    );
+    await runWithTenantContext(syntheticTrustedJobContext("B"), () =>
+      createForCurrentTenant("pool-b-seed"),
+    );
+
     await Promise.all(
       Array.from({ length: 40 }, async (_, index) => {
         const tenant = index % 2 === 0 ? "A" : "B";

@@ -6,6 +6,7 @@ export default defineConfig({
       reporter: ["text", "json", "html"],
     },
     exclude: ["**/node_modules/**", "**/dist/**", "**/.next/**"],
+    fileParallelism: false,
     include: ["apps/**/*.spec.ts", "packages/**/*.spec.ts"],
   },
 });

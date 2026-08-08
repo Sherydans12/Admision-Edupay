@@ -31,9 +31,3 @@ GRANT CONNECT ON DATABASE admission_dev TO admission_migrator, admission_app;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 GRANT USAGE, CREATE ON SCHEMA public TO admission_migrator;
 GRANT USAGE ON SCHEMA public TO admission_app;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE admission_migrator IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO admission_app;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE admission_migrator IN SCHEMA public
-  GRANT USAGE, SELECT ON SEQUENCES TO admission_app;
