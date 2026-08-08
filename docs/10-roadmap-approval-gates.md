@@ -11,7 +11,7 @@ flowchart LR
     E1 --> G1{"G1 Aprobada / cerrada"}
     G1 --> E2["E2 Arquitectura — cerrada"]
     E2 --> G2{"G2 Aprobada / cerrada"}
-    G2 --> E3["E3 Prototipo UX — autorizada"]
+    G2 --> E3["E3 Prototipo UX — lista para G3"]
     E3 --> G3{"G3 Validar experiencia"}
     G3 --> E4["E4 Fundación técnica"]
     E4 --> G4{"G4 Autorizar construcción MVP"}
@@ -120,7 +120,7 @@ G2 no autoriza código, scaffolding, dependencias, infraestructura, datos reales
 
 ## E3 — Prototipo UX
 
-**Estado:** `IN PROGRESS / READY FOR UX DECISIONS`. Rama `docs/e3-ux-prototype`; G3 `NO APROBADA` y E4 `NO AUTORIZADA`.
+**Estado:** `IN PROGRESS / READY FOR G3 REVIEW`. Rama `docs/e3-ux-prototype`; G3 `NO APROBADA` y E4 `NO AUTORIZADA`.
 
 ### Objetivo
 
@@ -134,16 +134,24 @@ Validar comprensión y eficiencia antes de construir producción.
 - Estados técnicos y de negocio: vacío, carga, error, sesión expirada, async, scanning, oferta y waitlist.
 - Patrones de formularios, documentos, correcciones y builder administrativo mínimo.
 - Responsive mobile-first para Familia, desktop-first/tablet para Personal y criterios WCAG 2.2 AA.
-- Board consolidado, 20 tareas de validación y workbook UX con HUX-001..HUX-005.
-- Checklist `PASS_WITH_DEFERRED` y borrador G3 sin aprobación automática.
+- Board consolidado, 20 tareas de validación y workbook UX con UX-D-001..UX-D-013.
+- HUX-001..HUX-005 resueltas; HUX-005 incorpora UX-D-010 para confirmaciones apropiadas de acciones críticas.
+- Copy de disponibilidad separado explícitamente de una oferta de admisión emitida.
+- Checklist `PASS_WITH_DEFERRED` sin bloqueantes UX materiales y borrador G3 sin aprobación automática.
 
 ### G3 — Validación UX
 
-- Familias y personal representativos completan tareas críticas.
-- Hallazgos severos resueltos o aceptados con plan.
-- WCAG objetivo confirmado y revisado.
-- Diseño no expone información interna o de terceros.
-- Se resuelven las decisiones humanas UX requeridas antes de registrar aprobación.
+**Estado:** `NO APROBADA`.
+
+La evidencia E3 está lista para revisión final de G3. La compuerta debe confirmar:
+
+- navegación y estructura P0;
+- acciones críticas y confirmaciones;
+- waitlist, disponibilidad y oferta sin inducir a error;
+- recomendación y decisión separadas;
+- seguridad/visibilidad por rol y tenant;
+- responsive y WCAG 2.2 AA como criterio;
+- hallazgos severos resueltos o aceptados con plan.
 
 El prototipo no constituye aplicación productiva ni autoriza conectar datos reales. La aprobación G3 tampoco equivale a G4.
 
