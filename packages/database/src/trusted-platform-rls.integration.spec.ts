@@ -119,6 +119,18 @@ describe.sequential("trusted platform support RLS boundary", () => {
         }),
       ),
     ).rejects.toThrow(/row-level security|RLS/i);
+    const updated = await runPlatformGucTransaction(
+      actorA,
+      tenantA,
+      (transaction) =>
+        transaction.outboxMessage
+          .updateMany({
+            data: { lastErrorCode: "synthetic-denied" },
+            where: { tenantId: tenantA },
+          })
+          .then((result) => result.count),
+    );
+    expect(updated).toBe(0);
   });
 
   it("TRUST-03 denies role assignment reads for the target tenant", async () => {
