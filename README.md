@@ -8,7 +8,7 @@ La primera institución prevista es Colegio Particular Conquistadores. El produc
 
 La **fundación documental G0 está aprobada y cerrada** sobre el commit `1d33191d7b0bb9e4d6f2c99dfa9a8baed701a379`. La aprobación fue otorgada por Nicolás Sena el `2026-08-06T14:16:00-04:00`, con Arturo Javier Galleguillos Trigo, Sostenedor de Colegio Particular Conquistadores, como representante formal institucional.
 
-E1 — Diseño funcional está autorizada. E1-A quedó cerrada como registro de decisiones de producto y E1-B quedó `CLOSED / OPERATIONAL BASELINE APPROVED`. E1-C está autorizada para iniciar después de la fusión del PR #3. G1 continúa `NO APROBADA` y requiere consolidación funcional y aprobación humana explícita.
+E1 — Diseño funcional está autorizada. E1-A quedó cerrada como registro de decisiones de producto y E1-B quedó `CLOSED / OPERATIONAL BASELINE APPROVED`. E1-C está `IN PROGRESS / READY FOR G1 REVIEW`: la consolidación funcional, criterios, escenarios, backlog y diferidos están preparados para revisión humana. G1 continúa `NO APROBADA` hasta una aprobación explícita.
 
 Esta autorización permite únicamente continuar el diseño funcional. No autoriza implementación, uso de datos reales, integración ejecutable ni selección definitiva de stack. `ADR-0001` permanece `PROPOSED`.
 
@@ -50,13 +50,20 @@ Esta autorización permite únicamente continuar el diseño funcional. No autori
 | `docs/e1/07-institutional-validation-baseline.md` | Validaciones institucionales y reglas operativas de inicio de E1-B. |
 | `docs/e1/08-pilot-operational-rules.md` | Reglas operativas funcionales canónicas del piloto. |
 | `docs/e1/09-pilot-configuration-matrix.md` | Matriz de parámetros y configuración funcional del piloto. |
+| `docs/e1/11-functional-specification.md` | Especificación funcional canónica para G1. |
+| `docs/e1/12-acceptance-criteria.md` | Criterios de aceptación funcionales verificables. |
+| `docs/e1/13-end-to-end-scenarios.md` | Escenarios felices, alternos, excepciones y seguridad. |
+| `docs/e1/14-mvp-backlog.md` | Backlog funcional MVP priorizado P0/P1/P2. |
+| `docs/e1/15-deferred-and-out-of-scope.md` | Configuración, legal, seguridad/operación, integración futura y fuera de alcance. |
+| `docs/e1/16-g1-readiness-checklist.md` | Checklist objetivo de preparación para G1. |
+| `docs/approvals/G1-functional-approval-DRAFT.md` | Borrador de paquete de aprobación G1; no aprobado. |
 
 ## Cómo continuar
 
-1. Mantener E1 únicamente como diseño funcional.
-2. Iniciar E1-C después de la fusión del PR #3.
-3. Consolidar criterios de aceptación, casos felices/alternos/excepciones y backlog MVP antes de solicitar G1.
+1. Revisar humanamente el paquete E1-C y el checklist de preparación G1.
+2. Aprobar, modificar o devolver G1 de forma explícita sobre un commit identificado.
+3. Mantener E2/G2 sin autorización hasta una decisión posterior expresa.
 4. Designar al responsable legal/normativo antes de autorizar datos reales para el piloto.
-5. Evaluar `ADR-0001` en arquitectura antes de cualquier scaffolding.
+5. Mantener `ADR-0001` como propuesta hasta su compuerta arquitectónica.
 
-No se debe comenzar scaffolding, seleccionar definitivamente el stack, usar datos reales ni implementar una integración con EduPay por efecto del cierre de E1-B.
+La consolidación E1-C no autoriza scaffolding, stack definitivo, datos reales, arquitectura ni integración ejecutable con EduPay.

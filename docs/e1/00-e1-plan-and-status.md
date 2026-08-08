@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Entrega | E1 — Diseño funcional |
-| Estado | E1-A `CLOSED`; E1-B `CLOSED / OPERATIONAL BASELINE APPROVED`; E1-C `IN PROGRESS` |
+| Estado | E1-A `CLOSED`; E1-B `CLOSED / OPERATIONAL BASELINE APPROVED`; E1-C `IN PROGRESS / READY FOR G1 REVIEW` |
 | Compuerta vigente | E1 autorizada; G1 `NO APROBADA` |
 | Base revisada | E1-B fusionada a `main` en `168d383489dfd9d5d7a1f48a8a9e25ea330fff13` |
 | Naturaleza | Documentación funcional; no autoriza implementación |
@@ -33,7 +33,7 @@ Convertir la fundación aprobada en comportamientos funcionales verificables: ac
 | --- | --- | --- |
 | E1-A | Establecer actores, journeys, casos de uso y paquete de preguntas | `CLOSED / PRODUCT DECISIONS RECORDED` |
 | E1-B | Incorporar decisiones institucionales al detalle funcional | `CLOSED / OPERATIONAL BASELINE APPROVED` |
-| E1-C | Consolidar y verificar la especificación funcional, criterios de aceptación, backlog y evidencia para G1 | `IN PROGRESS` |
+| E1-C | Consolidar y verificar la especificación funcional, criterios de aceptación, backlog y evidencia para G1 | `IN PROGRESS / READY FOR G1 REVIEW` |
 
 La división no crea compuertas nuevas. G1 sólo puede aprobarse mediante decisión humana explícita.
 
@@ -80,7 +80,7 @@ E1-B consolidó:
 | E1 | `AUTORIZADA` para diseño funcional | Decisión aprobada |
 | E1-A | `CLOSED / PRODUCT DECISIONS RECORDED` | Acta histórica |
 | E1-B | `CLOSED / OPERATIONAL BASELINE APPROVED` | Aprobación humana explícita registrada; PR #3 fusionado |
-| E1-C | `IN PROGRESS` | Consolidación y evidencia para G1 en `docs/e1c-g1-consolidation` |
+| E1-C | `IN PROGRESS / READY FOR G1 REVIEW` | Consolidación, 58 AC, 22 E2E, backlog, diferidos y checklist preparados en `docs/e1c-g1-consolidation` |
 | G1 | `NO APROBADA` | Requiere E1-C y aprobación humana explícita |
 | ADR-0001 | `PROPOSED` | Propuesta arquitectónica fuera de alcance |
 | Datos reales | No autorizados | Límite aprobado |
@@ -103,19 +103,19 @@ E1-B consolidó:
 
 Ninguno de estos elementos reabre E1-B. Sí deben permanecer trazados en la etapa que corresponda.
 
-## Objetivo inmediato de E1-C
+## Resultado documental de E1-C
 
-E1-C debe limitarse a:
+E1-C consolidó:
 
-- consolidar la especificación funcional canónica;
-- definir criterios de aceptación verificables;
-- consolidar casos felices, alternos y excepciones;
-- priorizar backlog MVP y fuera de alcance;
-- resolver inconsistencias de trazabilidad;
-- preparar evidencia y paquete de decisión para G1.
+- especificación funcional canónica;
+- 58 criterios de aceptación verificables;
+- 22 escenarios felices, alternos, excepciones y controles de acceso;
+- backlog de 22 P0, 6 P1 y 5 P2;
+- diferidos y fuera de alcance clasificados;
+- trazabilidad P0 completa, checklist G1 y borrador de paquete de decisión.
 
 E1-C no autoriza arquitectura, código, stack, API, integración ejecutable ni datos reales.
 
 ## Siguiente compuerta humana
 
-Tras completar E1-C, debe solicitarse aprobación funcional G1 de manera explícita. Hasta entonces G1 continúa `NO APROBADA`, E2/G2 no están autorizadas y `ADR-0001` permanece `PROPOSED`.
+El siguiente paso es la revisión humana del paquete E1-C. Hasta una aprobación explícita, G1 continúa `NO APROBADA`, E2/G2 no están autorizadas y `ADR-0001` permanece `PROPOSED`.

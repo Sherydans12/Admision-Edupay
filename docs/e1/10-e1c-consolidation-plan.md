@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E1-C — Consolidación funcional |
-| Estado | `IN PROGRESS` |
+| Estado | `IN PROGRESS / READY FOR G1 REVIEW` |
 | Inicio autorizado | `2026-08-08T05:45:00-04:00` |
 | Base | `main` en `168d383489dfd9d5d7a1f48a8a9e25ea330fff13` |
 | Rama | `docs/e1c-g1-consolidation` |

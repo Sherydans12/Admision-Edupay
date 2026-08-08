@@ -8,7 +8,7 @@
 - **Propietario funcional/técnico:** Nicolás Sena.
 - **Representante formal institucional:** Arturo Javier Galleguillos Trigo, Sostenedor.
 - **Validación institucional:** Arturo Javier Galleguillos Trigo, con participación de Admisión y/o Dirección.
-- **Estado:** G0 cerrada; E1-B `IN PROGRESS / READY FOR CLOSURE REVIEW`; G1 no aprobada.
+- **Estado:** G0 cerrada; E1-B `CLOSED / OPERATIONAL BASELINE APPROVED`; E1-C `IN PROGRESS / READY FOR G1 REVIEW`; G1 no aprobada.
 
 La línea base institucional de E1-B está registrada en [`e1/07-institutional-validation-baseline.md`](e1/07-institutional-validation-baseline.md). Las reglas del piloto se expresan como configuración versionada; no se incorporan condiciones hardcodeadas por institución.
 
