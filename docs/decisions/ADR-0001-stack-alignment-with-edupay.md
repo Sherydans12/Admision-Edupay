@@ -1,6 +1,6 @@
 # ADR-0001: Alineación del stack con EduPay
 
-- **Estado:** PROPOSED
+- **Estado:** PROPOSED / RECOMMENDED_FOR_G2
 - **Fecha:** 2026-08-06
 - **Decisor propuesto:** Nicolás Sena
 - **Compuerta objetivo:** G2 — arquitectura, antes de scaffolding
@@ -63,19 +63,26 @@ Adoptar la **Opción A: utilizar el mismo stack principal de EduPay** para reduc
 
 Esta recomendación no está aprobada y no autoriza instalar dependencias ni iniciar scaffolding.
 
-## Decisiones expresamente no tomadas
+## Evidencia E2
 
-- monorepo o multirepo;
-- reutilización de paquetes o repositorios concretos;
-- proveedor/arquitectura de archivos;
-- proveedor de correo;
-- sistema de colas;
+La evaluación comparativa de E2 en [`docs/e2/02-stack-evaluation.md`](../e2/02-stack-evaluation.md) confirma que la alineación principal reduce curva y fragmentación sin exigir compartir repositorio, base de datos, tablas, sesiones ni ciclo de despliegue con EduPay.
+
+E2 recomienda mantener NestJS 11, TypeScript, Prisma 7, Next.js 16, React 19, PostgreSQL 15 y OpenAPI 3 como referencia inicial, verificando compatibilidad y mantenimiento antes de instalar cualquier dependencia. La alineación no incluye adoptar cPanel/Passenger: el runtime de Admisión debe satisfacer workers, scheduler, archivos privados, antivirus, observabilidad y recuperación conforme a ADR-0005.
+
+Por esta evidencia el ADR queda listo para decisión humana en G2, pero continúa `PROPOSED`.
+
+## Decisiones fuera del alcance de esta ADR
+
+Esta ADR decide únicamente alineación de stack. E2 formuló recomendaciones separadas para algunos puntos, que siguen `PROPOSED` hasta G2:
+
+- monorepo, workspaces y paquetes permitidos: `E2-D-003`;
+- arquitectura de archivos: ADR-0004; proveedor aún diferido;
+- correo y jobs: `E2-D-011/012`; proveedores aún diferidos;
 - mecanismo definitivo de integración;
-- estrategia de despliegue;
-- uso de cPanel/Passenger para Admisión;
-- arquitectura física multiempresa;
-- proveedor de identidad y estrategia de sesión;
-- topología de ambientes, contenedores o CI/CD.
+- deployment y uso de cPanel/Passenger: ADR-0005;
+- arquitectura física multiempresa: ADR-0003;
+- identidad y estrategia de sesión: `E2-D-007`;
+- CI/CD ejecutable e infraestructura, fuera de E2.
 
 Docker Compose figura únicamente como práctica local vigente de EduPay; no se crea ni adopta en esta etapa.
 
@@ -96,7 +103,7 @@ Compartir stack no comparte contexto de seguridad. Admisión debe implementar au
 
 ## Validación y reversibilidad
 
-Antes de aceptar este ADR se requiere un spike o análisis arquitectónico explícitamente autorizado, sin datos reales, que evalúe los riesgos anteriores. La decisión debe poder revisarse antes del primer esquema persistente o contrato público. Tras scaffolding y datos, el costo de reversión aumenta significativamente.
+El análisis arquitectónico autorizado está consolidado en E2 sin datos reales. Antes del primer esquema persistente deberán validarse compatibilidad de versiones, RLS/pooling, sesiones y runtime según las ADR relacionadas. La decisión puede revisarse antes de scaffolding o contrato público; después, el costo de reversión aumenta significativamente.
 
 ## Consecuencias si se acepta
 
@@ -111,3 +118,5 @@ Antes de aceptar este ADR se requiere un spike o análisis arquitectónico expl�
 - D-007, D-010 y Q-401 en `docs/09-open-questions.md`.
 - `docs/07-edupay-integration-boundary.md`.
 - `docs/06-multitenancy-security.md`.
+- `docs/e2/02-stack-evaluation.md`.
+- `docs/e2/11-e2-decision-workbook.md` (`E2-D-002`).

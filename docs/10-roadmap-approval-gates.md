@@ -9,7 +9,7 @@ flowchart LR
     E0["E0 Descubrimiento"] --> G0{"G0 Aprobada / cerrada"}
     G0 --> E1["E1 Diseño funcional — cerrada"]
     E1 --> G1{"G1 Aprobada / cerrada"}
-    G1 --> E2["E2 Arquitectura — autorizada"]
+    G1 --> E2["E2 Arquitectura — decisiones listas"]
     E2 --> G2{"G2 Aprobar decisiones técnicas"}
     G2 --> E3["E3 Prototipo UX"]
     E3 --> G3{"G3 Validar experiencia"}
@@ -93,7 +93,9 @@ G1 aprueba comportamiento funcional, criterios de aceptación, escenarios, backl
 
 ## E2 — Arquitectura
 
-**Estado:** `AUTHORIZED TO START` después de la fusión del PR #4. G2 continúa `NO APROBADA`.
+**Estado:** `IN PROGRESS / READY FOR ARCHITECTURE DECISIONS`. G2 continúa `NO APROBADA`.
+
+La primera consolidación integral está documentada en `docs/e2/01..12`. El checklist concluye `PASS_WITH_DEFERRED`: no existe bloqueo arquitectónico material para decidir, pero E2-D-001..017 y ADR-0001..0005 siguen propuestas y necesitan aprobación humana.
 
 ### Objetivo
 
@@ -103,7 +105,7 @@ Elegir opciones reversibles y documentar decisiones necesarias para seguridad, c
 
 - Contextos y arquitectura lógica/de despliegue propuesta.
 - Alternativas de stack con criterios, costos y riesgos.
-- Resolución de `ADR-0001` antes de scaffolding.
+- Recomendación de `ADR-0001` y ADR arquitectónicas críticas antes de scaffolding.
 - Modelo de datos lógico y estrategia concreta de tenancy.
 - Identidad, autorización, sesiones y soporte excepcional.
 - Archivos privados, escaneo, claves y secretos.
@@ -124,6 +126,8 @@ Elegir opciones reversibles y documentar decisiones necesarias para seguridad, c
 - No existen dependencias o decisiones irreversibles sin dueño.
 
 G2 debe aprobar explícitamente la arquitectura antes de continuar a E3. E2 no autoriza implementación productiva ni datos reales.
+
+El borrador `docs/approvals/G2-architecture-approval-DRAFT.md` permanece `DRAFT / NOT APPROVED`. Q-301 a Q-309 siguen para E7/G7 y C-013 continúa como condición legal previa a datos reales/piloto productivo.
 
 ## E3 — Prototipo UX
 

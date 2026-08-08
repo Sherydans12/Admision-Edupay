@@ -5,13 +5,13 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E2 — Arquitectura |
-| Estado | `IN PROGRESS` |
+| Estado | `IN PROGRESS / READY FOR ARCHITECTURE DECISIONS` |
 | Inicio autorizado | `2026-08-08T06:20:00-04:00` |
 | Base | `main` en `c88b8a9ddb094fa37025a9c5c0f40a9c34887425` |
 | Rama | `docs/e2-architecture` |
 | Dependencia | G1 `APPROVED / CLOSED` |
 | G2 | `NO APROBADA` |
-| ADR-0001 | `PROPOSED` |
+| ADR-0001..ADR-0005 | `PROPOSED / RECOMMENDED_FOR_G2` |
 | Implementación | No autorizada |
 | Datos reales | No autorizados |
 | Integración técnica EduPay | No autorizada |
@@ -64,22 +64,23 @@ E2 debe abordar estas preguntas al nivel necesario para G2. Si una pregunta requ
 
 No convertir validaciones legales pre-piloto en bloqueos artificiales de arquitectura cuando exista una decisión técnica segura y reversible.
 
-## Entregables previstos
+## Entregables consolidados
 
 - `01-architecture-overview.md` — arquitectura lógica y de despliegue propuesta.
 - `02-stack-evaluation.md` — evaluación comparativa y recomendación de stack.
-- actualización/resolución de `ADR-0001` sólo después de revisión humana.
+- `ADR-0001` actualizado como recomendación, sin aceptación automática.
+- `ADR-0002..ADR-0005` propuestos para decisiones de alto impacto.
 - `03-logical-data-model.md` — entidades/agregados, ownership y relaciones lógicas.
 - `04-multitenancy-authorization-architecture.md` — tenancy, identidad y autorización.
 - `05-files-security-architecture.md` — almacenamiento privado y pipeline seguro.
-- `06-audit-observability-recovery.md` — auditoría, logs, métricas, backups y recuperación.
-- `07-concurrency-and-consistency.md` — invariantes, transacciones y control de concurrencia.
+- `06-concurrency-and-consistency.md` — invariantes, transacciones, jobs, outbox y email.
+- `07-audit-observability-recovery.md` — auditoría, logs, métricas, backups y recuperación.
 - `08-deployment-and-environments.md` — ambientes, secretos y despliegue propuesto.
 - `09-testing-strategy.md` — estrategia de pruebas y criterios técnicos.
 - `10-threat-model.md` — modelo de amenazas inicial.
 - `11-e2-decision-workbook.md` — decisiones, alternativas, recomendación y estado.
 - `12-g2-readiness-checklist.md` — evidencia para revisión G2.
-- borrador de acta G2, sin aprobación automática.
+- `docs/approvals/G2-architecture-approval-DRAFT.md`, sin aprobación automática.
 
 Los nombres pueden ajustarse si mejora la organización, manteniendo trazabilidad.
 
@@ -115,4 +116,4 @@ E2 puede solicitar revisión G2 cuando:
 
 ## Siguiente compuerta humana
 
-G2 — Aprobación arquitectónica. E2 no puede aprobar G2 automáticamente.
+Resolver las ocho elecciones de `11-e2-decision-workbook.md#human-decisions-required` y luego decidir G2. El checklist resulta `PASS_WITH_DEFERRED`, sin bloqueante arquitectónico material. E2 no puede aprobar G2 automáticamente.
