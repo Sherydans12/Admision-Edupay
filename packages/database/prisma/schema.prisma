@@ -6,6 +6,167 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PlatformUserStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum RoleAssignmentStatus {
+  ACTIVE
+  SUSPENDED
+  REVOKED
+}
+
+enum OutboxMessageStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+/// Identidad global de control-plane; no representa onboarding funcional.
+model PlatformUser {
+  id               String             @id @default(uuid()) @db.Uuid
+  emailNormalized  String             @unique @map("email_normalized") @db.VarChar(320)
+  status           PlatformUserStatus @default(ACTIVE)
+  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  memberships      Membership[]
+  sessions         PlatformSession[]
+  supportElevations SupportElevation[]
+
+  @@map("platform_users")
+}
+
+/// Sesión opaca server-side: sólo tokenHash persistido, nunca el token raw.
+model PlatformSession {
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  tokenHash          String   @unique @map("token_hash") @db.Char(64)
+  issuedAt           DateTime @map("issued_at") @db.Timestamptz(3)
+  lastSeenAt         DateTime @map("last_seen_at") @db.Timestamptz(3)
+  idleExpiresAt      DateTime @map("idle_expires_at") @db.Timestamptz(3)
+  absoluteExpiresAt  DateTime @map("absolute_expires_at") @db.Timestamptz(3)
+  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz(3)
+  rotatedFromSessionId String? @map("rotated_from_session_id") @db.Uuid
+  user               PlatformUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([idleExpiresAt, absoluteExpiresAt])
+  @@map("platform_sessions")
+}
+
+/// Tenant de aislamiento institucional; configuración funcional queda diferida.
+model Tenant {
+  id                String             @id @default(uuid()) @db.Uuid
+  name              String             @db.VarChar(160)
+  status            TenantStatus       @default(ACTIVE)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  memberships       Membership[]
+  roleAssignments   RoleAssignment[]
+  supportElevations SupportElevation[]
+  outboxMessages    OutboxMessage[]
+
+  @@map("tenants")
+}
+
+/// Membership tenant-owned; su consulta de resolución usa candidate + actor transaction-local.
+model Membership {
+  id               String           @id @default(uuid()) @db.Uuid
+  tenantId         String           @map("tenant_id") @db.Uuid
+  userId           String           @map("user_id") @db.Uuid
+  status           MembershipStatus @default(ACTIVE)
+  startsAt         DateTime         @map("starts_at") @db.Timestamptz(3)
+  endsAt           DateTime?        @map("ends_at") @db.Timestamptz(3)
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user             PlatformUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roleAssignments  RoleAssignment[]
+
+  @@unique([tenantId, id])
+  @@unique([userId, tenantId])
+  @@index([tenantId, status])
+  @@map("memberships")
+}
+
+/// Asignación explícita de rol y capacidades; no se infieren permisos desde roleKey.
+model RoleAssignment {
+  id           String               @id @default(uuid()) @db.Uuid
+  tenantId     String               @map("tenant_id") @db.Uuid
+  membershipId String               @map("membership_id") @db.Uuid
+  roleKey      String               @map("role_key") @db.VarChar(80)
+  permissions  String[]
+  scopes       String[]
+  status       RoleAssignmentStatus @default(ACTIVE)
+  startsAt     DateTime             @map("starts_at") @db.Timestamptz(3)
+  endsAt       DateTime?            @map("ends_at") @db.Timestamptz(3)
+  createdAt    DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  membership   Membership           @relation(fields: [tenantId, membershipId], references: [tenantId, id], onDelete: Cascade)
+  tenant       Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, membershipId, status])
+  @@map("role_assignments")
+}
+
+/// Elevación de soporte temporal, scoped y auditable; nunca permiso permanente de sesión.
+model SupportElevation {
+  id          String       @id @default(uuid()) @db.Uuid
+  tenantId    String       @map("tenant_id") @db.Uuid
+  actorUserId String       @map("actor_user_id") @db.Uuid
+  reason      String       @db.VarChar(500)
+  purpose     String       @db.VarChar(120)
+  scopes      String[]
+  categories String[]
+  startedAt   DateTime     @map("started_at") @db.Timestamptz(3)
+  expiresAt   DateTime     @map("expires_at") @db.Timestamptz(3)
+  closedAt    DateTime?    @map("closed_at") @db.Timestamptz(3)
+  revokedAt   DateTime?    @map("revoked_at") @db.Timestamptz(3)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  actor       PlatformUser @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  tenant      Tenant       @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, expiresAt, closedAt, revokedAt])
+  @@index([actorUserId, startedAt])
+  @@map("support_elevations")
+}
+
+/// Outbox técnico sin topics funcionales de admisión; tenant-owned y protegido por RLS.
+model OutboxMessage {
+  id             String             @id @default(uuid()) @db.Uuid
+  tenantId       String             @map("tenant_id") @db.Uuid
+  topic          String             @db.VarChar(120)
+  payload        Json
+  status         OutboxMessageStatus @default(PENDING)
+  idempotencyKey String             @map("idempotency_key") @db.VarChar(160)
+  availableAt    DateTime           @map("available_at") @db.Timestamptz(3)
+  attempts       Int                @default(0)
+  claimedAt      DateTime?          @map("claimed_at") @db.Timestamptz(3)
+  lastErrorCode  String?            @map("last_error_code") @db.VarChar(120)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, idempotencyKey])
+  @@index([tenantId, status, availableAt])
+  @@map("outbox_messages")
+}
+
 /// Entidad exclusivamente sintética para la PoC E4-B de aislamiento tenant/RLS.
 /// No representa un modelo funcional definitivo del producto.
 model TenantProbeRecord {

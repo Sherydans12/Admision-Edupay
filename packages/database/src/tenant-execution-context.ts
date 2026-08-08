@@ -2,11 +2,28 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 export type TenantContextSource = "authenticated_request" | "trusted_job";
 
+export interface SupportElevationContext {
+  readonly categories: readonly string[];
+  readonly closedAt?: Date;
+  readonly expiresAt: Date;
+  readonly id: string;
+  readonly purpose: string;
+  readonly revokedAt?: Date;
+  readonly scopes: readonly string[];
+  readonly tenantId: string;
+}
+
 export interface TenantExecutionContext {
   readonly actorId: string;
+  readonly capabilities?: readonly string[];
   readonly correlationId: string;
+  readonly effectiveActorId?: string;
+  readonly globalSuperadmin?: boolean;
+  readonly membershipId?: string;
   readonly purpose: string;
   readonly source: TenantContextSource;
+  readonly scopes?: readonly string[];
+  readonly supportElevation?: SupportElevationContext;
   readonly tenantId: string;
 }
 
@@ -30,9 +47,47 @@ function validateTenantContext(context: TenantExecutionContext): void {
     );
   }
 
-  for (const [name, value] of Object.entries(context)) {
-    if (typeof value !== "string" || value.trim() === "") {
+  for (const name of [
+    "actorId",
+    "correlationId",
+    "purpose",
+    "source",
+  ] as const) {
+    if (context[name].trim() === "") {
       throw new TypeError(`Tenant execution context requires ${name}`);
+    }
+  }
+
+  for (const name of ["effectiveActorId", "membershipId"] as const) {
+    if (context[name] !== undefined && context[name].trim() === "") {
+      throw new TypeError(`Tenant execution context requires ${name}`);
+    }
+  }
+
+  for (const name of ["capabilities", "scopes"] as const) {
+    if (
+      context[name] !== undefined &&
+      context[name].some((value) => value.trim() === "")
+    ) {
+      throw new TypeError(
+        `Tenant execution context requires non-empty ${name}`,
+      );
+    }
+  }
+
+  if (context.supportElevation !== undefined) {
+    if (context.supportElevation.tenantId !== context.tenantId) {
+      throw new TypeError(
+        "Support elevation tenant must match the execution tenant",
+      );
+    }
+    if (
+      context.supportElevation.scopes.some((value) => value.trim() === "") ||
+      context.supportElevation.categories.some((value) => value.trim() === "")
+    ) {
+      throw new TypeError(
+        "Support elevation scopes and categories must be non-empty",
+      );
     }
   }
 }
@@ -43,7 +98,27 @@ export function runWithTenantContext<T>(
 ): T {
   validateTenantContext(context);
 
-  return tenantContextStorage.run(Object.freeze({ ...context }), operation);
+  const frozenContext = {
+    ...context,
+    capabilities:
+      context.capabilities === undefined
+        ? undefined
+        : Object.freeze([...context.capabilities]),
+    scopes:
+      context.scopes === undefined
+        ? undefined
+        : Object.freeze([...context.scopes]),
+    supportElevation:
+      context.supportElevation === undefined
+        ? undefined
+        : Object.freeze({
+            ...context.supportElevation,
+            categories: Object.freeze([...context.supportElevation.categories]),
+            scopes: Object.freeze([...context.supportElevation.scopes]),
+          }),
+  } as Readonly<TenantExecutionContext>;
+
+  return tenantContextStorage.run(Object.freeze(frozenContext), operation);
 }
 
 export function getRequiredTenantContext(): Readonly<TenantExecutionContext> {
