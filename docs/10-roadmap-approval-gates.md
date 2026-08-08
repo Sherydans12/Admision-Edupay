@@ -120,7 +120,7 @@ G2 no autoriza código, scaffolding, dependencias, infraestructura, datos reales
 
 ## E3 — Prototipo UX
 
-**Estado:** `AUTHORIZED TO START` después de la fusión del PR #5. G3 `NO APROBADA`.
+**Estado:** `IN PROGRESS / READY FOR UX DECISIONS`. Rama `docs/e3-ux-prototype`; G3 `NO APROBADA` y E4 `NO AUTORIZADA`.
 
 ### Objetivo
 
@@ -128,12 +128,14 @@ Validar comprensión y eficiencia antes de construir producción.
 
 ### Entregables
 
-- Arquitectura de información.
-- Prototipos de familia y administración con datos sintéticos.
-- Estados vacíos, carga, error, sesión expirada y recuperación.
-- Flujos de documentos, correcciones, citas, decisión y espera.
-- Contenido y estados visibles revisados.
-- Pruebas de usabilidad y accesibilidad.
+- Arquitectura de información e inventario de 42 pantallas conceptuales.
+- Wireflows de Familia, Secretaría, Admisión y Dirección con datos sintéticos.
+- Workspace de expediente con header, stepper, tabs/secciones y visibilidad por rol.
+- Estados técnicos y de negocio: vacío, carga, error, sesión expirada, async, scanning, oferta y waitlist.
+- Patrones de formularios, documentos, correcciones y builder administrativo mínimo.
+- Responsive mobile-first para Familia, desktop-first/tablet para Personal y criterios WCAG 2.2 AA.
+- Board consolidado, 20 tareas de validación y workbook UX con HUX-001..HUX-005.
+- Checklist `PASS_WITH_DEFERRED` y borrador G3 sin aprobación automática.
 
 ### G3 — Validación UX
 
@@ -141,8 +143,9 @@ Validar comprensión y eficiencia antes de construir producción.
 - Hallazgos severos resueltos o aceptados con plan.
 - WCAG objetivo confirmado y revisado.
 - Diseño no expone información interna o de terceros.
+- Se resuelven las decisiones humanas UX requeridas antes de registrar aprobación.
 
-El prototipo no constituye aplicación productiva ni autoriza conectar datos reales.
+El prototipo no constituye aplicación productiva ni autoriza conectar datos reales. La aprobación G3 tampoco equivale a G4.
 
 ## E4 — Fundación técnica
 

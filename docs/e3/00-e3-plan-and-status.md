@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E3 — Prototipo UX |
-| Estado | `IN PROGRESS` |
+| Estado | `IN PROGRESS / READY FOR UX DECISIONS` |
 | Inicio autorizado | `2026-08-08T07:08:00-04:00` |
 | Base | `main` en `c573dc39460620b82e8152717268bc28b4af3048` |
 | Rama | `docs/e3-ux-prototype` |
@@ -29,8 +29,12 @@ La etapa se mantendrá deliberadamente corta: sólo se diseñarán y validarán 
 - `docs/e1/13-end-to-end-scenarios.md`
 - `docs/e1/14-mvp-backlog.md`
 - `docs/e2/01-architecture-overview.md`
+- `docs/e2/03-logical-data-model.md`
 - `docs/e2/04-multitenancy-authorization-architecture.md`
+- `docs/e2/10-threat-model.md`
 - `docs/approvals/G2-architecture-approval-2026-08-08.md`
+- `docs/10-roadmap-approval-gates.md`
+- `AGENTS.md`
 
 ## Alcance E3
 
@@ -93,7 +97,7 @@ No se diseñará todavía un panel exhaustivo de plataforma si no es P0.
 - Fechas y vencimientos visibles con lenguaje comprensible.
 - Estados vacíos, loading, error, sin permiso y sesión expirada diseñados explícitamente.
 
-## Entregables previstos
+## Entregables consolidados
 
 1. `01-information-architecture.md`
    - sitemap por audiencia;
@@ -115,7 +119,11 @@ No se diseñará todavía un panel exhaustivo de plataforma si no es P0.
 4. `04-staff-critical-flows.md`
    - wireflows de Admisión, Secretaría, Dirección y roles autorizados.
 
-5. `05-screen-states-and-feedback.md`
+5. `05-case-workspace.md`
+   - header, stepper y tabs/secciones;
+   - acciones y visibilidad por rol.
+
+6. `06-screen-states-and-feedback.md`
    - loading;
    - empty;
    - validation;
@@ -125,14 +133,14 @@ No se diseñará todavía un panel exhaustivo de plataforma si no es P0.
    - pending async operation;
    - success/confirmation.
 
-6. `06-content-and-visibility-matrix.md`
+7. `07-content-visibility-matrix.md`
    - qué ve familia;
    - qué ve Secretaría;
    - qué ve Admisión;
    - qué ve Dirección;
    - qué permanece restringido.
 
-7. `07-accessibility-and-responsive-checklist.md`
+8. `08-accessibility-responsive.md`
    - WCAG 2.2 AA;
    - teclado;
    - foco;
@@ -142,15 +150,30 @@ No se diseñará todavía un panel exhaustivo de plataforma si no es P0.
    - touch targets;
    - responsive.
 
-8. `08-prototype-validation-scenarios.md`
+9. `09-form-patterns.md`
+   - formulario por pasos, draft, validación, uploads y builder mínimo.
+
+10. `10-capacity-waitlist-offer-ux.md`
+    - categorías familiares, cupos internos, waitlist, oferta y vencimiento.
+
+11. `11-session-security-ux.md`
+    - sesión expirada, recuperación, prohibido y SELF-ELEVATION.
+
+12. `12-prototype-board.md`
+    - board navegable conceptual de baja fidelidad.
+
+13. `13-prototype-validation-scenarios.md`
    - tareas de usabilidad con datos sintéticos;
    - expected outcome;
    - severidad de hallazgos.
 
-9. `09-g3-readiness-checklist.md`
+14. `14-ux-decision-workbook.md`
+    - UX-D-001..UX-D-013 y HUX-001..HUX-005.
+
+15. `15-g3-readiness-checklist.md`
    - `PASS`, `PASS_WITH_DEFERRED`, `BLOCKED`.
 
-10. `docs/approvals/G3-ux-approval-DRAFT.md`
+16. `docs/approvals/G3-ux-approval-DRAFT.md`
     - borrador sin aprobación automática.
 
 ## Prototipo
@@ -202,6 +225,15 @@ E3 puede solicitar G3 cuando:
 - no se exponga información de otro tenant o caso;
 - exista checklist G3 sin bloqueantes UX severos;
 - G3 permanezca `NO APROBADA` hasta decisión humana explícita.
+
+## Estado de consolidación
+
+- 42 pantallas conceptuales: 18 Familia, 18 Personal y 6 Administración mínima.
+- 18 wireflows Familia, wireflows por rol para Personal y board consolidado.
+- 20 tareas sintéticas listas para validación humana.
+- 13 decisiones UX recomendadas y 5 elecciones humanas requeridas.
+- Checklist G3 `PASS_WITH_DEFERRED`, sin bloqueante UX material identificado.
+- E3 todavía no está aprobada: queda `READY FOR UX DECISIONS` hasta resolver HUX-001..HUX-005.
 
 ## Estrategia para reducir tiempo hasta código
 
