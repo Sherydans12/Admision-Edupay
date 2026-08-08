@@ -34,6 +34,8 @@ creado, revisado, commiteado, enviado al PR o mantenido en draft.
 - `pnpm security:deps`: sin vulnerabilidades conocidas en nivel high, PASS.
 - fresh database: 3/3 migrations forward aplicadas, PASS.
 - `git diff --check`: PASS.
+- CI PR #7, run `31284215462`, job `validate`: PASS; sólo warning no bloqueante por
+  deprecación Node 20 en actions de GitHub.
 
 ## Evidencia de controles
 

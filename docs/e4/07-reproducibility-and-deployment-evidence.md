@@ -101,11 +101,16 @@ la aplicación forward desde una base limpia.
 
 ## CI
 
-CI debe volver a verificarse sobre el commit final después del push. La workflow canónica
-`.github/workflows/e4-foundation.yml` cubre instalación congelada, bootstrap, generate,
-migrate, formato, lint, typecheck, tests, build, scans y RLS. El deployment y recovery
-smoke de este paquete son pruebas locales/development explícitas y no crean infraestructura
-productiva.
+La workflow canónica `.github/workflows/e4-foundation.yml` pasó sobre el HEAD publicado:
+
+- PR #7, run `31284215462`, job `validate`: PASS;
+- instalación congelada, bootstrap, generate, migrate, formato, lint, typecheck, tests,
+  build, scans y RLS: PASS;
+- anotación no bloqueante: warning de deprecación Node 20 en actions de GitHub, sin fallo
+  del job.
+
+El deployment y recovery smoke de este paquete son pruebas locales/development explícitas
+y no crean infraestructura productiva.
 
 ## Criterio de salida de esta evidencia
 
