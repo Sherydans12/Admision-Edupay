@@ -5,12 +5,17 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E1-C — Consolidación funcional |
-| Estado | `IN PROGRESS / READY FOR G1 REVIEW` |
+| Estado | `CLOSED / FUNCTIONAL SPECIFICATION APPROVED` |
 | Inicio autorizado | `2026-08-08T05:45:00-04:00` |
-| Base | `main` en `168d383489dfd9d5d7a1f48a8a9e25ea330fff13` |
+| Cierre / aprobación G1 | `2026-08-08T06:20:00-04:00` |
+| Base inicial | `main` en `168d383489dfd9d5d7a1f48a8a9e25ea330fff13` |
 | Rama | `docs/e1c-g1-consolidation` |
+| Commit funcional aprobado | `e233927659b0709d37de8c4b66b55439a854e0e1` |
 | Dependencia | E1-B `CLOSED / OPERATIONAL BASELINE APPROVED` |
-| G1 | `NO APROBADA` |
+| G1 | `APPROVED / CLOSED` |
+| Acta G1 | `docs/approvals/G1-functional-approval-2026-08-08.md` |
+| E2 | `AUTHORIZED TO START` después de fusionar PR #4 |
+| G2 | `NO APROBADA` |
 | ADR-0001 | `PROPOSED` |
 | Implementación | No autorizada |
 | Datos reales | No autorizados |
@@ -19,29 +24,20 @@
 
 Consolidar la especificación funcional aprobada en E1-A y E1-B para producir evidencia verificable y un paquete de decisión para G1, sin introducir arquitectura ni implementación.
 
-## Alcance
+**Resultado:** objetivo cumplido y aprobado en G1.
 
-E1-C debe:
+## Entregables completados
 
-1. consolidar una especificación funcional canónica sin contradicciones entre requisitos, journeys, casos de uso, estados y decisiones;
-2. definir criterios de aceptación verificables por capacidad funcional;
-3. consolidar escenarios end-to-end felices, alternos y excepcionales;
-4. priorizar backlog MVP y declarar fuera de alcance de manera explícita;
-5. clasificar dependencias posteriores sin convertirlas en bloqueos artificiales de G1;
-6. revisar trazabilidad FR/NFR ↔ Q/D/C ↔ journeys ↔ casos de uso ↔ criterios de aceptación;
-7. preparar checklist y evidencia para la aprobación humana de G1.
+- especificación funcional canónica: `11-functional-specification.md`;
+- 58 criterios de aceptación: `12-acceptance-criteria.md`;
+- 22 escenarios end-to-end: `13-end-to-end-scenarios.md`;
+- backlog MVP con 22 P0, 6 P1 y 5 P2: `14-mvp-backlog.md`;
+- diferidos y fuera de alcance: `15-deferred-and-out-of-scope.md`;
+- checklist G1 `PASS_WITH_DEFERRED`: `16-g1-readiness-checklist.md`;
+- trazabilidad integral actualizada: `05-g1-traceability-matrix.md`;
+- acta formal G1: `docs/approvals/G1-functional-approval-2026-08-08.md`.
 
-## Límites
-
-E1-C no puede:
-
-- seleccionar o adoptar stack;
-- aprobar `ADR-0001`;
-- definir arquitectura física o lógica definitiva;
-- crear API, DTO, SQL, Prisma schema, componentes o scaffolding;
-- resolver Q-301 a Q-309 como contrato técnico;
-- usar datos reales;
-- cerrar G1 por inferencia o por merge.
+No se identificaron bloqueantes funcionales materiales para G1.
 
 ## Dependencias conservadas
 
@@ -50,25 +46,19 @@ E1-C no puede:
 - `FUTURE_INTEGRATION_PENDING`: Q-301 a Q-309 para E7/G7.
 - `OPEN_SECURITY_AND_OPERATION_QUESTIONS`: Q-201 a Q-210 para las etapas técnicas/operativas correspondientes.
 
-## Entregables previstos
+Estos diferidos fueron aceptados en G1 y conservan sus compuertas futuras.
 
-- especificación funcional consolidada;
-- catálogo de criterios de aceptación;
-- catálogo de escenarios end-to-end y excepciones;
-- backlog MVP priorizado;
-- matriz de fuera de alcance/deferidos;
-- trazabilidad G1 actualizada;
-- checklist de aprobación G1;
-- borrador de acta/paquete de decisión G1, sin aprobarla automáticamente.
+## Límites del cierre
 
-## Criterio de salida de E1-C
+La aprobación G1 y cierre E1-C no autorizan:
 
-E1-C puede solicitar revisión de G1 cuando:
+- implementación, código o scaffolding;
+- dependencias de producción;
+- datos reales;
+- integración técnica EduPay;
+- adopción automática de `ADR-0001`;
+- arquitectura aprobada sin completar E2/G2.
 
-- no existan contradicciones funcionales materiales abiertas;
-- cada capacidad MVP crítica tenga criterios de aceptación verificables;
-- los escenarios principales y excepcionales estén cubiertos;
-- el backlog MVP y los diferidos estén explícitos;
-- la trazabilidad sea suficiente para revisar impacto y cobertura;
-- los pendientes legales, técnicos y de configuración estén correctamente clasificados;
-- G1 permanezca `NO APROBADA` hasta una aprobación humana explícita.
+## Siguiente etapa
+
+E2 — Arquitectura está autorizada para iniciar después de la fusión del PR #4. Debe documentar decisiones técnicas reversibles, evaluar ADR-0001 y preparar evidencia para G2 antes de cualquier avance que el roadmap reserve a etapas posteriores.
