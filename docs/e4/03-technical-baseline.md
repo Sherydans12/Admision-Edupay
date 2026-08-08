@@ -1,4 +1,4 @@
-# E4-A/B — Baseline técnica
+# E4-A/B/C/D — Baseline técnica
 
 ## Versiones exactas
 
@@ -30,8 +30,8 @@ apps/
   web/       Next.js App Router + React + Tailwind; pantalla sintética
   api/       NestJS; GET /health mínimo
   worker/    proceso Node TypeScript separado; sin jobs funcionales
-packages/
-  database/  Prisma 7, migración PoC, tenant context y tests RLS
+  packages/
+  database/  Prisma 7, identidad/sesión/authz, RLS, outbox y tests reales
 infrastructure/
   postgres/init/  bootstrap local de roles/base/grants
 .github/workflows/  CI mínima E4-A/B con PostgreSQL 15
@@ -54,6 +54,14 @@ existe un paquete `shared` de dominio.
   interno y el servicio CI permanecen en `5432`.
 - CI instala frozen, genera Prisma, aplica migración, ejecuta formato/lint/typecheck/tests/
   build y luego la PoC RLS real.
+- Las tablas de identidad control-plane (`PlatformUser`, `PlatformSession`, `Tenant`) están
+  separadas de tablas tenant-owned (`Membership`, `RoleAssignment`, `SupportElevation`,
+  `OutboxMessage`). No hay DML en default privileges; cada migración entrega grants explícitos.
+- La sesión es opaque server-side: CSPRNG de 256 bits, hash SHA-256, expiración idle/absolute,
+  rotación y revocación. La autorización es deny-by-default y la elevación de soporte es
+  temporal, tenant-scoped y auditable.
+- E4-D añade correlación, logging JSON con redacción, errores uniformes, health/readiness,
+  AuditEvent/SecurityEvent, outbox PostgreSQL y adapters no-op/fake sin proveedores externos.
 
 ## Clasificación de la información
 
@@ -67,20 +75,20 @@ existe un paquete `shared` de dominio.
 
 ## Riesgos y deuda explícita
 
-- La primitive recibe fixtures internos sintéticos; sesión, membership, capabilities y
-  autorización real corresponden a E4-C.
+- Las primitivas de identidad reciben fixtures internos sintéticos; el login y onboarding
+  funcional siguen diferidos a etapas posteriores.
 - La política cubre sólo `TenantProbeRecord`; cada futura tabla tenant-owned necesita RLS,
   constraints same-tenant y regresiones propias.
 - El puerto local puede requerir ajuste coordinado si `55439` se ocupa en otro equipo.
 - El cliente Prisma generado no se versiona: todo ambiente debe ejecutar `pnpm db:generate`.
-- La CI implementada es sólo la mínima necesaria para evidenciar E4-A/B; logging, auditoría,
-  jobs/outbox, adapters y demás fundación operacional siguen en E4-D.
+- La CI incluye formato, calidad, tests, build, RLS, escaneo de secretos y auditoría de
+  dependencias; los actions externos aún usan tags versionados como deuda de hardening.
 - Las credenciales Compose son públicas, sintéticas y exclusivas de desarrollo; no son un
   patrón para secretos ni infraestructura productiva.
 
 ## Diferidos y fuera de alcance
 
-No se implementaron login, sesiones, módulos funcionales, documentos, actividades,
+No se implementaron login UI, registro familiar ni módulos funcionales, documentos, actividades,
 decisiones, cupos, waitlist, ofertas, comunicaciones, Redis/BullMQ, S3, email, malware ni
 integración técnica EduPay. Tampoco se creó infraestructura productiva ni se resolvieron
 Q-301..Q-309. G4 permanece `NO APROBADA`.

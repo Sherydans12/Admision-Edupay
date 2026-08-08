@@ -2,7 +2,7 @@
 
 ## Alcance
 
-Esta guía levanta exclusivamente la fundación técnica E4-A/B con datos sintéticos. No
+Esta guía levanta exclusivamente la fundación técnica E4-A/B/C/D con datos sintéticos. No
 crea infraestructura productiva, funcionalidades del MVP ni integración con EduPay.
 
 ## Requisitos verificados
@@ -89,9 +89,12 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm test:rls
+pnpm security:secrets
+pnpm security:deps
 ```
 
-`pnpm test` ejecuta tests unitarios sin base. `pnpm test:rls` requiere PostgreSQL real,
+`pnpm test` ejecuta tests unitarios y de integración contra PostgreSQL real (excepto la
+suite RLS separada). `pnpm test:rls` requiere PostgreSQL real,
 bootstrap y migración aplicada; no utiliza mocks para afirmar aislamiento.
 
 ## Recuperación del entorno sintético

@@ -21,6 +21,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings=0",
+    "security:secrets": "node scripts/security-scan.mjs",
+    "security:deps": "pnpm audit --audit-level=high",
     "test": "vitest run --exclude packages/database/src/tenant-rls.integration.spec.ts",
     "test:rls": "vitest run packages/database/src/tenant-rls.integration.spec.ts",
     "typecheck": "pnpm --recursive --if-present run typecheck"

@@ -42,6 +42,12 @@ export default defineConfig([
       ],
     },
   },
+  {
+    files: ["**/*.mjs"],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
   ...nextVitals.map(scopeNextConfig),
   ...nextTypescript.map(scopeNextConfig),
   {

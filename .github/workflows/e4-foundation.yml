@@ -69,5 +69,11 @@ jobs:
           pnpm test
           pnpm build
 
+      - name: Scan repository for high-confidence secrets
+        run: pnpm security:secrets
+
+      - name: Audit dependencies
+        run: pnpm security:deps
+
       - name: Prove tenant isolation with PostgreSQL RLS
         run: pnpm test:rls

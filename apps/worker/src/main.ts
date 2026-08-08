@@ -1,6 +1,8 @@
 import { getWorkerDescriptor } from "./worker.js";
+import { markWorkerReady } from "./worker-health.js";
 
 const descriptor = getWorkerDescriptor();
+markWorkerReady();
 console.info(JSON.stringify(descriptor));
 
 const heartbeat = setInterval(() => {
