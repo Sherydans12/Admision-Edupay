@@ -16,7 +16,7 @@ La arquitectura aprobada usa modular monolith, monorepo independiente, stack Typ
 
 E3 — Prototipo UX está `CLOSED / UX APPROVED`. G3 está `APPROVED / CLOSED` sobre el commit `a659191f5b5190ddf6913b6417cdfccb7baf1a90` del PR #6. La evidencia aprobada contiene IA por audiencia, 42 pantallas conceptuales, wireflows P0, workspace de expediente, estados/feedback, visibilidad, WCAG 2.2 AA, formularios, capacidad/waitlist/oferta, sesión/SELF-ELEVATION, 20 tareas sintéticas y UX-D-001..013. HUX-001..HUX-005 quedaron ratificadas; HUX-005 incorpora UX-D-010 para confirmaciones críticas.
 
-E4 — Fundación técnica queda `AUTHORIZED TO START` después de fusionar PR #6. E4 puede crear scaffolding, dependencias, monorepo, Next.js, NestJS, Prisma/PostgreSQL de desarrollo, migraciones iniciales, pruebas, CI, PoC tenant/RLS/Prisma e infraestructura local/de desarrollo necesaria, siempre con datos sintéticos. G4 continúa `NO APROBADA`; no están autorizados construcción funcional completa del MVP, datos reales, infraestructura productiva ni integración técnica con EduPay.
+E4 — Fundación técnica está `IN PROGRESS / READY FOR G4 REVIEW`; E4-A..E están completas en el paquete de evidencia actual. La corrida local demuestra reproducibilidad, `web + API + worker + PostgreSQL`, backup/restore sintético, aislamiento tenant/RLS y scans base. G4 continúa `NO APROBADA`; E5 continúa `NO AUTORIZADA`. No están autorizados datos reales, infraestructura productiva ni integración técnica con EduPay.
 
 Registros formales principales:
 
@@ -103,6 +103,12 @@ Registros formales principales:
 | `docs/e3/13-prototype-validation-scenarios.md` | 20 tareas sintéticas de validación. |
 | `docs/e3/14-ux-decision-workbook.md` | UX-D y HUX aprobadas. |
 | `docs/e3/15-g3-readiness-checklist.md` | Readiness G3 con resultado `PASS_WITH_DEFERRED`. |
+| `docs/e4/07-reproducibility-and-deployment-evidence.md` | Corrida desde cero y deployment smoke local/development. |
+| `docs/e4/08-recovery-evidence.md` | Backup/restore sintético y resultados REC-01..REC-08. |
+| `docs/e4/09-residual-risks-and-operational-ownership.md` | Riesgos residuales, diferidos y ownership operacional. |
+| `docs/e4/10-g4-mvp-scope-and-exit.md` | Alcance E5 que G4 podría autorizar y criterios de salida hacia G5. |
+| `docs/e4/11-g4-readiness-checklist.md` | Checklist G4 con resultado `PASS_WITH_DEFERRED`. |
+| `docs/approvals/G4-mvp-construction-approval-DRAFT.md` | Borrador G4, `DRAFT / NOT APPROVED`. |
 
 ## Cómo continuar
 
@@ -110,7 +116,7 @@ Registros formales principales:
 2. Iniciar E4 — Fundación técnica en una rama independiente desde `main` fusionado.
 3. Ejecutar prioritariamente el PoC obligatorio tenant/RLS/Prisma antes de G4.
 4. Mantener datos reales, infraestructura productiva e integración EduPay bloqueados.
-5. Preparar la evidencia técnica requerida para G4 antes de comenzar construcción funcional completa del MVP.
+5. Revisar el paquete E4-E y decidir G4 antes de comenzar construcción funcional completa del MVP.
 6. Designar al responsable legal/normativo y cerrar C-013 antes de autorizar datos reales para el piloto.
 
-G3 autoriza E4 dentro de su alcance técnico con datos sintéticos; no equivale a G4 ni autoriza producción.
+G3 autoriza E4 dentro de su alcance técnico con datos sintéticos; no equivale a G4 ni autoriza producción. El paquete E4-E está listo para revisión humana, pero G4 sigue sin aprobarse.

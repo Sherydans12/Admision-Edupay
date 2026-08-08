@@ -1,7 +1,7 @@
 # E4 — Evidencia de seguridad
 
-Resultados registrados tras la validación local de esta entrega. Comando base:
-`pnpm test` (54 tests), `pnpm test:rls` (8 tests) y los checks raíz descritos en
+Resultados registrados tras la validación local actual de esta entrega. Comando base:
+`pnpm test` (62/62 PASS), `pnpm test:rls` (8/8 PASS) y los checks raíz descritos en
 `docs/e4/01-local-development.md`.
 
 ## Sesión y CSRF

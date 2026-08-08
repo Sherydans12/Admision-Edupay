@@ -14,6 +14,8 @@
     "db:generate": "pnpm --filter @admission/database db:generate",
     "db:migrate": "pnpm --filter @admission/database db:migrate",
     "db:reset": "docker compose down --volumes --remove-orphans && docker compose up -d postgres",
+    "e4:deploy:smoke": "node scripts/e4-deploy-smoke.mjs",
+    "e4:recovery:smoke": "node scripts/e4-recovery-smoke.mjs",
     "db:up": "docker compose up -d postgres",
     "dev:api": "pnpm --filter @admission/api dev",
     "dev:web": "pnpm --filter @admission/web dev",

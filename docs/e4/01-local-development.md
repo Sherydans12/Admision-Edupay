@@ -93,9 +93,33 @@ pnpm security:secrets
 pnpm security:deps
 ```
 
-`pnpm test` ejecuta tests unitarios y de integración contra PostgreSQL real (54 tests,
-excepto la suite RLS separada). `pnpm test:rls` requiere PostgreSQL real,
+La ejecución actual de `pnpm test` contiene 62/62 tests PASS contra PostgreSQL real
+(excepto la suite RLS separada). `pnpm test:rls` contiene 8/8 tests PASS y requiere PostgreSQL real,
 bootstrap y migración aplicada; no utiliza mocks para afirmar aislamiento.
+
+## Smoke de deployment de desarrollo
+
+El patrón `web + API + worker + PostgreSQL` se puede comprobar sin intervención manual:
+
+```bash
+pnpm e4:deploy:smoke
+```
+
+El comando usa el overlay `compose.e4-readiness.yaml`, puertos efímeros locales ligados
+a `127.0.0.1`, imágenes marcadas `DEVELOPMENT READINESS IMAGE`, readiness real de API
+contra PostgreSQL mediante el rol de aplicación, HTTP 200 de web, heartbeat persistente
+del worker y terminación limpia por SIGTERM. No es un despliegue productivo.
+
+## Smoke de backup y recovery
+
+El ejercicio aislado usa dos PostgreSQL sintéticos y una base de recuperación separada:
+
+```bash
+pnpm e4:recovery:smoke
+```
+
+La evidencia detallada está en `docs/e4/08-recovery-evidence.md`. El procedimiento no
+usa datos reales ni pretende demostrar un SLA productivo.
 
 ## Recuperación del entorno sintético
 

@@ -1,3 +1,4 @@
+import { Injectable, Optional } from "@nestjs/common";
 import { Pool } from "pg";
 
 export interface HealthStatus {
@@ -5,8 +6,10 @@ export interface HealthStatus {
   status: "ok" | "unavailable";
 }
 
+@Injectable()
 export class HealthService {
   constructor(
+    @Optional()
     private readonly checkDatabase: () => Promise<boolean> = defaultDatabaseCheck,
   ) {}
 

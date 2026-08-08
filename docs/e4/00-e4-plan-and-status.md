@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E4 — Fundación técnica |
-| Estado | `IN PROGRESS / TECHNICAL FOUNDATION HARDENED — READY FOR E4-E` |
+| Estado | `IN PROGRESS / READY FOR G4 REVIEW` |
 | Inicio autorizado | `2026-08-08T15:30:00-04:00` |
 | Base | `main` en `6b2549333e25b65a44c97423a718b70a8d38937f` |
 | Rama | `feat/e4-technical-foundation` |
@@ -23,12 +23,15 @@
 | E4-B — PostgreSQL, Prisma y PoC tenant/RLS | `COMPLETE` | PostgreSQL 15.14 real, migración Prisma 7.9.1 y `POC-01..POC-08` con 8/8 tests `PASS` |
 | E4-C — Identity/session/authorization foundation | `COMPLETE` | Sesión opaca, tenant resolution, autorización deny-by-default, SoD, SELF-ELEVATION, CSRF y frontera platform/RLS endurecida con tests |
 | E4-D — Operational foundation | `COMPLETE` | Correlación, logs sanitizados, errores, health/readiness, auditoría, outbox, adapters y CI |
-| E4-E — G4 readiness | `NOT_STARTED` | Esta ronda sólo endurece E4-C/D; G4 permanece `NO APROBADA` |
+| E4-E — G4 readiness | `COMPLETE` | Readiness `PASS_WITH_DEFERRED`; G4 permanece `NO APROBADA` |
 
 La evidencia reproducible está en `docs/e4/01-local-development.md`,
 `docs/e4/02-tenant-rls-poc.md`, `docs/e4/04-identity-session-authorization.md`,
-`docs/e4/05-operational-foundation.md` y `docs/e4/06-e4-security-evidence.md`.
-E4-C/D están endurecidas y listas para revisión antes de iniciar E4-E; esto no autoriza
+`docs/e4/05-operational-foundation.md`, `docs/e4/06-e4-security-evidence.md`,
+`docs/e4/07-reproducibility-and-deployment-evidence.md`,
+`docs/e4/08-recovery-evidence.md`, `docs/e4/09-residual-risks-and-operational-ownership.md`,
+`docs/e4/10-g4-mvp-scope-and-exit.md` y `docs/e4/11-g4-readiness-checklist.md`.
+E4-A..E están completas; E4 queda `IN PROGRESS / READY FOR G4 REVIEW`. Esto no autoriza
 solicitar, aprobar o sustituir G4.
 
 ## Objetivo

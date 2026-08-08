@@ -9,7 +9,7 @@ export interface HealthResponse {
 
 @Controller("health")
 export class HealthController {
-  constructor(private readonly health = new HealthService()) {}
+  constructor(private readonly health: HealthService = new HealthService()) {}
 
   @Get()
   getHealth(): HealthResponse {

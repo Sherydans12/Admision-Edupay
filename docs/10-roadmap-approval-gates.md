@@ -117,7 +117,7 @@ G3 no autoriza G4, datos reales, infraestructura productiva ni integración téc
 
 ## E4 — Fundación técnica
 
-**Estado:** `AUTHORIZED TO START` después de fusionar PR #6.
+**Estado:** `IN PROGRESS / READY FOR G4 REVIEW` después de completar E4-A..E en el PR #7 draft.
 
 ### Objetivo
 
@@ -164,6 +164,14 @@ G4 requiere como mínimo:
 - despliegue y recuperación mínimos demostrados en entorno autorizado;
 - alcance MVP y criterios de salida confirmados;
 - responsables operacionales identificados.
+
+E4-E consolidó evidencia reproducible para esos puntos en:
+`docs/e4/07-reproducibility-and-deployment-evidence.md`,
+`docs/e4/08-recovery-evidence.md`, `docs/e4/09-residual-risks-and-operational-ownership.md`,
+`docs/e4/10-g4-mvp-scope-and-exit.md` y `docs/e4/11-g4-readiness-checklist.md`.
+El resultado técnico es `PASS_WITH_DEFERRED`, sin `BLOCKING_G4` identificado; esto sólo
+habilita revisión y decisión humana. G4 no está aprobada, E5 no está autorizada y PR #7
+permanece draft/no merge.
 
 ## E5 — MVP
 
