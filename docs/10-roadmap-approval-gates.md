@@ -66,9 +66,9 @@ El cierre no autoriza implementación, scaffolding, stack definitivo, datos real
 
 ## E1 — Diseño funcional
 
-**Estado:** AUTORIZADA; **E1-A — `CLOSED / PRODUCT DECISIONS RECORDED`**; **E1-B — `IN PROGRESS / READY FOR CLOSURE REVIEW`**. Esta autorización cubre diseño funcional, no implementación.
+**Estado:** AUTORIZADA; **E1-A — `CLOSED / PRODUCT DECISIONS RECORDED`**; **E1-B — `CLOSED / OPERATIONAL BASELINE APPROVED`**; **E1-C — autorizada para iniciar después de la fusión del PR #3**. Esta autorización cubre diseño funcional, no implementación.
 
-E1 se divide provisionalmente en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`; E1-A queda `CLOSED / PRODUCT DECISIONS RECORDED`. E1-B está `IN PROGRESS / READY FOR CLOSURE REVIEW` y su línea base está en `docs/e1/07-institutional-validation-baseline.md`, con reglas y matriz en `docs/e1/08-pilot-operational-rules.md` y `docs/e1/09-pilot-configuration-matrix.md`; la división no agrega aprobaciones automáticas ni permite cerrar G1.
+E1 se divide en E1-A (base y workbook), E1-B (detalle incorporando validaciones institucionales) y E1-C (consolidación y evidencia para G1). La aprobación de producto de E1-A está registrada en `docs/approvals/E1-A-functional-decisions-2026-08-06.md`. El cierre de E1-B fue aprobado explícitamente sobre `b39150aaf933eda10a3030b9f2d69c6957df8449` y se registra en `docs/approvals/E1-B-functional-closure-2026-08-08.md`. Este cierre no aprueba G1 ni autoriza implementación.
 
 ### Objetivo
 
@@ -89,23 +89,21 @@ Validar el proceso real con usuarios y convertir requisitos en comportamientos y
 
 ### G1 — Aprobación funcional
 
-**Estado:** NO APROBADA. Requiere resolver sus criterios y asuntos diferidos antes del cierre.
+**Estado:** `NO APROBADA`.
 
-La posición funcional de producto para las preguntas objetivo está aprobada por Nicolás Sena y C-009/C-011/C-013/C-014 ya tienen validación institucional registrada. El borde funcional de integración también está definido: Admisión es dueña del proceso; EduPay es dominio separado; el handoff ocurre después de aceptación familiar expresa; no se comparten tablas; la integración futura debe ser idempotente; y los estados técnicos no equivalen a matrícula. Q-301 a Q-309 siguen abiertas como dependencias de E7/G7, no como requisito de G1. C-013 conserva `LEGAL_VALIDATION_PENDING` como condición antes de datos reales/piloto productivo, no como bloqueo del comportamiento funcional.
+La posición funcional de producto para las preguntas objetivo está registrada y E1-B tiene cierre humano explícito. El borde funcional de integración está definido: Admisión es dueña del proceso; EduPay es dominio separado; el handoff ocurre después de aceptación familiar expresa; no se comparten tablas; la integración futura debe ser idempotente; y los estados técnicos no equivalen a matrícula. Q-301 a Q-309 siguen abiertas como dependencias de E7/G7, no como requisito de G1. C-013 conserva `LEGAL_VALIDATION_PENDING` como condición antes de datos reales/piloto productivo, no como bloqueo del comportamiento funcional.
 
-- Q-101 a Q-184 y Q-310 tienen posición funcional registrada; los valores configurables previos al piloto se mantienen clasificados como tales.
-- Proceso y reglas institucionales cuentan con baseline documentado.
-- El borde funcional de integración está definido sin resolver contrato, payload, protocolo, autenticación sistema-sistema, SLA ni evento técnico final.
+G1 continúa `NO APROBADA` porque E1-C debe todavía:
 
-G1 continúa `NO APROBADA` porque todavía requiere:
+- consolidar la especificación funcional canónica;
+- definir criterios de aceptación funcionales verificables;
+- consolidar casos felices, alternos y excepciones;
+- priorizar backlog MVP y fuera de alcance;
+- resolver inconsistencias de trazabilidad remanentes;
+- preparar evidencia y paquete de aprobación;
+- obtener aprobación funcional humana explícita.
 
-- consolidación E1-C;
-- criterios de aceptación funcionales;
-- consolidación de casos felices, alternos y excepciones;
-- backlog MVP priorizado y fuera de alcance;
-- revisión y aprobación funcional humana explícita.
-
-Q-301 a Q-309, Q-201/Q-202 y la validación legal de C-013 no son requisitos de aprobación de G1; permanecen en sus compuertas futuras.
+Q-301 a Q-309, Q-201/Q-202 y la validación legal de C-013 permanecen en sus compuertas futuras y no reabren E1-B.
 
 ## E2 — Arquitectura
 
