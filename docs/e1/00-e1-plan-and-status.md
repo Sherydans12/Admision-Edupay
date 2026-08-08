@@ -5,13 +5,14 @@
 | Campo | Valor |
 | --- | --- |
 | Entrega | E1 — Diseño funcional |
-| Estado | E1-A `CLOSED`; E1-B `CLOSED / OPERATIONAL BASELINE APPROVED`; E1-C autorizada para iniciar |
+| Estado | E1-A `CLOSED`; E1-B `CLOSED / OPERATIONAL BASELINE APPROVED`; E1-C `IN PROGRESS` |
 | Compuerta vigente | E1 autorizada; G1 `NO APROBADA` |
-| Base revisada | E1-B aprobada sobre `b39150aaf933eda10a3030b9f2d69c6957df8449` |
+| Base revisada | E1-B fusionada a `main` en `168d383489dfd9d5d7a1f48a8a9e25ea330fff13` |
 | Naturaleza | Documentación funcional; no autoriza implementación |
 | Registro principal E1-B | `docs/e1/07-institutional-validation-baseline.md`, `docs/e1/08-pilot-operational-rules.md`, `docs/e1/09-pilot-configuration-matrix.md` |
 | Acta de cierre E1-B | `docs/approvals/E1-B-functional-closure-2026-08-08.md` |
-| Aprobación de cierre E1-B | `2026-08-08T05:45:00-04:00` por Nicolás Sena |
+| Plan E1-C | `docs/e1/10-e1c-consolidation-plan.md` |
+| Aprobación de cierre E1-B / inicio E1-C | `2026-08-08T05:45:00-04:00` por Nicolás Sena |
 
 ## Clasificación de la información
 
@@ -32,7 +33,7 @@ Convertir la fundación aprobada en comportamientos funcionales verificables: ac
 | --- | --- | --- |
 | E1-A | Establecer actores, journeys, casos de uso y paquete de preguntas | `CLOSED / PRODUCT DECISIONS RECORDED` |
 | E1-B | Incorporar decisiones institucionales al detalle funcional | `CLOSED / OPERATIONAL BASELINE APPROVED` |
-| E1-C | Consolidar y verificar la especificación funcional, criterios de aceptación, backlog y evidencia para G1 | AUTORIZADA PARA INICIAR después de la fusión del PR #3 |
+| E1-C | Consolidar y verificar la especificación funcional, criterios de aceptación, backlog y evidencia para G1 | `IN PROGRESS` |
 
 La división no crea compuertas nuevas. G1 sólo puede aprobarse mediante decisión humana explícita.
 
@@ -78,8 +79,8 @@ E1-B consolidó:
 | G0 | `APPROVED / CLOSED` | Decisión aprobada; no se reabre |
 | E1 | `AUTORIZADA` para diseño funcional | Decisión aprobada |
 | E1-A | `CLOSED / PRODUCT DECISIONS RECORDED` | Acta histórica |
-| E1-B | `CLOSED / OPERATIONAL BASELINE APPROVED` | Aprobación humana explícita registrada |
-| E1-C | `AUTHORIZED TO START` después de la fusión del PR #3 | Consolidación y evidencia para G1 |
+| E1-B | `CLOSED / OPERATIONAL BASELINE APPROVED` | Aprobación humana explícita registrada; PR #3 fusionado |
+| E1-C | `IN PROGRESS` | Consolidación y evidencia para G1 en `docs/e1c-g1-consolidation` |
 | G1 | `NO APROBADA` | Requiere E1-C y aprobación humana explícita |
 | ADR-0001 | `PROPOSED` | Propuesta arquitectónica fuera de alcance |
 | Datos reales | No autorizados | Límite aprobado |
