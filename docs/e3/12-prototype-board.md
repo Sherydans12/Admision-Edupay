@@ -57,11 +57,11 @@ Resultado: sesión propia o mensaje uniforme; recuperación usa token de un uso 
 | Estudiantes | Postulaciones | Citas               |
 | Próxima acción: corregir documento       [Abrir] |
 | Estudiante sintético A · En revisión             |
-| Oferta disponible: Cupos limitados               |
+| Disponibilidad del proceso: Cupos limitados      |
 +--------------------------------------------------+
 ```
 
-No hay recomendaciones, puntajes, posición ni cupos exactos.
+La disponibilidad del proceso es una categoría informativa y no implica que exista una oferta de admisión emitida. No hay recomendaciones, puntajes, posición ni cupos exactos.
 
 ### FAM-03 Nueva postulación — `SCR-FAM-004..006`
 
