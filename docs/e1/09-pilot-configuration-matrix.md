@@ -2,7 +2,7 @@
 
 ## Uso
 
-Esta matriz separa el valor inicial confirmado para Colegio Conquistadores 2027 de los parámetros que deben continuar configurables en el núcleo. `DEFINED_FOR_PILOT` indica detalle operativo definido para el piloto; no autoriza implementación ni cierra G1. El estado de E1-B es `IN PROGRESS / READY FOR CLOSURE REVIEW`, pendiente de revisión humana.
+Esta matriz separa el valor inicial confirmado para Colegio Conquistadores 2027 de los parámetros que continúan configurables en el núcleo. `DEFINED_FOR_PILOT` indica detalle operativo aprobado para el piloto; no autoriza implementación ni cierra G1. E1-B está `CLOSED / OPERATIONAL BASELINE APPROVED`.
 
 “Quién puede modificarlo” describe capacidad funcional y no una asignación técnica de permisos. Todo cambio debe respetar tenant, alcance, propósito, versionado y auditoría.
 

@@ -5,12 +5,12 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E1-B — Especificación funcional institucional |
-| Estado | `IN PROGRESS / READY FOR CLOSURE REVIEW` |
+| Estado | `CLOSED / OPERATIONAL BASELINE APPROVED` |
 | Piloto | Colegio Particular Conquistadores — Admisión 2027 |
 | Fuente | Decisiones operativas confirmadas después de `e9039867e0b2e42782a238bc9edb4052ac6c5fdb` |
 | Naturaleza | Reglas funcionales; no es configuración técnica, API, esquema ni base de datos |
 
-Este documento consolida los detalles operativos definidos para el piloto. `DEFINED_FOR_PILOT` significa que existe un valor o regla inicial del piloto; no implica que el parámetro deje de ser configurable en el núcleo, que se haya cerrado G1 o que se autorice implementación. E1-B queda `IN PROGRESS / READY FOR CLOSURE REVIEW` sujeto a revisión humana; este documento por sí solo no cierra la etapa.
+Este documento consolida los detalles operativos aprobados para el piloto. `DEFINED_FOR_PILOT` significa que existe un valor o regla inicial; no implica que el parámetro deje de ser configurable, que se haya cerrado G1 o que se autorice implementación. E1-B está `CLOSED / OPERATIONAL BASELINE APPROVED` por decisión humana registrada.
 
 La configuración debe ser por tenant, proceso/año, oferta, curso/nivel, actividad o condición cuando corresponda. Ninguna regla se implementa por nombre, dominio, correo o identificador de Conquistadores.
 
@@ -223,4 +223,4 @@ PIE/NEE y salud mantienen acceso restringido por propósito, rol y auditoría. E
 
 ## Límites
 
-Este documento no define UI, calendarios técnicos, API, tablas, esquema físico, arquitectura, dependencias, integración ejecutable, firma criptográfica, retención legal ni datos reales. E1-B permanece `IN PROGRESS / READY FOR CLOSURE REVIEW` y G1 continúa `NO APROBADA`.
+Este documento no define UI, calendarios técnicos, API, tablas, esquema físico, arquitectura, dependencias, integración ejecutable, firma criptográfica, retención legal ni datos reales. E1-B está cerrada y G1 continúa `NO APROBADA`.

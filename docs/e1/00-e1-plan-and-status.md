@@ -5,116 +5,89 @@
 | Campo | Valor |
 | --- | --- |
 | Entrega | E1 — Diseño funcional |
-| Estado | E1-A `CLOSED`; E1-B `CLOSED / OPERATIONAL BASELINE APPROVED`; E1-C autorizada para iniciar |
-| Compuerta vigente | E1 autorizada; G1 `NO APROBADA` |
-| Base revisada | E1-B aprobada sobre `b39150aaf933eda10a3030b9f2d69c6957df8449` |
-| Naturaleza | Documentación funcional; no autoriza implementación |
-| Registro principal E1-B | `docs/e1/07-institutional-validation-baseline.md`, `docs/e1/08-pilot-operational-rules.md`, `docs/e1/09-pilot-configuration-matrix.md` |
-| Acta de cierre E1-B | `docs/approvals/E1-B-functional-closure-2026-08-08.md` |
-| Aprobación de cierre E1-B | `2026-08-08T05:45:00-04:00` por Nicolás Sena |
+| Estado | `CLOSED / FUNCTIONAL SPECIFICATION APPROVED` |
+| E1-A | `CLOSED / PRODUCT DECISIONS RECORDED` |
+| E1-B | `CLOSED / OPERATIONAL BASELINE APPROVED` |
+| E1-C | `CLOSED / FUNCTIONAL SPECIFICATION APPROVED` |
+| G1 | `APPROVED / CLOSED` |
+| Commit funcional aprobado | `e233927659b0709d37de8c4b66b55439a854e0e1` |
+| PR | `#4 — E1-C: Consolidate functional specification for G1` |
+| Aprobación G1 | `2026-08-08T06:20:00-04:00` por Nicolás Sena |
+| Acta G1 | `docs/approvals/G1-functional-approval-2026-08-08.md` |
+| E2 | `AUTHORIZED TO START` después de la fusión del PR #4 |
+| G2 | `NO APROBADA` |
+| ADR-0001 | `PROPOSED` |
+| Implementación | No autorizada |
+| Datos reales | No autorizados |
+| Integración técnica EduPay | No autorizada |
 
-## Clasificación de la información
+## Objetivo cumplido de E1
 
-- **Hecho confirmado:** contenido respaldado por `SRC-001` a `SRC-005` o por el estado verificable del repositorio.
-- **Decisión aprobada:** D-001 a D-024 y los cierres formales registrados, sin modificar su significado.
-- **Decisión aprobada de producto:** posición funcional fijada por Nicolás Sena.
-- **Supuesto de trabajo:** interpretación reversible usada para completar el análisis.
-- **Pregunta abierta:** asunto sin resolución o con detalle pendiente.
-- **Validación institucional registrada:** C-009, C-011, C-013 y C-014 tienen posición institucional/funcional confirmada; sus detalles operativos o legales pendientes conservan sus estados.
+E1 convirtió la fundación aprobada en comportamiento funcional verificable sin seleccionar arquitectura ni implementar. La evidencia consolidada define actores, recorridos, reglas, excepciones, permisos funcionales, criterios de aceptación, escenarios end-to-end, backlog MVP, diferidos y límites del piloto.
 
-## Objetivo de E1
-
-Convertir la fundación aprobada en comportamientos funcionales verificables: actores, recorridos, casos de uso, reglas, excepciones, permisos conceptuales y decisiones del piloto. E1 debe terminar con evidencia suficiente para que personas autorizadas aprueben o devuelvan el comportamiento en G1, sin seleccionar tecnología ni implementar.
-
-## División de E1
+## División y cierre de E1
 
 | Entrega | Propósito | Estado |
 | --- | --- | --- |
-| E1-A | Establecer actores, journeys, casos de uso y paquete de preguntas | `CLOSED / PRODUCT DECISIONS RECORDED` |
-| E1-B | Incorporar decisiones institucionales al detalle funcional | `CLOSED / OPERATIONAL BASELINE APPROVED` |
-| E1-C | Consolidar y verificar la especificación funcional, criterios de aceptación, backlog y evidencia para G1 | AUTORIZADA PARA INICIAR después de la fusión del PR #3 |
-
-La división no crea compuertas nuevas. G1 sólo puede aprobarse mediante decisión humana explícita.
+| E1-A | Actores, journeys, casos de uso y decisiones de producto | `CLOSED / PRODUCT DECISIONS RECORDED` |
+| E1-B | Validación institucional y línea base operativa | `CLOSED / OPERATIONAL BASELINE APPROVED` |
+| E1-C | Especificación canónica, AC, E2E, backlog y paquete G1 | `CLOSED / FUNCTIONAL SPECIFICATION APPROVED` |
 
 ```mermaid
 flowchart LR
-    A["E1-A: base y opciones"] --> B["E1-B: detalle validado"]
+    A["E1-A: decisiones"] --> B["E1-B: línea base operativa"]
     B --> C["E1-C: consolidación"]
-    C --> G1{"G1: aprobación funcional"}
-    G1 -->|No aprobada| C
-    G1 -->|Aprobación humana explícita| E2["E2: arquitectura"]
+    C --> G1["G1: APPROVED / CLOSED"]
+    G1 --> E2["E2: arquitectura autorizada"]
 ```
 
-## Alcance cerrado de E1-B
+## Evidencia funcional aprobada
 
-E1-B consolidó:
+- `docs/e1/11-functional-specification.md` — especificación funcional canónica.
+- `docs/e1/12-acceptance-criteria.md` — 58 criterios de aceptación.
+- `docs/e1/13-end-to-end-scenarios.md` — 22 escenarios end-to-end.
+- `docs/e1/14-mvp-backlog.md` — 22 P0, 6 P1 y 5 P2.
+- `docs/e1/15-deferred-and-out-of-scope.md` — diferidos y fuera de alcance.
+- `docs/e1/16-g1-readiness-checklist.md` — `PASS_WITH_DEFERRED`, sin bloqueantes funcionales materiales.
+- `docs/e1/05-g1-traceability-matrix.md` — trazabilidad FR/NFR ↔ Q/D/C ↔ journeys ↔ UC ↔ AC ↔ E2E ↔ backlog.
+- `docs/approvals/E1-A-functional-decisions-2026-08-06.md`.
+- `docs/approvals/E1-B-functional-closure-2026-08-08.md`.
+- `docs/approvals/G1-functional-approval-2026-08-08.md`.
 
-- respuestas institucionales de C-009, C-011, C-013 y C-014;
-- configuración versionada de actividades, intentos, excepciones, reprogramaciones, repeticiones y cierres;
-- requisitos documentales configurables, equivalencias, exenciones y origen físico excepcional;
-- minimización y acceso de PIE/NEE/salud, excluyendo ingreso familiar del formulario MVP;
-- postulación asistida;
-- diferenciación entre Administrador Institucional Máximo y Superadministrador Global;
-- responsables confirmados y separación Admisión/Secretaría/Dirección;
-- cupos, reservas, ofertas, lista de espera, plazos, citas y actividades;
-- recomendación de Admisión y decisión de Dirección;
-- comunicaciones, dashboard, reportes y exportaciones;
-- borde funcional con EduPay, con Q-310 funcionalmente resuelta.
+## Decisiones funcionales cerradas relevantes
 
-## Fuera de alcance de E1-B
+- Admisión recomienda y Dirección decide.
+- Secretaría no recomienda, decide ni promueve lista de espera por defecto.
+- `APROBADO`, `LISTA_DE_ESPERA`, `RECHAZADO` y `DEVUELTO_A_REVISION` tienen semántica separada.
+- Lista de espera no expone posición y su promoción es manual por roles autorizados.
+- Oferta y aceptación son distintas de matrícula.
+- La aceptación familiar expresa precede al handoff a EduPay.
+- Q-310 está `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`.
+- Admisión y EduPay son dominios separados y no comparten tablas.
+- El portal es la fuente oficial y email el único canal automático del MVP.
+- Aislamiento tenant, denegación por defecto, mínimo privilegio y elevación explícita del Superadministrador Global son requisitos funcionales aprobados.
 
-- Aprobar G1.
-- Aprobar o modificar ADR-0001.
-- Código, scaffolding, dependencias, endpoints, DTO, SQL, modelos físicos o componentes visuales.
-- Selección de stack, identidad, correo, archivos, antivirus, colas, despliegue o topología multiempresa.
-- Integración ejecutable con EduPay o definición de API.
-- Conclusiones legales o uso de datos reales.
-- Resolver Q-201 a Q-210 o Q-301 a Q-309.
+## Diferidos aceptados
 
-## Estado actual
+Los diferidos siguientes no reabren G1 y deben resolverse en sus hitos:
 
-| Elemento | Estado | Clasificación |
-| --- | --- | --- |
-| G0 | `APPROVED / CLOSED` | Decisión aprobada; no se reabre |
-| E1 | `AUTORIZADA` para diseño funcional | Decisión aprobada |
-| E1-A | `CLOSED / PRODUCT DECISIONS RECORDED` | Acta histórica |
-| E1-B | `CLOSED / OPERATIONAL BASELINE APPROVED` | Aprobación humana explícita registrada |
-| E1-C | `AUTHORIZED TO START` después de la fusión del PR #3 | Consolidación y evidencia para G1 |
-| G1 | `NO APROBADA` | Requiere E1-C y aprobación humana explícita |
-| ADR-0001 | `PROPOSED` | Propuesta arquitectónica fuera de alcance |
-| Datos reales | No autorizados | Límite aprobado |
-| Implementación | No autorizada | Límite aprobado |
+- **`PILOT_CONFIGURATION_PENDING`:** suplentes, ejecutores concretos, duraciones, cupos, catálogos, prioridades, textos, recordatorios, calendario y SLA.
+- **`PRE_PILOT_LEGAL_PENDING`:** C-013, responsable legal/normativo, retención/eliminación, derechos y documentación física antes de datos reales/piloto productivo.
+- **`FUTURE_INTEGRATION_PENDING`:** Q-301 a Q-309 y contrato técnico EduPay para E7/G7.
+- **`OPEN_SECURITY_AND_OPERATION_QUESTIONS`:** Q-201 a Q-210 para E2 y compuertas posteriores según corresponda.
 
-## Preguntas y dependencias conservadas
+## Límites posteriores a G1
 
-- Q-101 a Q-184 tienen posición funcional registrada; los valores específicos aún no definidos se tratan como configuración previa al piloto cuando corresponda.
-- Q-310 está `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`: la aceptación familiar expresa precede al handoff.
-- Q-301 a Q-309 permanecen `FUTURE_INTEGRATION_PENDING` y se resolverán en E7/G7.
-- Q-201 a Q-210 permanecen abiertas para etapas de arquitectura/seguridad/operación cuando corresponda.
-- C-013 conserva `LEGAL_VALIDATION_PENDING` antes de datos reales/piloto productivo.
+La aprobación G1 no autoriza:
 
-## Clasificación de pendientes posterior a E1-B
+- código, scaffolding o dependencias;
+- datos reales;
+- integración técnica EduPay;
+- schemas, endpoints, Prisma, colas o deployment de producción;
+- aprobar `ADR-0001` por inferencia.
 
-- **`PILOT_CONFIGURATION_PENDING`:** nombres de suplentes; personas concretas de entrevista/evaluación; duración exacta; valores concretos de cupos; catálogo de personalidad por curso; prioridades especiales; textos finales de email; anticipación del recordatorio; SLA numéricos; nombres finales de plantillas.
-- **`PRE_PILOT_LEGAL_PENDING`:** C-013 legal, responsable legal/normativo, retención/eliminación y conservación/devolución física.
-- **`FUTURE_INTEGRATION_PENDING`:** Q-301 a Q-309 y contrato EduPay.
-- **`OPEN_SECURITY_AND_OPERATION_QUESTIONS`:** Q-201 a Q-210 según sus compuertas posteriores.
+E2 puede diseñar y decidir arquitectura dentro de su alcance. G2 debe aprobar las decisiones técnicas antes de continuar a las siguientes etapas del roadmap.
 
-Ninguno de estos elementos reabre E1-B. Sí deben permanecer trazados en la etapa que corresponda.
+## Siguiente etapa
 
-## Objetivo inmediato de E1-C
-
-E1-C debe limitarse a:
-
-- consolidar la especificación funcional canónica;
-- definir criterios de aceptación verificables;
-- consolidar casos felices, alternos y excepciones;
-- priorizar backlog MVP y fuera de alcance;
-- resolver inconsistencias de trazabilidad;
-- preparar evidencia y paquete de decisión para G1.
-
-E1-C no autoriza arquitectura, código, stack, API, integración ejecutable ni datos reales.
-
-## Siguiente compuerta humana
-
-Tras completar E1-C, debe solicitarse aprobación funcional G1 de manera explícita. Hasta entonces G1 continúa `NO APROBADA`, E2/G2 no están autorizadas y `ADR-0001` permanece `PROPOSED`.
+Después de fusionar el PR #4, iniciar E2 — Arquitectura. E2 debe producir arquitectura lógica/de despliegue propuesta, evaluación y resolución de ADR, modelo lógico de datos, estrategia concreta de tenancy, identidad/autorización, archivos, auditoría/observabilidad, recuperación, seguridad, costos y evidencia suficiente para solicitar G2.

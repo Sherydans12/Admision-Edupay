@@ -1,10 +1,10 @@
 # Matriz de trazabilidad G1
 
-La validación institucional de C-009, C-011, C-013 y C-014 está registrada en [`07-institutional-validation-baseline.md`](07-institutional-validation-baseline.md). Esta matriz conserva referencias históricas y agrega el estado E1-B sin cerrar G1.
+La validación institucional de C-009, C-011, C-013 y C-014 está registrada en [`07-institutional-validation-baseline.md`](07-institutional-validation-baseline.md). Esta matriz conserva referencias históricas y agrega la consolidación E1-C sin cerrar G1.
 
 ## Estado
 
-Matriz de trazabilidad consolidada para responder qué falta, quién decide, qué evidencia se requiere y dónde se consolidará. `E1-A` registra decisiones de producto; `E1-B` incorpora validaciones institucionales; `E1-C` verificará consistencia y preparará la solicitud de G1. Los estados `PROPOSED`, `NEEDS_DECISION` y `PARTIAL` de la tabla histórica muestran el estado previo a la validación y no reemplazan el estado consolidado.
+Matriz consolidada para responder qué se aprobó funcionalmente, qué evidencia lo verifica y qué permanece diferido. `E1-A` registra decisiones de producto; `E1-B` incorpora validaciones institucionales; `E1-C` consolida especificación, criterios, escenarios y backlog. Los valores de la columna `HISTORICAL_PRE_APPROVAL_STATE` son exclusivamente históricos: no describen el estado vigente y no reabren decisiones.
 
 ## Estado consolidado de producto
 
@@ -12,20 +12,20 @@ Las 33 preguntas objetivo tienen estado `APPROVED_PRODUCT` por aprobación de Ni
 
 ## Criterios de salida de G1
 
-| Criterio G1 | Preguntas/contradicciones | Decisiones heredadas | Evidencia faltante | Responsable de aprobación | Estado | Entrega objetivo |
+| Criterio G1 | Preguntas/contradicciones | Decisiones heredadas | Evidencia actual | Responsable de aprobación | Estado | Entrega objetivo |
 | --- | --- | --- | --- | --- | --- | --- |
-| Q-101 a Q-184 resueltas para piloto | Todas las filas funcionales siguientes; C-005 resuelta; C-009/C-011/C-013/C-014 | D-001 a D-020 | Acta de decisiones y documentos actualizados | Nicolás Sena + autoridad institucional por tema | `OPEN` | E1-B/E1-C |
+| Q-101 a Q-184 resueltas para piloto | Todas las filas funcionales siguientes; C-005 resuelta; C-009/C-011/C-013/C-014 | D-001 a D-020 | Actas E1-A/E1-B, especificación y AC consolidados | Nicolás Sena + autoridad institucional por tema | `READY_FOR_REVIEW` | E1-C/G1 |
 | Borde funcional de integración resuelto | Q-310, C-002/C-006 | D-021 a D-024 | Secuencia decisión-oferta-aceptación-handoff documentada; contrato técnico posterior | Nicolás Sena + representante institucional; EduPay después para contrato | `FUNCTIONALLY_RESOLVED` | E1-B |
-| Proceso validado por responsables reales | Todos los journeys | D-014 a D-017 | Registro de reunión con Admisión, Dirección y actividades | Representante institucional | `OPEN` | E1-B |
-| Datos sensibles justificados/minimizados | Q-104, C-013 | D-004/D-005 | Finalidad, obligatoriedad, audiencia y etapa por dato; legal antes de datos reales/piloto productivo | Institución + Nicolás Sena; responsable legal en compuerta pre-datos-reales | `OPEN` | E1-B / hito legal posterior |
-| Casos felices, alternos y excepciones aprobados | Q-102, Q-122/123/124, Q-142/145, Q-163/164/166/167 | D-001/D-003/D-008/D-016 | Casos de uso revisados y criterios funcionales aceptados | Producto + responsables institucionales | `OPEN` | E1-C |
-| Backlog MVP priorizado y fuera de alcance | Todas las capacidades funcionales del MVP | Roadmap aprobado en G0 | Priorización por requisito/UC y exclusiones; las dependencias Q-201+ y Q-301+ se registran fuera del alcance de G1 | Nicolás Sena + institución | `OPEN` | E1-C |
+| Proceso validado por responsables reales | Todos los journeys | D-014 a D-017 | Cierre E1-B, journeys y especificación canónica | Representante institucional | `READY_FOR_REVIEW` | E1-C/G1 |
+| Datos sensibles justificados/minimizados | Q-104, C-013 | D-004/D-005 | Comportamiento funcional definido; legal antes de datos reales/piloto productivo | Institución + Nicolás Sena; responsable legal en compuerta pre-datos-reales | `FUNCTIONALLY_DEFINED / LEGAL_DEFERRED` | G1 / hito legal posterior |
+| Casos felices, alternos y excepciones aprobados | Q-102, Q-122/123/124, Q-142/145, Q-163/164/166/167 | D-001/D-003/D-008/D-016 | 58 AC y 22 E2E consolidados | Producto + responsables institucionales | `READY_FOR_REVIEW` | E1-C/G1 |
+| Backlog MVP priorizado y fuera de alcance | Todas las capacidades funcionales del MVP | Roadmap aprobado en G0 | 22 P0, 6 P1, 5 P2 y diferidos clasificados | Nicolás Sena + institución | `READY_FOR_REVIEW` | E1-C/G1 |
 
 ## Trazabilidad pregunta a comportamiento
 
 Abreviaturas de aprobación: `NS` Nicolás Sena; `RI` representante institucional; `ADM` Admisión; `DIR` Dirección; `CUP` responsable de cupos; `ACT` entrevistadores/evaluadores; `COM` comunicaciones. “Evidencia” implica respuesta fechada, responsable y resultado `APPROVED/MODIFIED/REJECTED/PENDING`.
 
-| Q | C / D relacionada | FR/NFR | Journeys | Casos de uso | Aprueba | Estado previo a aprobación | Evidencia necesaria | Entrega |
+| Q | C / D relacionada | FR/NFR | Journeys | Casos de uso | Aprueba | `HISTORICAL_PRE_APPROVAL_STATE` | Evidencia necesaria | Entrega |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Q-101 | D-002/D-013 | FR-APP-001/003/004 | J-FAM-001/002; J-ADM-001 | UC-APP-001 | NS+RI | `PROPOSED` | Combinaciones permitidas por estudiante/oferta | E1-B |
 | Q-102 | D-002/D-003 | FR-APP-004 | J-FAM-001/003; J-ADM-001 | UC-APP-001/003 | NS+ADM | `PROPOSED` | Clave funcional de duplicado y excepciones | E1-B |
@@ -59,7 +59,18 @@ Abreviaturas de aprobación: `NS` Nicolás Sena; `RI` representante instituciona
 | Q-182 | D-001 | FR-COM-001; FR-AUD-003 | J-FAM-007 | UC-APP-005 | ADM+COM+DIR | `PROPOSED` | Lista de hitos/textos visibles | E1-B |
 | Q-183 | D-004/D-005 | FR-ADM-006; NFR-PRV-008 | J-ADM-001/006 | UC-ADM-003 | ADM+DIR+NS | `NEEDS_DECISION` | Catálogo, audiencia, columnas y periodicidad | E1-B/E1-C |
 | Q-184 | — | NFR-REL/PER/OBS por definir | Todos | Todos los operativos | ADM+DIR+dueños | `NEEDS_DECISION` | SLA funcionales, calendario, dueño y escalamiento | E1-C |
-| Q-310 | C-002/C-006; D-021 a D-024 | FR-INT-005/006/008 | J-FAM-008/010; J-INT-001 | UC-APP-007; UC-INT-001 | NS+RI+ADM+DIR | `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED` | Secuencia decisión-oferta-aceptación-handoff aprobada; contrato técnico posterior | E1-B |
+| Q-310 | C-002/C-006; D-021 a D-024 | FR-INT-005/006/008 | J-FAM-008/010; J-INT-001 | UC-APP-007; UC-INT-001 | NS+RI+ADM+DIR | `NEEDS_DECISION` | Estado vigente: `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED`; contrato técnico posterior | E1-B |
+
+## `CURRENT_CANONICAL_STATE`
+
+| Conjunto | Estado vigente | Evidencia canónica |
+| --- | --- | --- |
+| Q-101 a Q-184 | `APPROVED_PRODUCT`; detalles concretos clasificados cuando corresponda | [`11-functional-specification.md`](11-functional-specification.md), [`12-acceptance-criteria.md`](12-acceptance-criteria.md) |
+| Q-310 | `APPROVED_PRODUCT / FUNCTIONALLY_RESOLVED` | Aceptación expresa precede al handoff; AC-055 a AC-057 |
+| Q-301 a Q-309 | `FUTURE_INTEGRATION_PENDING`; no bloquean G1 | [`15-deferred-and-out-of-scope.md`](15-deferred-and-out-of-scope.md) |
+| C-005 | `RESUELTA EN DISEÑO FUNCIONAL` | Disponibilidad categórica; AC-004 a AC-006 |
+| C-009, C-011, C-014 | `INSTITUTIONALLY_VALIDATED`; configuración pre-piloto clasificada | Acta E1-B y especificación |
+| C-013 | `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING` | Funcionalmente definido; legal antes de datos reales/piloto productivo |
 
 ## Estado E1-B de las contradicciones validadas
 
@@ -70,7 +81,7 @@ Abreviaturas de aprobación: `NS` Nicolás Sena; `RI` representante instituciona
 | C-013 | `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING` | PIE/NEE progresivos; salud mínima por necesidad; ingreso familiar fuera del formulario MVP; acceso restringido y auditable | `PRE_PILOT_LEGAL_PENDING`: fundamento legal, retención, eliminación/anonimización, titulares y matriz legal; no bloquea G1 |
 | C-014 | `INSTITUTIONALLY_VALIDATED / OPERATIONAL_DETAIL_PENDING` | Portal oficial, asistencia presencial auditada y digitalización física excepcional al expediente | `PILOT_CONFIGURATION_PENDING`: suplencias, delegaciones, evidencias y detalle físico |
 
-Estas cuatro contradicciones ya no bloquean conceptualmente el inicio de E1-B. G1 permanece `NO APROBADA`.
+Estas cuatro contradicciones no bloquearon el cierre aprobado de E1-B. C-013 conserva su hito legal antes de datos reales/piloto productivo. G1 permanece `NO APROBADA`.
 
 ## Trazabilidad de reglas operativas E1-B
 
@@ -85,27 +96,54 @@ Estas cuatro contradicciones ya no bloquean conceptualmente el inicio de E1-B. G
 | Comunicaciones y dashboard | FR-COM-006/007/009; FR-ADM-001/009 | J-FAM-005/006/007/008/009; J-ADM-005 | UC-ACT-001/002; UC-COM-001; UC-ADM-003 | `08-pilot-operational-rules.md` | `DEFINED_FOR_PILOT`; plantillas/recordatorio pendientes |
 | Gestión documental física | FR-DOC-009; FR-DOC-001 a 008 | J-FAM-004; J-ADM-002; J-OPS-001 | UC-DOC-001/002; UC-ADM-002 | `08-pilot-operational-rules.md` | `DEFINED_FOR_PILOT`; conservación física pendiente |
 
-## Contradicciones y vacíos
+## Trazabilidad integral de capacidades P0
 
-| ID | Riesgo abierto | Preguntas/UC afectados | Evidencia para cerrar o avanzar | Entrega |
+| Backlog P0 | FR/NFR | Q/D/C | Journeys | Casos de uso | AC | E2E |
+| --- | --- | --- | --- | --- | --- | --- |
+| BL-001 | NFR-TEN-001 a 004; NFR-SEC-001 a 003 | Q-002; D-002/D-004 | J-ADM-001; J-OPS-001 | UC-AUD-001; UC-ADM-003 | AC-045, AC-050 | E2E-018 |
+| BL-002 | FR-ID-001 a 005 | Q-101/Q-105/Q-106; D-002/D-013 | J-FAM-001/002 | UC-FAM-001/003/004 | AC-001 a AC-003, AC-051 | E2E-001 |
+| BL-003 | FR-APP-001/002; FR-ADM-003 | Q-103; C-005; D-012 | J-FAM-001/007 | UC-ADM-001 | AC-004 a AC-006 | E2E-001, E2E-011 |
+| BL-004 | FR-FRM-001 a 012; FR-ADM-008 | Q-104/Q-108; D-003/D-019/D-020 | J-FAM-001/003; J-ADM-007 | UC-FRM-001/002 | AC-007 a AC-009 | E2E-001 |
+| BL-005 | FR-APP-003 a 009 | Q-101/Q-102/Q-105; D-002/D-013 | J-FAM-001/003/007/010 | UC-APP-001/002/003/005/006 | AC-002/003/007/058 | E2E-001, E2E-014 |
+| BL-006 | FR-DOC-001 a 008 | Q-120 a Q-124; C-011/C-012 | J-FAM-004; J-ADM-002 | UC-APP-004; UC-DOC-001 a 003 | AC-010 a AC-013 | E2E-002, E2E-003 |
+| BL-007 | FR-APP-008; FR-DOC-009; FR-AUD-001/004 | Q-107; C-014; D-017 | J-OPS-001 | UC-ADM-002 | AC-014 a AC-016 | E2E-004 |
+| BL-008 | FR-ACT-001 a 007; FR-COM-009 | Q-140 a Q-143; D-014/D-015 | J-FAM-005/006; J-ADM-003 | UC-ACT-002/003 | AC-017/018 | E2E-005 |
+| BL-009 | FR-ACT-008/009; FR-AUD-004 | Q-142/Q-144/Q-145; C-009 | J-FAM-005/006; J-ADM-003/004 | UC-ACT-004 a 006 | AC-019 a AC-021 | E2E-006 a E2E-008 |
+| BL-010 | FR-DEC-003/005/008 | Q-160/Q-161; D-016 | J-ADM-004 | UC-DEC-001/002 | AC-022 a AC-024 | E2E-001, E2E-009 |
+| BL-011 | FR-DEC-004/006/007/009 | Q-160/Q-161/Q-167; D-016 | J-DIR-001; J-FAM-008/009 | UC-DEC-002/003 | AC-025 a AC-028 | E2E-009 a E2E-011 |
+| BL-012 | FR-CAP-001 a 003 | Q-162/Q-163; C-005 | J-ADM-006 | UC-CAP-001/004 | AC-029 a AC-031 | E2E-001, E2E-012 |
+| BL-013 | FR-CAP-004/005 | Q-164/Q-165; D-008 | J-FAM-009; J-ADM-006 | UC-CAP-002/003 | AC-032 a AC-035 | E2E-011 a E2E-013 |
+| BL-014 | FR-CAP-006; FR-COM-006; FR-AUD-004 | Q-163/Q-166/Q-167/Q-310 | J-FAM-008/010 | UC-APP-006/007; UC-CAP-004 | AC-036 a AC-039, AC-058 | E2E-001, E2E-012 a E2E-016 |
+| BL-015 | FR-COM-002 a 009 | Q-180 a Q-182; D-017/D-018 | J-ADM-005; J-FAM-004 a 010 | UC-COM-001 | AC-040 a AC-043 | E2E-001, E2E-017 |
+| BL-016 | FR-COM-001; FR-AUD-003; NFR-UX-003/004 | Q-165/Q-182; D-001 | J-FAM-001 a 010 | UC-APP-005 | AC-005/012/017/021/032/036 | E2E-001 a E2E-017 |
+| BL-017 | FR-ADM-001/002/009 | Q-183/Q-184 | J-ADM-001 a 006 | UC-ADM-003 | AC-044 a AC-046 | E2E-001, E2E-018 |
+| BL-018 | FR-ADM-006; NFR-PRV-008 | Q-183; D-004/D-005 | J-ADM-001/006 | UC-ADM-003 | AC-047 a AC-049 | E2E-021, E2E-022 |
+| BL-019 | FR-ADM-005/007; NFR-SEC-001/012; NFR-TEN-003 | Q-105/Q-121/Q-161/Q-205; D-004/D-005 | Todos según actor | UC-AUD-001 | AC-011/016/023/028/034/052 a 054 | E2E-019, E2E-020, E2E-022 |
+| BL-020 | FR-AUD-001 a 004; NFR-OBS-003/004 | D-003/D-004/D-005 | Todos | Todos con cambio sensible | AC-013/020/024/030/039/047/054 | Todos los E2E |
+| BL-021 | FR-ADM-003 a 005/008 | D-003/D-019/D-020; A-001 | J-ADM-007 | UC-ADM-001; UC-FRM-001/002; UC-DOC-001 | AC-004/007/009/017/029 | E2E-001 |
+| BL-022 | FR-INT-001/003/008 | Q-310; Q-301 a Q-309 diferidas; D-007/D-021 a D-024 | J-INT-001; J-FAM-008/010 | UC-INT-001/002; UC-APP-007 | AC-055 a AC-057 | E2E-001 |
+
+Todas las capacidades P0 tienen requisito, criterio de aceptación y escenario o justificación explícita. El detalle completo de prioridad y motivo está en [`14-mvp-backlog.md`](14-mvp-backlog.md).
+
+## Diferidos clasificados; no bloqueantes de G1
+
+| ID | Pendiente clasificado | Preguntas/UC afectados | Evidencia para completar | Hito |
 | --- | --- | --- | --- | --- |
 | C-005 | La contradicción funcional está resuelta; queda configuración concreta de señal y cupos | Q-103, Q-162; UC-ADM-001/UC-CAP-001 | Texto institucional, valores concretos y configuración por oferta | `PILOT_CONFIGURATION_PENDING` |
-| C-009 | Detalles de ejecución aún no definidos | Q-140; UC-ACT-003/006 | Catálogo versionado, excepciones, repetición, reprogramación y cierre; validación institucional ya registrada | E1-B |
-| C-011 | Catálogo concreto aún no definido | Q-120; UC-DOC-001/003 | Tabla curso/periodo/condición/equivalente; validación institucional ya registrada | E1-B |
-| C-013 | Legalidad y ciclo de vida aún pendientes | Q-104/Q-144/Q-183; formularios/actividades/exportación | Matriz funcional registrada; legal/retención antes de datos reales | E1-B y etapas posteriores |
-| C-014 | Procedimiento operativo aún no definido | Q-107; UC-ADM-002 | Evidencia de asistencia y origen físico; personal/suplencias pendientes | E1-B |
-| Vacío E1-A-001 | No hay personas/suplentes operativos nominados | Q-121/Q-141/Q-161/Q-167 | Matriz de responsables institucional aprobada | E1-B |
-| Vacío E1-A-002 | No existen cifras de plazos/capacidad | Q-122/Q-163/Q-184 | Valores entregados por autoridad; no estimados por el agente | E1-B/E1-C |
-| Vacío E1-A-003 | No existe pauta de entrevista/evaluación/recomendación | Q-144/Q-160 | Pautas institucionales revisadas y versionadas | E1-B |
+| C-009 | Ejecutores, suplencias, duración y pauta concreta `PILOT_CONFIGURATION_PENDING` | Q-140; UC-ACT-003/006 | Valores institucionales publicados | Pre-piloto |
+| C-011 | Catálogo concreto de personalidad `PILOT_CONFIGURATION_PENDING` | Q-120; UC-DOC-001/003 | Tabla curso/condición/equivalente/vigencia | Pre-piloto |
+| C-013 | `PRE_PILOT_LEGAL_PENDING` | Q-104/Q-144/Q-183 | Validación legal, retención y derechos | Antes de datos reales/piloto productivo |
+| C-014 | Suplencias y conservación física clasificadas | Q-107; UC-ADM-002 | Configuración operativa y decisión legal física | Pre-piloto |
+| Vacío E1-A-001 | Personas/suplentes concretos `PILOT_CONFIGURATION_PENDING` | Q-121/Q-141/Q-161/Q-167 | Nombres y delegaciones autorizados | Pre-piloto |
+| Vacío E1-A-002 | Valores concretos `PILOT_CONFIGURATION_PENDING` | Q-122/Q-163/Q-184 | Cupos, calendario y SLA institucionales | Pre-piloto |
+| Vacío E1-A-003 | Pauta avanzada diferida | Q-144/Q-160 | Pauta concreta de entrevista; evaluación simple suficiente para MVP | P1/P2 |
 
-## Qué falta para cerrar G1
+## Qué falta para aprobar G1
 
-1. Consolidar E1-C cuando sea autorizada.
-2. Cerrar criterios de aceptación funcionales.
-3. Consolidar casos felices, alternos y excepciones.
-4. Priorizar el backlog MVP y su fuera de alcance.
-5. Solicitar aprobación funcional humana explícita de G1 sobre un commit/documentos identificados.
+1. Revisar humanamente la especificación, 58 AC, 22 E2E, backlog y diferidos consolidados.
+2. Confirmar que el commit definitivo del PR #4 es la evidencia sometida a decisión.
+3. Registrar una aprobación, modificación o devolución humana explícita de G1.
 
-Q-301 a Q-309, Q-201/Q-202 y la validación legal de C-013 no son bloqueantes de cierre funcional E1-B/G1. Q-301 a Q-309 pertenecen a la integración futura E7/G7; Q-201/Q-202 y C-013 legal pertenecen a compuertas pre-datos-reales/piloto productivo.
+Q-301 a Q-309, Q-201 a Q-210 y la validación legal de C-013 no son bloqueantes de G1. Q-301 a Q-309 pertenecen a la integración futura E7/G7; Q-201 a Q-210 y C-013 legal conservan sus compuertas técnicas, operativas o pre-datos-reales/piloto productivo.
 
-La fusión del PR de E1-A no satisface ninguno de estos pasos por sí sola.
+La finalización documental o fusión del PR #4 no aprueba G1 por sí sola.

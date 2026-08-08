@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E1-B — Especificación funcional institucional |
-| Estado de la etapa | `IN PROGRESS` |
+| Estado de la etapa | `CLOSED / OPERATIONAL BASELINE APPROVED` |
 | Fecha de registro | `2026-08-06` |
 | Fuente | Respuestas confirmadas por Nicolás Sena como posición institucional/funcional para el piloto |
 | Autoridad de la confirmación | Nicolás Sena |
@@ -15,7 +15,7 @@
 
 ## Cómo leer esta validación
 
-Esta línea base separa hechos confirmados, decisiones registradas y detalles todavía abiertos. La validación institucional permite iniciar E1-B y deja de tratar C-009, C-011, C-013 y C-014 como contradicciones conceptuales bloqueantes para esta etapa. La revisión actual no identifica una decisión funcional bloqueante para el cierre de E1-B, que queda `IN PROGRESS / READY FOR CLOSURE REVIEW`. No cierra G1 ni convierte una regla funcional en autorización legal o técnica.
+Esta línea base separa hechos confirmados, decisiones registradas y detalles todavía abiertos. La validación institucional permitió completar E1-B y dejó de tratar C-009, C-011, C-013 y C-014 como contradicciones conceptuales bloqueantes. E1-B fue cerrada mediante aprobación humana; esta línea base no cierra G1 ni convierte una regla funcional en autorización legal o técnica.
 
 Los términos como `PHYSICAL_DOCUMENT`, `SELF-ELEVATION` y los nombres de permisos son lenguaje funcional de análisis; no son enums, endpoints, tablas ni contratos de API.
 
