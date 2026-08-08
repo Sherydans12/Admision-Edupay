@@ -4,9 +4,10 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado E3 | `IN PROGRESS / READY FOR UX DECISIONS` |
+| Estado E3 | `IN PROGRESS / READY FOR G3 REVIEW` |
 | Resultado de readiness | `PASS_WITH_DEFERRED` |
-| Bloqueantes UX materiales identificados | Ninguno en la consolidación; quedan decisiones humanas HUX-001..HUX-005 |
+| Bloqueantes UX materiales identificados | Ninguno |
+| Decisiones humanas HUX | HUX-001..HUX-005 `RESOLVED`; HUX-005 incorpora UX-D-010 |
 | G3 | `NO APROBADA` |
 | E4 | `NO AUTORIZADA` |
 | Implementación/scaffolding | `NO AUTORIZADOS` |
@@ -31,23 +32,25 @@
 | Activities | 03, 04, 05 | PASS | Cita, reprogramación, no-show, intentos y separación resultado/estado |
 | Recommendation/decision | 04, 05, 07, 14 | PASS | Secretaría no recomienda/decide; recomendador no decide |
 | Capacity/waitlist | [10-capacity-waitlist-offer-ux.md](10-capacity-waitlist-offer-ux.md) | PASS | Categorías familiares, datos internos y promoción manual |
-| Offer | 03, 06, 10 | PASS | Vencimiento, tiempo, aceptar/rechazar, consecuencias, reapertura |
+| Offer | 03, 06, 10, 14 | PASS | Vencimiento, tiempo, aceptar/rechazar, consecuencias y confirmación crítica |
 | Communication | 04, 06, 10 | PASS_WITH_DEFERRED | Estados y fallo definidos; copy/plantillas finales configurables |
 | Permissions/visibility | 01, 05, 07, 11 | PASS | Tenant, scope, propósito, sensibilidad, SoD y elevación |
 | Errors | 06, 08, 11 | PASS | Loading, empty, validation, business, network, forbidden, not found y degraded |
 | Session | [11-session-security-ux.md](11-session-security-ux.md) | PASS_WITH_DEFERRED | Sesión aprobada y UX cubierta; MFA/step-up exactos son diferidos |
 | Responsive/accessibility | 08, 12 | PASS_WITH_DEFERRED | Criterios incorporados; no se requiere paleta final para G3 |
-| Security UX | 07, 11, 13 | PASS | Cross-tenant, acceso ajeno, Secretaría, recomendador y Superadmin cubiertos |
+| Security UX | 07, 11, 13, 14 | PASS | Cross-tenant, acceso ajeno, Secretaría, recomendador, Superadmin y confirmaciones críticas cubiertos |
 | P0 coverage | Inventario, board, escenarios | PASS | BL-001..BL-022 aparecen en navegación, pantallas o flujos |
-| Validación de usabilidad | [13-prototype-validation-scenarios.md](13-prototype-validation-scenarios.md) | PASS_WITH_DEFERRED | 20 tareas sintéticas listas para revisión humana |
-| Decisiones UX | [14-ux-decision-workbook.md](14-ux-decision-workbook.md) | PASS_WITH_DEFERRED | 13 recomendaciones; HUX-001..HUX-005 requieren decisión humana |
+| Validación de usabilidad | [13-prototype-validation-scenarios.md](13-prototype-validation-scenarios.md) | PASS_WITH_DEFERRED | 20 tareas sintéticas listas para revisión G3 |
+| Decisiones UX | [14-ux-decision-workbook.md](14-ux-decision-workbook.md) | PASS | 13 recomendaciones; HUX-001..HUX-005 resueltas por decisión humana |
 
 ## Controles de no contradicción
 
 - No se muestran a Familia resultados internos, puntajes, recomendaciones, comentarios internos, identidad de revisores, posición waitlist ni cupos exactos.
+- La disponibilidad categórica del proceso no se presenta como una oferta de admisión emitida.
 - Secretaría sólo asiste, carga/digitaliza y gestiona agenda; no recomienda, decide, modifica cupos ni promueve.
 - Admisión recomienda; Dirección decide; recomendador no decide el mismo caso.
 - Superadmin sin elevación no lee contenido tenant; elevación exige tenant, motivo, purpose, scope, categorías, duración, indicador y auditoría.
+- Las acciones críticas definidas en HUX-005/UX-D-010 requieren confirmación apropiada antes de ejecutarse.
 - Admisión y EduPay permanecen desacoplados; aceptación precede el borde funcional y no equivale a matrícula.
 - No hay código, scaffolding, dependencias, infraestructura, datos reales ni integración ejecutable.
 
@@ -55,7 +58,7 @@
 
 ### Bloqueantes UX materiales
 
-Ninguno identificado en esta consolidación. La aprobación humana HUX-001..HUX-005 es una compuerta de decisión, no un hallazgo UX material preexistente.
+Ninguno identificado. Las decisiones HUX requeridas por E3 ya fueron resueltas; queda únicamente la aprobación formal de la compuerta G3.
 
 ### Diferidos que no bloquean G3
 
@@ -68,4 +71,4 @@ Ninguno identificado en esta consolidación. La aprobación humana HUX-001..HUX-
 
 ## Recomendación de salida
 
-Después de resolver HUX-001..HUX-005, la evidencia está lista para que una autoridad humana decida G3. La aprobación no debe interpretarse como autorización de construcción MVP/G4; sólo habilitaría la etapa siguiente definida por el roadmap.
+La evidencia E3 queda `READY FOR G3 REVIEW`. Una aprobación G3 puede cerrar E3 y autorizar E4 — Fundación técnica conforme al roadmap. No debe interpretarse como autorización G4, construcción del MVP, datos reales o integración técnica EduPay.
