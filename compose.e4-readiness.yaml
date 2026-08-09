@@ -1,0 +1,69 @@
+services:
+  postgres:
+    ports: !reset []
+
+  migrator:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.migrator
+    environment:
+      DATABASE_MIGRATION_URL: postgresql://admission_migrator:admission_migrator_local_only@postgres:5432/admission_dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_APP_URL: postgresql://admission_app:admission_app_local_only@postgres:5432/admission_dev
+      PORT: "3001"
+    ports:
+      - "127.0.0.1:${E4_API_PORT:-3301}:3001"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:3001/health/ready').then((response) =>
+          process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 3s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    ports:
+      - "127.0.0.1:${E4_WEB_PORT:-3300}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:3000').then((response) =>
+          process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    init: true

@@ -1,0 +1,40 @@
+services:
+  source:
+    image: postgres:15.14-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: admission_bootstrap_local_only
+      POSTGRES_USER: admission_bootstrap
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admission_bootstrap -d postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - source-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init/001-bootstrap.sql:/docker-entrypoint-initdb.d/001-bootstrap.sql:ro
+
+  recovery:
+    image: postgres:15.14-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: admission_bootstrap_local_only
+      POSTGRES_USER: admission_bootstrap
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admission_bootstrap -d postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - recovery-data:/var/lib/postgresql/data
+      - ./infrastructure/postgres/init/001-bootstrap.sql:/docker-entrypoint-initdb.d/001-bootstrap.sql:ro
+
+  migrator:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.migrator
+    restart: "no"
+
+volumes:
+  source-data:
+  recovery-data:
