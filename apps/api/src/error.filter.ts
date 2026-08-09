@@ -5,6 +5,12 @@ import {
   HttpException,
   HttpStatus,
 } from "@nestjs/common";
+import {
+  ForbiddenError,
+  IntakeDuplicateError,
+  IntakeNotFoundError,
+  IntakeValidationError,
+} from "@admission/database";
 import { getCorrelationId } from "./correlation-context.js";
 import { StructuredLogger } from "./structured-logger.js";
 
@@ -29,10 +35,7 @@ export class GlobalErrorFilter implements ExceptionFilter {
     const response = http.getResponse<{
       status(code: number): { json(body: PublicErrorResponse): void };
     }>();
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status = exceptionStatus(exception);
     const error = classifyStatus(status);
     const correlationId = getCorrelationId() ?? "unbound-request";
     this.logger.error("HTTP_REQUEST_FAILED", error, { correlationId, status });
@@ -40,6 +43,15 @@ export class GlobalErrorFilter implements ExceptionFilter {
       .status(status)
       .json({ correlationId, error, message: "Request failed" });
   }
+}
+
+function exceptionStatus(exception: unknown): number {
+  if (exception instanceof HttpException) return exception.getStatus();
+  if (exception instanceof ForbiddenError) return HttpStatus.FORBIDDEN;
+  if (exception instanceof IntakeDuplicateError) return HttpStatus.CONFLICT;
+  if (exception instanceof IntakeNotFoundError) return HttpStatus.NOT_FOUND;
+  if (exception instanceof IntakeValidationError) return HttpStatus.BAD_REQUEST;
+  return HttpStatus.INTERNAL_SERVER_ERROR;
 }
 
 function classifyStatus(status: number): PublicErrorResponse["error"] {

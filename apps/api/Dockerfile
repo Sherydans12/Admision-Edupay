@@ -14,6 +14,10 @@ COPY apps/worker/package.json apps/worker/package.json
 COPY packages/database/package.json packages/database/package.json
 RUN pnpm install --frozen-lockfile
 
+COPY packages/database packages/database
+RUN DATABASE_MIGRATION_URL=postgresql://admission_migrator:admission_migrator_local_only@localhost:5432/admission_dev pnpm --filter @admission/database db:generate
+RUN pnpm --filter @admission/database build
+
 COPY apps/api apps/api
 RUN pnpm --filter @admission/api build
 RUN pnpm deploy --legacy --filter @admission/api --prod /runtime

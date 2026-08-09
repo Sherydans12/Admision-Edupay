@@ -10,6 +10,11 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const port = Number(process.env.PORT ?? 3001);
 
+  app.enableCors({
+    credentials: true,
+    origin: process.env.ADMISSION_WEB_ORIGIN ?? "http://localhost:3000",
+  });
+
   app.use(new CorrelationMiddleware().use.bind(new CorrelationMiddleware()));
   app.useGlobalFilters(new GlobalErrorFilter());
 
