@@ -5,25 +5,29 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E4 — Fundación técnica |
-| Estado | `IN PROGRESS / READY FOR G4 REVIEW` |
+| Estado | `CLOSED / TECHNICAL FOUNDATION APPROVED` |
 | Inicio autorizado | `2026-08-08T15:30:00-04:00` |
-| Base | `main` en `6b2549333e25b65a44c97423a718b70a8d38937f` |
+| Cierre aprobado | `2026-08-08T20:25:00-04:00` |
+| Base inicial | `main` en `6b2549333e25b65a44c97423a718b70a8d38937f` |
 | Rama | `feat/e4-technical-foundation` |
+| Commit técnico aprobado | `cb5d4be14fd9149a20e1acd36b5dfad563c2836a` |
 | Dependencia | G3 `APPROVED / CLOSED` |
-| G4 | `NO APROBADA` |
-| Datos permitidos | Sólo sintéticos |
+| G4 | `APPROVED / CLOSED` |
+| Resultado | `PASS_WITH_DEFERRED` |
+| Datos permitidos durante E4/E5 | Sólo sintéticos/non-production |
 | Infraestructura productiva | No autorizada |
 | Integración técnica EduPay | No autorizada |
+| Registro | `docs/approvals/G4-mvp-construction-approval-2026-08-08.md` |
 
 ## Estado de incrementos
 
 | Incremento | Estado | Evidencia |
 | --- | --- | --- |
 | E4-A — Repository and toolchain foundation | `COMPLETE` | Monorepo pnpm instalable, lintable, typecheckable, testeable y compilable; web/API/worker separados |
-| E4-B — PostgreSQL, Prisma y PoC tenant/RLS | `COMPLETE` | PostgreSQL 15.14 real, migración Prisma 7.9.1 y `POC-01..POC-08` con 8/8 tests `PASS` |
-| E4-C — Identity/session/authorization foundation | `COMPLETE` | Sesión opaca, tenant resolution, autorización deny-by-default, SoD, SELF-ELEVATION, CSRF y frontera platform/RLS endurecida con tests |
+| E4-B — PostgreSQL, Prisma y PoC tenant/RLS | `COMPLETE` | PostgreSQL 15.14 real, Prisma 7.9.1 y `POC-01..POC-08` con 8/8 tests `PASS` |
+| E4-C — Identity/session/authorization foundation | `COMPLETE` | Sesión opaca, tenant resolution, deny-by-default, SoD, SELF-ELEVATION y frontera platform/RLS endurecida |
 | E4-D — Operational foundation | `COMPLETE` | Correlación, logs sanitizados, errores, health/readiness, auditoría, outbox, adapters y CI |
-| E4-E — G4 readiness | `COMPLETE` | Readiness `PASS_WITH_DEFERRED`; G4 permanece `NO APROBADA` |
+| E4-E — G4 readiness | `COMPLETE` | Deployment/recovery/reproducibilidad, ownership, alcance E5 y checklist `PASS_WITH_DEFERRED` |
 
 La evidencia reproducible está en `docs/e4/01-local-development.md`,
 `docs/e4/02-tenant-rls-poc.md`, `docs/e4/04-identity-session-authorization.md`,
@@ -31,16 +35,14 @@ La evidencia reproducible está en `docs/e4/01-local-development.md`,
 `docs/e4/07-reproducibility-and-deployment-evidence.md`,
 `docs/e4/08-recovery-evidence.md`, `docs/e4/09-residual-risks-and-operational-ownership.md`,
 `docs/e4/10-g4-mvp-scope-and-exit.md` y `docs/e4/11-g4-readiness-checklist.md`.
-E4-A..E están completas; E4 queda `IN PROGRESS / READY FOR G4 REVIEW`. Esto no autoriza
-solicitar, aprobar o sustituir G4.
 
-## Objetivo
+G4 fue aprobada explícitamente sobre el commit técnico `cb5d4be14fd9149a20e1acd36b5dfad563c2836a`. E4 queda cerrada y E5 queda autorizada dentro del alcance y límites registrados en el acta G4.
 
-Crear una base técnica mínima, segura, testeable y reversible que permita solicitar G4 sin implementar todavía el recorrido funcional completo del MVP.
+## Objetivo cumplido
 
-E4 sí autoriza código de fundación, scaffolding, dependencias, schemas/migraciones iniciales, pruebas, CI e infraestructura local/de desarrollo. E4 no autoriza construir silenciosamente funcionalidades de negocio completas que corresponden a E5.
+E4 creó una base técnica mínima, segura, testeable y reversible para construir el MVP sin introducir todavía datos reales ni integración técnica con EduPay.
 
-## Arquitectura aprobada que E4 debe materializar
+## Arquitectura materializada
 
 - modular monolith;
 - monorepo independiente de EduPay;
@@ -49,145 +51,50 @@ E4 sí autoriza código de fundación, scaffolding, dependencias, schemas/migrac
 - NestJS para API;
 - worker separado;
 - pnpm workspaces;
-- Turborepo sólo si aporta valor real y bajo overhead;
-- PostgreSQL;
-- Prisma;
+- PostgreSQL y Prisma;
 - shared schema con `tenantId` obligatorio para datos tenant-owned;
-- RLS como defensa adicional condicionada a PoC antes de G4;
+- RLS/FORCE RLS como defensa en profundidad;
 - opaque server-side sessions para web MVP;
 - autorización deny-by-default;
+- separación Platform/Tenant execution context;
+- SELF-ELEVATION explícita, temporal y auditable;
 - jobs/outbox PostgreSQL;
-- object storage y malware detrás de contratos/adapters, sin proveedor productivo todavía;
-- runtime Linux containerizado como dirección productiva futura, sin aprovisionar producción en E4.
+- object storage, email y malware detrás de contratos/adapters;
+- runtime Linux containerizado como dirección productiva futura, probado sólo en local/development.
 
-## Orden de trabajo
+## Evidencia principal
 
-### E4-A — Repository and toolchain foundation
+- `pnpm test`: `62/62 PASS`;
+- `pnpm test:rls`: `8/8 PASS`;
+- `SES-01..SES-16`: PASS;
+- `AUTH-01..AUTH-12`: PASS;
+- `PLAT-01..PLAT-03`: PASS;
+- `ELEV-01..ELEV-08`: PASS;
+- `AUD-01..AUD-05`: PASS;
+- `TRUST-01..TRUST-08`: PASS;
+- `POC-01..POC-08`: PASS;
+- fresh migrations `3/3`: PASS;
+- secret scan final: `180` archivos tracked, PASS;
+- dependency audit: sin vulnerabilidades conocidas en nivel high;
+- deployment smoke local/development: PASS;
+- recovery smoke `REC-01..REC-08`: PASS;
+- recovery observado: `31.807 s`, sin convertirlo en RTO productivo;
+- CI final sobre el commit aprobado: PASS.
 
-Objetivo: tener monorepo instalable, compilable, lintable y testeable.
+## Condiciones y diferidos
 
-Entregables esperados:
+RPO `1 hora` y RTO `4 horas` siguen siendo objetivos técnicos iniciales, no SLA. C-013, datos reales, piloto, producción, secretos productivos, proveedores productivos, incident response productivo e integración EduPay/Q-301..Q-309 permanecen fuera de la autorización G4.
 
-- `package.json` raíz;
-- `pnpm-workspace.yaml`;
-- lockfile;
-- configuración TypeScript común;
-- ESLint/Prettier o herramientas equivalentes;
-- `apps/web` Next.js;
-- `apps/api` NestJS;
-- `apps/worker` Node/Nest ligero según decisión de implementación;
-- paquetes compartidos estrictamente técnicos;
-- scripts raíz;
-- `.env.example` sin secretos;
-- `.gitignore`;
-- README de desarrollo;
-- checks de build/lint/typecheck/test.
+## Autorización resultante
 
-No crear todavía módulos funcionales completos de Admisión.
+G4 autoriza iniciar E5 para construir el MVP funcional dentro de:
 
-### E4-B — PostgreSQL, Prisma y PoC tenant/RLS
+- `BL-001..BL-022`;
+- `AC-001..AC-058`;
+- `E2E-001..E2E-022`.
 
-Objetivo: resolver la condición crítica de ADR-0003 antes de G4.
+Durante E5 sólo se permiten datos sintéticos/non-production e infraestructura local/development necesaria hasta que una compuerta posterior autorice algo adicional.
 
-Debe usar únicamente datos sintéticos y demostrar las ocho condiciones aprobadas:
+## Próxima etapa
 
-1. request con tenant correcto;
-2. job con tenant correcto;
-3. ausencia de tenant context = DENY;
-4. intento cross-tenant = DENY;
-5. pooling sin fuga de tenant context;
-6. Prisma compatible con transacciones + RLS;
-7. rol aplicación separado de rol migraciones;
-8. fail-closed.
-
-La PoC debe ser reproducible por tests/instrucciones. Si falla, no se elimina RLS silenciosamente.
-
-### E4-C — Identity/session/authorization foundation
-
-Objetivo: crear sólo la infraestructura horizontal necesaria.
-
-Incluye:
-
-- identidad técnica mínima;
-- opaque server-side session;
-- cookies HttpOnly/Secure/SameSite configurables por ambiente;
-- session rotation/revocation foundation;
-- tenant context server-side;
-- membership/capability primitives;
-- authorization deny-by-default;
-- separación entre sesión e autorización;
-- soporte conceptual/técnico para SELF-ELEVATION sin acceso ambiental.
-
-No requiere todavía flujos UI completos de registro/recuperación del MVP.
-
-### E4-D — Operational foundation
-
-Incluye:
-
-- structured logging sanitizado;
-- correlation IDs;
-- manejo global de errores;
-- health/readiness;
-- audit event foundation;
-- PostgreSQL-backed job/outbox primitives;
-- adapters vacíos/fakes para email/storage/malware;
-- CI;
-- escaneo básico de secretos/dependencias;
-- tests de aislamiento y autorización.
-
-### E4-E — G4 readiness
-
-Preparar evidencia objetiva:
-
-- builds reproducibles;
-- tests verdes;
-- PoC RLS aprobada;
-- aislamiento tenant probado;
-- sesión/authz base probada;
-- migraciones reproducibles;
-- rollback local/de desarrollo demostrado cuando corresponda;
-- documentación de setup;
-- dependencias y riesgos conocidos;
-- checklist y borrador G4.
-
-## Reglas de implementación
-
-- No usar datos reales.
-- No introducir secretos en Git.
-- No conectar servicios productivos.
-- No crear integración técnica con EduPay.
-- No resolver Q-301..Q-309.
-- No tratar aceptación como matrícula/pago.
-- No hardcodear Colegio Conquistadores como tenant especial.
-- No omitir `tenantId` en datos tenant-owned.
-- No confiar en tenant proveniente del body/query para autorización.
-- No usar JWT de navegador como sesión MVP.
-- No deshabilitar RLS silenciosamente para hacer pasar tests.
-- No construir módulos de negocio P0 completos antes de G4 salvo el mínimo estrictamente necesario para demostrar la fundación técnica.
-
-## Datos sintéticos
-
-Fixtures y tests deben usar identificadores, correos y personas claramente sintéticos. No copiar RUT, documentos, emails o antecedentes reales.
-
-## Criterios para solicitar G4
-
-E4 puede solicitar G4 cuando:
-
-- toolchain y monorepo sean reproducibles;
-- web/API/worker compilen y ejecuten en desarrollo;
-- PostgreSQL/Prisma estén configurados con migraciones reproducibles;
-- PoC tenant/RLS/Prisma cumpla las ocho condiciones o exista revisión arquitectónica equivalente;
-- tests negativos cross-tenant pasen;
-- sesión/autorización base sea deny-by-default y testeable;
-- no existan secretos ni datos reales;
-- CI y checks de calidad/seguridad base pasen;
-- documentación permita levantar el entorno desde cero;
-- exista checklist G4 sin bloqueantes críticos no aceptados.
-
-## Límites de G4
-
-G4 es la compuerta que autorizará, si se aprueba, la construcción funcional del MVP en E5. El avance técnico de E4 no sustituye esa aprobación.
-
-## Próximo incremento
-
-Comenzar por E4-A y E4-B en una primera entrega técnica controlada: scaffolding reproducible + PostgreSQL/Prisma + PoC tenant/RLS. Después revisar evidencia antes de expandir a E4-C/D.
+E5 — construcción del MVP funcional. G5 permanece no aprobada y será la compuerta para cualquier piloto/datos reales conforme a sus requisitos.
