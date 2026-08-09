@@ -8,6 +8,7 @@ import {
   IntakeNotFoundError,
   IntakeService,
   IntakeValidationError,
+  isAdmissionOfferingCurrent,
 } from "./intake.js";
 import { getRequiredEnvironment } from "./environment.js";
 import { createAppPrismaClient } from "./prisma-client.js";
@@ -35,6 +36,7 @@ let fixture: {
   courseLevelAId: string;
   familyA: FamilyExecutionContext;
   familyB: FamilyExecutionContext;
+  academicYearAId: string;
   mismatchedYearId: string;
   processAId: string;
   publicContextA: TenantExecutionContext;
@@ -185,6 +187,7 @@ async function seedFixture(): Promise<void> {
       courseLevelAId: level.id,
       familyA,
       familyB,
+      academicYearAId: year.id,
       mismatchedYearId: mismatchedYear.id,
       processAId: process.id,
       publicContextA,
@@ -245,6 +248,48 @@ async function seedFixture(): Promise<void> {
   });
 
   void now;
+}
+
+async function updateFixtureProcess(input: {
+  closesAt?: Date | null;
+  opensAt?: Date | null;
+  status?: "DRAFT" | "PUBLISHED" | "CLOSED";
+}): Promise<void> {
+  await runWithTenantContext(fixture.contextA, () =>
+    withTenantTransaction(prisma, (transaction) =>
+      transaction.admissionProcess.update({
+        data: input,
+        where: { id: fixture.processAId },
+      }),
+    ),
+  );
+}
+
+async function updateFixtureAcademicYear(
+  status: "DRAFT" | "OPEN" | "CLOSED",
+): Promise<void> {
+  await runWithTenantContext(fixture.contextA, () =>
+    withTenantTransaction(prisma, (transaction) =>
+      transaction.academicYear.update({
+        data: { status },
+        where: { id: fixture.academicYearAId },
+      }),
+    ),
+  );
+}
+
+async function updateFixtureAvailability(
+  availabilityCategory:
+    "LIMITED_CAPACITY" | "POSTULATIONS_OPEN" | "PROCESS_CLOSED" | "WAITLIST",
+): Promise<void> {
+  await runWithTenantContext(fixture.contextA, () =>
+    withTenantTransaction(prisma, (transaction) =>
+      transaction.admissionOffering.update({
+        data: { availabilityCategory },
+        where: { id: fixture.applicationOfferingId },
+      }),
+    ),
+  );
 }
 
 describe.sequential("E5-A intake core", () => {
@@ -382,6 +427,216 @@ describe.sequential("E5-A intake core", () => {
     expect(offerings[0]).not.toHaveProperty("availableCount");
     expect(offerings[0]).not.toHaveProperty("exactCapacity");
     expect(offerings[0]).not.toHaveProperty("reservedCount");
+  });
+
+  it("E5A-VIG-01: published offering, process and open year inside the window are visible", async () => {
+    const intake = new IntakeService(prisma);
+    await updateFixtureProcess({
+      closesAt: new Date("2026-08-09T00:00:00.000Z"),
+      opensAt: now,
+    });
+    const visible = await runWithTenantContext(fixture.publicContextA, () =>
+      intake.listPublicOfferings(fixture.publicContextA, now),
+    );
+    expect(visible.map((offering) => offering.id)).toEqual([
+      fixture.applicationOfferingId,
+    ]);
+
+    expect(
+      isAdmissionOfferingCurrent(
+        {
+          academicYear: { status: "OPEN" },
+          process: {
+            closesAt: new Date("2026-08-09T00:00:00.000Z"),
+            opensAt: now,
+            status: "PUBLISHED",
+          },
+          status: "PUBLISHED",
+        },
+        now,
+      ),
+    ).toBe(true);
+  });
+
+  it("E5A-VIG-02: draft or closed process is not visible", async () => {
+    const intake = new IntakeService(prisma);
+    for (const status of ["DRAFT", "CLOSED"] as const) {
+      await updateFixtureProcess({ status });
+      await expect(
+        runWithTenantContext(fixture.publicContextA, () =>
+          intake.listPublicOfferings(fixture.publicContextA, now),
+        ),
+      ).resolves.toEqual([]);
+    }
+  });
+
+  it("E5A-VIG-03: draft or closed academic year is not visible", async () => {
+    const intake = new IntakeService(prisma);
+    for (const status of ["DRAFT", "CLOSED"] as const) {
+      await updateFixtureAcademicYear(status);
+      await expect(
+        runWithTenantContext(fixture.publicContextA, () =>
+          intake.listPublicOfferings(fixture.publicContextA, now),
+        ),
+      ).resolves.toEqual([]);
+    }
+  });
+
+  it("E5A-VIG-04: a future opening hides the offering and rejects a draft", async () => {
+    const intake = new IntakeService(prisma);
+    await updateFixtureProcess({
+      closesAt: new Date("2026-08-09T01:00:00.000Z"),
+      opensAt: new Date("2026-08-09T00:00:00.000Z"),
+    });
+    await expect(
+      runWithTenantContext(fixture.publicContextA, () =>
+        intake.listPublicOfferings(fixture.publicContextA, now),
+      ),
+    ).resolves.toEqual([]);
+    await expect(
+      runWithFamilyContext(fixture.familyA, () =>
+        intake.createApplicationDraft(
+          fixture.familyA,
+          fixture.publicContextA,
+          {
+            offeringId: fixture.applicationOfferingId,
+            studentId: fixture.studentA,
+          },
+          now,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(IntakeValidationError);
+  });
+
+  it("E5A-VIG-05: past or exactly reached closing rejects discovery and drafts", async () => {
+    const intake = new IntakeService(prisma);
+    for (const closesAt of [new Date("2026-08-08T22:00:00.000Z"), now]) {
+      await updateFixtureProcess({ closesAt });
+      await expect(
+        runWithTenantContext(fixture.publicContextA, () =>
+          intake.listPublicOfferings(fixture.publicContextA, now),
+        ),
+      ).resolves.toEqual([]);
+      await expect(
+        runWithFamilyContext(fixture.familyA, () =>
+          intake.createApplicationDraft(
+            fixture.familyA,
+            fixture.publicContextA,
+            {
+              offeringId: fixture.applicationOfferingId,
+              studentId: fixture.studentA,
+            },
+            now,
+          ),
+        ),
+      ).rejects.toBeInstanceOf(IntakeValidationError);
+    }
+  });
+
+  it("E5A-VIG-06: current process_closed is visible but cannot start a draft", async () => {
+    const intake = new IntakeService(prisma);
+    await updateFixtureAvailability("PROCESS_CLOSED");
+    const visible = await runWithTenantContext(fixture.publicContextA, () =>
+      intake.listPublicOfferings(fixture.publicContextA, now),
+    );
+    expect(visible[0]?.availabilityLabel).toBe("Proceso cerrado");
+    await expect(
+      runWithFamilyContext(fixture.familyA, () =>
+        intake.createApplicationDraft(
+          fixture.familyA,
+          fixture.publicContextA,
+          {
+            offeringId: fixture.applicationOfferingId,
+            studentId: fixture.studentA,
+          },
+          now,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(IntakeValidationError);
+  });
+
+  it("E5A-VIG-07: current postulations_open permits a draft", async () => {
+    const intake = new IntakeService(prisma);
+    await updateFixtureAvailability("POSTULATIONS_OPEN");
+    await expect(
+      runWithFamilyContext(fixture.familyA, () =>
+        intake.createApplicationDraft(
+          fixture.familyA,
+          fixture.publicContextA,
+          {
+            offeringId: fixture.applicationOfferingId,
+            studentId: fixture.studentA,
+          },
+          now,
+        ),
+      ),
+    ).resolves.toMatchObject({ status: "DRAFT" });
+  });
+
+  it("E5A-VIG-08: current limited_capacity permits a draft without exact counts", async () => {
+    const intake = new IntakeService(prisma);
+    const draft = await runWithFamilyContext(fixture.familyA, () =>
+      intake.createApplicationDraft(
+        fixture.familyA,
+        fixture.publicContextA,
+        {
+          offeringId: fixture.applicationOfferingId,
+          studentId: fixture.studentA,
+        },
+        now,
+      ),
+    );
+    expect(draft.status).toBe("DRAFT");
+    expect(draft.offering).not.toHaveProperty("capacity");
+    expect(draft.offering).not.toHaveProperty("availableCount");
+  });
+
+  it("E5A-VIG-09: current waitlist permits a draft without creating a waitlist entry", async () => {
+    const intake = new IntakeService(prisma);
+    await updateFixtureAvailability("WAITLIST");
+    const draft = await runWithFamilyContext(fixture.familyA, () =>
+      intake.createApplicationDraft(
+        fixture.familyA,
+        fixture.publicContextA,
+        {
+          offeringId: fixture.applicationOfferingId,
+          studentId: fixture.studentA,
+        },
+        now,
+      ),
+    );
+    expect(draft.status).toBe("DRAFT");
+  });
+
+  it("E5A-VIG-10: impossible process windows are rejected on create and update", async () => {
+    const intake = new IntakeService(prisma);
+    for (const [opensAt, closesAt] of [
+      [now, now],
+      [new Date("2026-08-09T01:00:00.000Z"), now],
+    ] as const) {
+      await expect(
+        runWithTenantContext(fixture.contextA, () =>
+          intake.createAdmissionProcess(fixture.contextA, {
+            academicYearId: fixture.academicYearAId,
+            closesAt,
+            code: `INVALID-${randomUUID()}`,
+            name: "Proceso inválido sintético",
+            opensAt,
+          }),
+        ),
+      ).rejects.toBeInstanceOf(IntakeValidationError);
+      await expect(
+        runWithTenantContext(fixture.contextA, () =>
+          intake.updateAdmissionProcess(fixture.contextA, fixture.processAId, {
+            academicYearId: fixture.academicYearAId,
+            closesAt,
+            code: "PROCESS-INVALID",
+            name: "Proceso inválido sintético",
+            opensAt,
+          }),
+        ),
+      ).rejects.toBeInstanceOf(IntakeValidationError);
+    }
   });
 
   it("E5A-CON-01: twenty concurrent draft attempts leave exactly one active draft", async () => {

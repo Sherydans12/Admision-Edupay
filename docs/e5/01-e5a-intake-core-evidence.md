@@ -6,7 +6,7 @@
 | --- | --- |
 | Estado | `COMPLETE` |
 | Rama | `feat/e5-mvp` |
-| HEAD de entrada | `3165cf654276225d6c82cbc99411f56669036308` |
+| HEAD de entrada | `d03e686f0b1d0c433aee197fbd91ce92037746c7` |
 | Compuerta | G4 `APPROVED / CLOSED`; G5 `NO APROBADA` |
 | Datos | Sólo sintéticos/non-production |
 | Producción/piloto | No autorizados |
@@ -29,7 +29,7 @@
 | --- | --- | --- | --- |
 | BL-001 | `tenantId` NOT NULL en todas las tablas tenant-owned; RLS + FORCE RLS; contexto transaccional; DTO y repositorio tenant-aware | `E5A-TEN-01..04`, `pnpm test:rls` `8/8`; `E4 POC-01..08` | PARTIAL / CROSS-CUTTING |
 | BL-002 | Perfil familiar global vinculado a `PlatformUser`; múltiples `Student`; ownership por `familyProfileId` | `E5A-TEN-05`; pruebas de creación/listado/edición | PARTIAL — intake only |
-| BL-003 | Configuración `Campus → AcademicYear → AdmissionProcess → AdmissionOffering`; oferta publicada y disponibilidad categórica | Proyección categórica; RLS config; `AC-004..AC-006` cubiertos en el slice | PARTIAL |
+| BL-003 | Configuración `Campus → AcademicYear → AdmissionProcess → AdmissionOffering`; oferta publicada, vigente y disponibilidad categórica | Proyección categórica; predicado de vigencia; RLS config; `E5A-VIG-01..10` | PARTIAL |
 | BL-005 | Crear, listar, recuperar y guardar `Application` en único estado `DRAFT`; sin submission/snapshot final | `E5A-CON-01`; `Application` service tests | PARTIAL — draft only |
 | BL-019 | Catálogo explícito: `admission.config.read`, `admission.config.manage`, `family.profile.read/write`, `student.read/write`, `offering.public.read`, `application.create/read/write` | Authorization foundation E4 + service authorization tests | PARTIAL — slice permissions |
 | BL-020 | `AuditEvent` append-only con scope tenant o platform/global explícito; eventos de configuración y postulación quedan tenant-owned; perfil/estudiante global no se asignan artificialmente a un tenant | `E5A-AUD-01..05`; audit assertions in E5-A integration and HTTP suites | PARTIAL — slice events |
@@ -42,11 +42,42 @@ No se declaran completos BL-004, BL-006..BL-018 ni BL-022. E5-A tampoco implemen
 | Fuente | Cobertura E5-A | Estado |
 | --- | --- | --- |
 | AC-002, AC-003, AC-051 | Perfil/estudiante/postulación propios; ownership familiar; múltiples estudiantes | PARTIAL / covered for implemented resources |
-| AC-004, AC-005, AC-006 | Oferta publicada por tenant/sede/año/curso y categorías `POSTULATIONS_OPEN`, `LIMITED_CAPACITY`, `WAITLIST`, `PROCESS_CLOSED`; advertencia sin promesa | COVERED for availability projection and draft start |
+| AC-004, AC-005, AC-006 | Oferta publicada y vigente por tenant/sede/año/curso; categorías `POSTULATIONS_OPEN`, `LIMITED_CAPACITY`, `WAITLIST`, `PROCESS_CLOSED`; advertencia sin promesa | COVERED — `E5A-VIG-01..10`, categorical DTO assertions and draft-start tests |
 | AC-050 | RLS y tenant authorization deny-by-default | COVERED for E5-A tables and operations |
 | AC-007..AC-009, AC-010..AC-049, AC-052..AC-058 | Se mantienen fuera de E5-A salvo el texto de DRAFT/alcance cuando corresponde | DEFERRED |
 | E2E-001 | Sólo tramo familia → oferta → DRAFT → guardar/recuperar; no envío ni etapas posteriores | PARTIAL |
 | E2E-018 | Acceso cross-tenant a configuración y recursos de intake | PARTIAL / covered for E5-A resources |
+
+## Vigencia de AdmissionOffering
+
+La única regla de vigencia estructural se implementa en
+`isAdmissionOfferingCurrent(offering, now)` y exige simultáneamente:
+
+```text
+offering.status = PUBLISHED
+process.status = PUBLISHED
+academicYear.status = OPEN
+opensAt IS NULL OR opensAt <= now
+closesAt IS NULL OR closesAt > now
+```
+
+`opensAt` es inclusivo: `now == opensAt` mantiene vigente la convocatoria.
+`closesAt` es exclusivo: `now == closesAt` la hace no vigente. El reloj se
+inyecta en discovery y creación de draft para que las reglas sean
+deterministas en pruebas.
+
+La familia sólo descubre ofertas que cumplen todo el predicado. Una oferta
+estructuralmente vigente con `availabilityCategory=PROCESS_CLOSED` sigue
+siendo proyectable como `Proceso cerrado`, pero no permite iniciar un draft.
+`POSTULATIONS_OPEN`, `LIMITED_CAPACITY` y `WAITLIST` permiten iniciar el draft
+en E5-A; `WAITLIST` no crea todavía una `WaitlistEntry` y ninguna categoría
+expone cupos exactos. Años `DRAFT`/`CLOSED`, procesos `DRAFT`/`CLOSED` y
+ventanas futuras/vencidas quedan fuera de discovery y no aceptan nuevos
+drafts. Crear o actualizar un proceso con `opensAt >= closesAt` retorna
+`IntakeValidationError` y la API lo proyecta como HTTP 400.
+
+Esta corrección es sólo de dominio/servicio/tests: no agrega migration ni
+modifica migrations publicadas.
 
 ## Modelo y tenancy
 
@@ -76,10 +107,12 @@ La API NestJS valida DTOs con Zod, usa allowlists `.strict()`, resuelve la sesi�
 `FamilyExecutionContext` contiene actor, actor efectivo, correlación, propósito,
 origen y capacidades familiares. No contiene `tenantId`, membership
 institucional ni permisos de admisión. `resolvePublicAdmissionContext` sólo
-expone `offering.public.read` sobre una oferta publicada de un tenant activo.
-El contexto de `Application` se construye después de verificar la relación
-familia/estudiante y de resolver la oferta: el tenant efectivo proviene de la
-oferta, no de la URL.
+expone `offering.public.read` para el tenant activo seleccionado y la
+proyección pública; `listPublicOfferings` aplica además el predicado de
+vigencia. Por tanto, el tenant de la URL sólo particiona el descubrimiento
+público. El contexto de `Application` se construye después de verificar la
+relación familia/estudiante y de resolver la oferta vigente: el tenant efectivo
+proviene de la oferta, no de la URL.
 
 ### Familia global y descubrimiento
 
@@ -172,7 +205,9 @@ Incluye labels asociados, headings, skip link, foco visible, navegación por tec
 | E5A-INV-01 | Validación service y FK compuesta process/year | `E5A-INV-01` | PASS |
 | E5A-INV-02 | FK compuesta offering/process/year en `Application` | `E5A-INV-02` | PASS |
 | E5A-INV-03 | Oferta válida conserva el flujo de draft | `E5A-INV-03` | PASS |
+| E5A-VIG-01..10 | Predicate único de vigencia, ventanas inclusiva/exclusiva, estados de proceso/año y gating por categoría | `packages/database/src/intake.integration.spec.ts` | PASS — 10/10 |
 | E5A-HTTP-01..12 | NestJS real en puerto efímero + cookie de sesión opaca + `fetch` nativo | `apps/api/src/intake.http.integration.spec.ts` | PASS — 12/12 |
+| E5A-HTTP-13 | Proceso publicado vencido no permite iniciar un draft por HTTP | `apps/api/src/intake.http.integration.spec.ts` | PASS |
 | E5A-AUD-01..05 | Eventos globales platform-scoped y eventos tenant-scoped separados por RLS | `packages/database/src/intake.integration.spec.ts` y suite HTTP | PASS |
 | E5A-TEN-01..06 | RLS tenant, contextos ausentes, pooling y ownership de recurso | `pnpm test:rls` + E5-A integration | PASS |
 | E5A-CON-01 | Índice único de draft activo; sin locks en memoria | 20 intentos concurrentes | PASS — 1 éxito, 19 conflictos |
@@ -190,13 +225,13 @@ relaciones sintéticas se crean mediante primitives internas de test.
 | `pnpm install --frozen-lockfile` | PASS |
 | `pnpm db:generate` | PASS |
 | Fresh migration (`pnpm db:reset` + `pnpm db:migrate`) | PASS — 5/5 |
-| Incremental migration (E4 + E5-A original → hardening) | PASS — sólo `20260809090000_e5a_review_hardening` |
-| `pnpm test` | PASS — 84/84, 12 test files |
+| Incremental migration (E4 + E5-A original → hardening) | PASS — validación previa; esta ronda no agrega migration |
+| `pnpm test` | PASS — 95/95, 12 test files |
 | `pnpm test:rls` | PASS — 8/8 |
-| E5-A integration suite | PASS — 10/10 |
-| E5-A HTTP integration suite | PASS — 12/12 |
+| E5-A integration suite | PASS — 20/20 |
+| E5-A HTTP integration suite | PASS — 13/13 |
 | `pnpm build` | PASS — worker, web, database, API |
-| `pnpm security:secrets` | PASS — `190` tracked files |
+| `pnpm security:secrets` | PASS — `193` tracked files |
 | `pnpm security:deps` | PASS — no known high vulnerabilities |
 | `docker compose config` | PASS |
 | `git diff --check` | PASS; sólo warnings CRLF de Windows |

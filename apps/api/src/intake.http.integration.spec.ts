@@ -30,6 +30,7 @@ type HttpFixture = {
   familyAToken: string;
   familyBToken: string;
   offeringAId: string;
+  processAId: string;
   studentAId: string;
   studentBId: string;
   tenantAId: string;
@@ -195,6 +196,7 @@ async function seedFixture(): Promise<void> {
     familyAToken: familySession.token,
     familyBToken: familyBSession.token,
     offeringAId: offeringA,
+    processAId: processA,
     studentAId: studentA,
     studentBId: studentB,
     tenantAId: tenantA,
@@ -445,5 +447,30 @@ describe.sequential("E5-A real HTTP boundary", () => {
     expect(body.items.map((student) => student.id)).toEqual([
       fixture.studentAId,
     ]);
+  });
+
+  it("E5A-HTTP-13: an expired published process cannot start a draft", async () => {
+    await prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT set_config('admission.tenant_id', ${fixture.tenantAId}, true)`;
+      await transaction.$executeRaw`
+        UPDATE admission_processes
+        SET closes_at = ${new Date("2000-01-01T00:00:00.000Z")}
+        WHERE id = ${fixture.processAId}`;
+    });
+
+    const token = await csrf(fixture.familyAToken);
+    const response = await mutation(
+      `/family/tenants/${fixture.tenantAId}/applications`,
+      fixture.familyAToken,
+      token,
+      {
+        body: JSON.stringify({
+          offeringId: fixture.offeringAId,
+          studentId: fixture.studentAId,
+        }),
+        method: "POST",
+      },
+    );
+    expect(response.status).toBe(400);
   });
 });

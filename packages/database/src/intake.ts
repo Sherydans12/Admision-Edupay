@@ -159,11 +159,40 @@ export class IntakeValidationError extends Error {
   }
 }
 
+export interface AdmissionOfferingValidityCandidate {
+  academicYear: { status: "DRAFT" | "OPEN" | "CLOSED" };
+  process: {
+    closesAt: Date | null;
+    opensAt: Date | null;
+    status: "DRAFT" | "PUBLISHED" | "CLOSED";
+  };
+  status: "DRAFT" | "PUBLISHED" | "CLOSED";
+}
+
+/**
+ * Defines structural offering validity for discovery and new applications.
+ * opensAt is inclusive and closesAt is exclusive.
+ */
+export function isAdmissionOfferingCurrent(
+  offering: AdmissionOfferingValidityCandidate,
+  now = new Date(),
+): boolean {
+  return (
+    offering.status === "PUBLISHED" &&
+    offering.process.status === "PUBLISHED" &&
+    offering.academicYear.status === "OPEN" &&
+    (offering.process.opensAt === null || offering.process.opensAt <= now) &&
+    (offering.process.closesAt === null || offering.process.closesAt > now)
+  );
+}
+
 const offeringProjection = {
-  academicYear: { select: { label: true } },
+  academicYear: { select: { label: true, status: true } },
   campus: { select: { name: true } },
   courseLevel: { select: { name: true } },
-  process: { select: { name: true } },
+  process: {
+    select: { closesAt: true, name: true, opensAt: true, status: true },
+  },
 } as const;
 
 type OfferingWithProjection = Prisma.AdmissionOfferingGetPayload<{
@@ -185,6 +214,17 @@ function requireText(value: string, field: string, maxLength: number): string {
     throw new IntakeValidationError(`Invalid ${field}`);
   }
   return normalized;
+}
+
+function validateAdmissionProcessWindow(
+  opensAt: Date | undefined,
+  closesAt: Date | undefined,
+): void {
+  if (opensAt !== undefined && closesAt !== undefined && opensAt >= closesAt) {
+    throw new IntakeValidationError(
+      "Admission process opensAt must be before closesAt",
+    );
+  }
 }
 
 function toDraftData(value: unknown): DraftData {
@@ -698,6 +738,7 @@ export class IntakeService {
     assertConfigPermission(context);
     const code = requireText(input.code, "code", 80);
     const name = requireText(input.name, "name", 160);
+    validateAdmissionProcessWindow(input.opensAt, input.closesAt);
     return withTenantTransaction(this.prisma, async (transaction) => {
       await ensureAdmissionProcessYear(
         transaction,
@@ -733,6 +774,7 @@ export class IntakeService {
     assertConfigPermission(context);
     const code = requireText(input.code, "code", 80);
     const name = requireText(input.name, "name", 160);
+    validateAdmissionProcessWindow(input.opensAt, input.closesAt);
     return withTenantTransaction(this.prisma, async (transaction) => {
       await ensureAdmissionProcessYear(
         transaction,
@@ -863,6 +905,7 @@ export class IntakeService {
 
   async listPublicOfferings(
     context: TenantExecutionContext,
+    now = new Date(),
   ): Promise<OfferingDto[]> {
     assertPublicAdmissionContext(context);
     return withTenantTransaction(this.prisma, async (transaction) => {
@@ -871,7 +914,9 @@ export class IntakeService {
         orderBy: [{ title: "asc" }, { code: "asc" }],
         where: { status: "PUBLISHED" },
       });
-      return offerings.map(mapOffering);
+      return offerings
+        .filter((offering) => isAdmissionOfferingCurrent(offering, now))
+        .map(mapOffering);
     });
   }
 
@@ -908,6 +953,7 @@ export class IntakeService {
     familyContext: FamilyExecutionContext,
     publicContext: TenantExecutionContext,
     input: { offeringId: string; studentId: string },
+    now = new Date(),
   ): Promise<ApplicationDto> {
     assertFamilyPermission(familyContext, PERMISSIONS.APPLICATION_CREATE);
     assertPublicAdmissionContext(publicContext);
@@ -924,7 +970,7 @@ export class IntakeService {
           this.prisma,
           async (transaction) =>
             transaction.admissionOffering.findFirst({
-              include: { process: true },
+              include: { academicYear: true, process: true },
               where: {
                 id: input.offeringId,
                 status: "PUBLISHED",
@@ -935,10 +981,10 @@ export class IntakeService {
         if (offering.tenantId !== publicContext.tenantId) {
           throw new IntakeNotFoundError();
         }
-        if (
-          offering.process.status !== "PUBLISHED" ||
-          offering.availabilityCategory === "PROCESS_CLOSED"
-        ) {
+        if (!isAdmissionOfferingCurrent(offering, now)) {
+          throw new IntakeValidationError("Offering is not currently valid");
+        }
+        if (offering.availabilityCategory === "PROCESS_CLOSED") {
           throw new IntakeValidationError("Offering is closed");
         }
         applicantContext = this.applicantContext(
