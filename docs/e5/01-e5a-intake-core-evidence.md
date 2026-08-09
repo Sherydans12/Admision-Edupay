@@ -6,7 +6,7 @@
 | --- | --- |
 | Estado | `COMPLETE` |
 | Rama | `feat/e5-mvp` |
-| HEAD de entrada | `d1362d979e7780171312c96907614d9ae25ddf9a` |
+| HEAD de entrada | `3165cf654276225d6c82cbc99411f56669036308` |
 | Compuerta | G4 `APPROVED / CLOSED`; G5 `NO APROBADA` |
 | Datos | Sólo sintéticos/non-production |
 | Producción/piloto | No autorizados |
@@ -17,9 +17,10 @@
 ## Hechos, decisiones y supuestos
 
 - **Hecho confirmado:** E4 entrega `PlatformUser`, `PlatformSession`, `Tenant`, `Membership`, `RoleAssignment`, contexto tenant transaccional y sesión opaca server-side.
-- **Decisión aprobada aplicada:** `FamilyProfile` y `Student` son globales/family-owned; `Campus`, `AcademicYear`, `CourseLevel`, `AdmissionProcess`, `AdmissionOffering`, `Application` y `AuditEvent` son tenant-owned.
+- **Decisión aprobada aplicada:** `FamilyProfile` y `Student` son globales/family-owned; `Campus`, `AcademicYear`, `CourseLevel`, `AdmissionProcess`, `AdmissionOffering` y `Application` son tenant-owned. `AuditEvent` mantiene eventos tenant-owned y una variante platform-scoped explícita para los eventos globales allowlisted.
 - **Decisión aprobada aplicada:** la proyección familiar de disponibilidad sólo devuelve la categoría pública; no devuelve capacidad, reserva o conteos.
-- **Supuesto de trabajo:** la familia selecciona un tenant activo para descubrir ofertas públicas; la selección sólo particiona la consulta pública. La autorización de postulaciones y estudiantes se verifica por ownership server-side, no por el `tenantId` del cliente.
+- **Decisión de hardening aplicada:** la familia usa `FamilyExecutionContext`, derivado de sesión válida y relación `FamilyProfile`, sin `tenantId`. Las rutas globales de perfil/estudiantes no aceptan autoridad tenant. El tenant candidato sólo particiona el descubrimiento público mediante `public_admission`; para crear una postulación, el tenant efectivo se deriva de la oferta publicada verificada.
+- **Decisión de hardening aplicada:** `AuditEvent` usa `scope=TENANT` con `tenantId` obligatorio para configuración/postulaciones y `scope=PLATFORM_GLOBAL` con `tenantId=NULL` sólo para `FAMILY_PROFILE_*` y `STUDENT_*`, insertable por una frontera transaccional estrecha.
 - **Pregunta abierta preservada:** login/verificación completos, retención/eliminación, textos legales/C-013 y política MFA no se resuelven en E5-A.
 
 ## Trazabilidad implementada
@@ -31,7 +32,7 @@
 | BL-003 | Configuración `Campus → AcademicYear → AdmissionProcess → AdmissionOffering`; oferta publicada y disponibilidad categórica | Proyección categórica; RLS config; `AC-004..AC-006` cubiertos en el slice | PARTIAL |
 | BL-005 | Crear, listar, recuperar y guardar `Application` en único estado `DRAFT`; sin submission/snapshot final | `E5A-CON-01`; `Application` service tests | PARTIAL — draft only |
 | BL-019 | Catálogo explícito: `admission.config.read`, `admission.config.manage`, `family.profile.read/write`, `student.read/write`, `offering.public.read`, `application.create/read/write` | Authorization foundation E4 + service authorization tests | PARTIAL — slice permissions |
-| BL-020 | `AuditEvent` append-only tenant-owned; eventos de configuración, estudiante, draft y duplicate denial; metadata allowlisted | Audit assertions in E5-A integration suite | PARTIAL — slice events |
+| BL-020 | `AuditEvent` append-only con scope tenant o platform/global explícito; eventos de configuración y postulación quedan tenant-owned; perfil/estudiante global no se asignan artificialmente a un tenant | `E5A-AUD-01..05`; audit assertions in E5-A integration and HTTP suites | PARTIAL — slice events |
 | BL-021 | CRUD mínimo de campus, año, curso, proceso y oferta; sin builder completo | Configuration service/integration coverage | PARTIAL |
 
 No se declaran completos BL-004, BL-006..BL-018 ni BL-022. E5-A tampoco implementa `SUBMITTED`, snapshot inmutable de submission, documentos, agenda, diagnóstico, recomendación, decisión, cupos/reservas, waitlist, oferta de admisión, emails, reportes o handoff EduPay.
@@ -54,30 +55,39 @@ No se declaran completos BL-004, BL-006..BL-018 ni BL-022. E5-A tampoco implemen
 | `PlatformUser`, `FamilyProfile`, `Student` | GLOBAL / CONTROL-PLANE / global family-owned | `FamilyProfile.userId` y `Student.familyProfileId`; no se agrega `tenantId` artificial |
 | `Campus`, `AcademicYear`, `CourseLevel`, `AdmissionProcess`, `AdmissionOffering` | TENANT-OWNED | `tenantId NOT NULL`, same-tenant composite foreign keys, RLS/FORCE RLS, explicit grants |
 | `Application` | TENANT-OWNED | `tenantId`, offering/process/year same tenant, family/student ownership server-side, RLS/FORCE RLS |
-| `AuditEvent` | TENANT-OWNED | `tenantId`, append-only grants (`SELECT, INSERT`), RLS/FORCE RLS |
+| `AuditEvent` | MIXED: TENANT-OWNED o PLATFORM-SCOPED explícito | `scope=TENANT` exige `tenantId` y RLS tenant; `scope=PLATFORM_GLOBAL` exige `tenantId=NULL`, acción allowlisted y primitive transaccional global; no existe lectura runtime cross-tenant |
 
 La elección de `AdmissionOffering` conserva el concepto canónico de E2 y evita crear variantes paralelas de `CourseOffering`. `AcademicYear` y `CourseLevel` se materializan porque E2 los define como configuración tenant-owned necesaria para sostener las relaciones y la clave de duplicidad. No se creó `User`, `AuthUser` ni `Account` paralelo.
 
 ## Migration, RLS y grants
 
-- Nueva migration forward: `packages/database/prisma/migrations/20260808200000_e5a_intake_core/migration.sql`.
-- Fresh: `pnpm db:reset` + `pnpm db:migrate` aplicó `4/4` migrations, incluyendo E5-A.
-- Incremental: base local temporal con las `3` migrations E4 aplicadas por Prisma; segundo `prisma migrate deploy` aplicó sólo `20260808200000_e5a_intake_core` correctamente. La base temporal fue eliminada.
+- Nueva migration forward de hardening: `packages/database/prisma/migrations/20260809090000_e5a_review_hardening/migration.sql`. No se modificó `20260808200000_e5a_intake_core`.
+- Fresh: `pnpm db:reset` + `pnpm db:migrate` aplica `5/5` migrations, incluyendo E5-A y el hardening.
+- Incremental: base con las `3` migrations E4 y `20260808200000_e5a_intake_core`; la migración de hardening se aplica como único forward upgrade posterior.
 - Todas las tablas tenant-owned E5-A tienen `ENABLE ROW LEVEL SECURITY`, `FORCE ROW LEVEL SECURITY`, policy `USING` y `WITH CHECK` sobre `admission.tenant_id`.
-- Los grants son explícitos: no se usan `ALTER DEFAULT PRIVILEGES`; el runtime no recibe `DELETE` sobre aplicaciones/auditoría ni `UPDATE/DELETE` sobre auditoría.
+- `audit_events` conserva grants explícitos; el runtime sólo puede insertar globales cuando la transacción fija `admission.audit_scope=platform_global`, y el rol de migración sólo puede leer filas `PLATFORM_GLOBAL` para evidencia. No existe permiso runtime para leer auditoría global.
+- Los demás grants son explícitos: no se usan `ALTER DEFAULT PRIVILEGES`; el runtime no recibe `DELETE` sobre aplicaciones/auditoría ni `UPDATE/DELETE` sobre auditoría.
 - Ownership de estructura queda en `admission_migrator`; runtime `admission_app` mantiene `NOSUPERUSER`, `NOBYPASSRLS`.
 
 ## API y autorización
 
-La API NestJS valida DTOs con Zod, usa allowlists `.strict()`, resuelve la sesión opaca desde `admission_session`, exige CSRF + Origin/Referer en mutaciones y nunca usa `X-User-Id`, `X-Tenant-Id` o `X-Role` como autoridad.
+La API NestJS valida DTOs con Zod, usa allowlists `.strict()`, resuelve la sesión opaca desde `admission_session`, exige CSRF más `Origin` y/o `Referer` en mutaciones y nunca usa `X-User-Id`, `X-Tenant-Id` o `X-Role` como autoridad.
 
-### Familia
+`FamilyExecutionContext` contiene actor, actor efectivo, correlación, propósito,
+origen y capacidades familiares. No contiene `tenantId`, membership
+institucional ni permisos de admisión. `resolvePublicAdmissionContext` sólo
+expone `offering.public.read` sobre una oferta publicada de un tenant activo.
+El contexto de `Application` se construye después de verificar la relación
+familia/estudiante y de resolver la oferta: el tenant efectivo proviene de la
+oferta, no de la URL.
 
-- `GET /family/tenants/:tenantId/profile`
-- `PUT /family/tenants/:tenantId/profile`
-- `GET /family/tenants/:tenantId/students`
-- `POST /family/tenants/:tenantId/students`
-- `PATCH /family/tenants/:tenantId/students/:studentId`
+### Familia global y descubrimiento
+
+- `GET /family/profile`
+- `PUT /family/profile`
+- `GET /family/students`
+- `POST /family/students`
+- `PATCH /family/students/:studentId`
 - `GET /family/tenants/:tenantId/offerings`
 - `POST /family/tenants/:tenantId/applications`
 - `GET /family/tenants/:tenantId/applications`
@@ -96,7 +106,21 @@ La API NestJS valida DTOs con Zod, usa allowlists `.strict()`, resuelve la sesi�
 
 Errores públicos conservan 401/403/404/409/400, `correlationId` y mensaje genérico; ownership ajeno se proyecta como inexistente y no enumera recursos.
 
-## Invariant de duplicidad y concurrencia
+## Invariantes relacionales, duplicidad y concurrencia
+
+La migration de hardening agrega claves únicas compuestas y foreign keys
+compuestas para impedir mezclar `academicYear`, `process` y `offering`:
+
+- `AdmissionOffering.(tenantId, processId, academicYearId)` referencia al
+  proceso del mismo tenant y año.
+- `Application.(tenantId, offeringId, processId, academicYearId)` referencia a
+  la misma oferta, proceso y año.
+
+El servicio valida además las relaciones antes de persistir y convierte una
+inconsistencia en error seguro, no en un HTTP 500. `E5A-INV-01` rechaza
+process/year incompatibles, `E5A-INV-02` confirma el rechazo de una combinación
+raw/runtime incompatible en DB y `E5A-INV-03` confirma que la combinación válida
+continúa funcionando.
 
 La base aplica un índice único parcial:
 
@@ -106,7 +130,13 @@ La oferta se resuelve server-side y la familia sólo puede crear el draft para s
 
 ## Auditoría
 
-Los eventos de éxito se registran dentro de la transacción de negocio; la denegación por unique conflict se registra en una transacción de seguimiento después del rollback del intento fallido. Todos conservan actor/effective actor, tenant, purpose, correlation y metadata mínima:
+Los eventos de configuración y postulación se registran dentro de la
+transacción tenant-owned; la denegación por unique conflict se registra en una
+transacción de seguimiento después del rollback del intento fallido. Los
+eventos de perfil/estudiante global usan `withPlatformAuditTransaction`, una
+frontera allowlisted que fija `admission.audit_scope=platform_global` y deriva
+actor/effective actor del `FamilyExecutionContext`. No aceptan tenant de cliente
+y no habilitan lectura de auditoría tenant.
 
 - `ADMISSION_CAMPUS_CREATED/UPDATED`;
 - `ADMISSION_ACADEMIC_YEAR_CREATED`;
@@ -119,6 +149,9 @@ Los eventos de éxito se registran dentro de la transacción de negocio; la dene
 - `APPLICATION_DRAFT_DUPLICATE_DENIED`.
 
 No se guarda el payload completo del draft ni se audita cada keystroke.
+La composición persistente de auditoría de sesiones/security events de E4
+continúa diferida: `SessionService` conserva los sinks explícitos de E4 y esta
+ronda no los declara persistentes.
 
 ## UI y accesibilidad
 
@@ -132,6 +165,21 @@ La UI Next 16 implementa sólo:
 
 Incluye labels asociados, headings, skip link, foco visible, navegación por teclado, estados loading/empty/error, `aria-live`, touch targets, reflujo mobile-first, advertencias textuales sin depender del color y `prefers-reduced-motion`. No se inventa branding final. La pantalla no importa Prisma ni contiene lógica de negocio; las mutaciones pasan por API.
 
+## Evidencia de hardening de revisión
+
+| Requirement | Implementation | Tests | Status |
+| --- | --- | --- | --- |
+| E5A-INV-01 | Validación service y FK compuesta process/year | `E5A-INV-01` | PASS |
+| E5A-INV-02 | FK compuesta offering/process/year en `Application` | `E5A-INV-02` | PASS |
+| E5A-INV-03 | Oferta válida conserva el flujo de draft | `E5A-INV-03` | PASS |
+| E5A-HTTP-01..12 | NestJS real en puerto efímero + cookie de sesión opaca + `fetch` nativo | `apps/api/src/intake.http.integration.spec.ts` | PASS — 12/12 |
+| E5A-AUD-01..05 | Eventos globales platform-scoped y eventos tenant-scoped separados por RLS | `packages/database/src/intake.integration.spec.ts` y suite HTTP | PASS |
+| E5A-TEN-01..06 | RLS tenant, contextos ausentes, pooling y ownership de recurso | `pnpm test:rls` + E5-A integration | PASS |
+| E5A-CON-01 | Índice único de draft activo; sin locks en memoria | 20 intentos concurrentes | PASS — 1 éxito, 19 conflictos |
+
+La suite HTTP no usa `X-User-Id`, `X-Tenant-Id` ni `X-Role`; las sesiones y
+relaciones sintéticas se crean mediante primitives internas de test.
+
 ## Validaciones ejecutadas
 
 | Check | Resultado |
@@ -139,11 +187,16 @@ Incluye labels asociados, headings, skip link, foco visible, navegación por tec
 | `pnpm format:check` | PASS |
 | `pnpm lint` | PASS |
 | `pnpm typecheck` | PASS |
-| `pnpm test` | PASS — `68/68`, `11` test files |
-| `pnpm test:rls` | PASS — `8/8` |
-| E5-A integration suite | PASS — `6/6` |
+| `pnpm install --frozen-lockfile` | PASS |
+| `pnpm db:generate` | PASS |
+| Fresh migration (`pnpm db:reset` + `pnpm db:migrate`) | PASS — 5/5 |
+| Incremental migration (E4 + E5-A original → hardening) | PASS — sólo `20260809090000_e5a_review_hardening` |
+| `pnpm test` | PASS — 84/84, 12 test files |
+| `pnpm test:rls` | PASS — 8/8 |
+| E5-A integration suite | PASS — 10/10 |
+| E5-A HTTP integration suite | PASS — 12/12 |
 | `pnpm build` | PASS — worker, web, database, API |
-| `pnpm security:secrets` | PASS — `182` tracked files |
+| `pnpm security:secrets` | PASS — `190` tracked files |
 | `pnpm security:deps` | PASS — no known high vulnerabilities |
 | `docker compose config` | PASS |
 | `git diff --check` | PASS; sólo warnings CRLF de Windows |
@@ -157,4 +210,6 @@ Fuera de alcance explícito: builder/formulario publicado, submission final, sna
 
 ## Compuerta
 
-E5-A queda `COMPLETE` con el alcance parcial descrito. E5 permanece `IN PROGRESS / E5-A COMPLETE`. G5 permanece `NO APROBADA`. La siguiente acción humana es revisar este slice y decidir si autoriza iniciar E5-B; no se solicita merge ni producción desde este documento.
+E5-A queda `COMPLETE` con el alcance parcial descrito. E5 permanece `IN
+PROGRESS / E5-A COMPLETE`, E5-B `NOT_STARTED` y G5 `NO APROBADA`. No se
+solicita merge, producción ni integración EduPay desde este documento.

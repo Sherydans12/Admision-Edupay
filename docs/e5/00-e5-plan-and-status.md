@@ -74,9 +74,10 @@ Entregable vertical esperado:
 6. un intento duplicate según institución/año/curso/oferta se rechaza de forma consistente;
 7. otro tenant no puede observar, contar ni modificar esos datos.
 
-**Resultado E5-A:** `COMPLETE`. La evidencia ejecutable y la tabla de trazabilidad
-se encuentran en [`01-e5a-intake-core-evidence.md`](01-e5a-intake-core-evidence.md).
-E5-B no se inicia en este incremento y G5 permanece `NO APROBADA`.
+**Resultado E5-A:** `COMPLETE`. La evidencia ejecutable y la tabla de
+trazabilidad se encuentran en
+[`01-e5a-intake-core-evidence.md`](01-e5a-intake-core-evidence.md). E5-B no se
+inicia en este incremento y G5 permanece `NO APROBADA`.
 
 Fuera de E5-A: builder completo, submission final, documentos, actividades, decisión, cupos, waitlist, oferta final, email y handoff.
 
