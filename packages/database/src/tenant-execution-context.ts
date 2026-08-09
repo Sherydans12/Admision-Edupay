@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 export type TenantContextSource = "authenticated_request" | "trusted_job";
 export type TenantContextOrigin =
-  "membership" | "support_elevation" | "synthetic_test";
+  "family_profile" | "membership" | "support_elevation" | "synthetic_test";
 
 const VERIFIED_ELEVATION_BRAND = Symbol("verified-support-elevation");
 

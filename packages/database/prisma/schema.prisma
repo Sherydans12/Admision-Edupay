@@ -2,6 +2,7 @@ generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
 }
+
 datasource db {
   provider = "postgresql"
 }
@@ -37,32 +38,67 @@ enum OutboxMessageStatus {
   FAILED
 }
 
+enum CampusStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum AcademicYearStatus {
+  DRAFT
+  OPEN
+  CLOSED
+}
+
+enum AdmissionProcessStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum AdmissionOfferingStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum AvailabilityCategory {
+  POSTULATIONS_OPEN
+  LIMITED_CAPACITY
+  WAITLIST
+  PROCESS_CLOSED
+}
+
+enum ApplicationStatus {
+  DRAFT
+}
+
 /// Identidad global de control-plane; no representa onboarding funcional.
 model PlatformUser {
-  id               String             @id @default(uuid()) @db.Uuid
-  emailNormalized  String             @unique @map("email_normalized") @db.VarChar(320)
-  status           PlatformUserStatus @default(ACTIVE)
-  createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
-  memberships      Membership[]
-  sessions         PlatformSession[]
+  id                String             @id @default(uuid()) @db.Uuid
+  emailNormalized   String             @unique @map("email_normalized") @db.VarChar(320)
+  status            PlatformUserStatus @default(ACTIVE)
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  memberships       Membership[]
+  sessions          PlatformSession[]
   supportElevations SupportElevation[]
+  familyProfile     FamilyProfile?
 
   @@map("platform_users")
 }
 
 /// Sesión opaca server-side: sólo tokenHash persistido, nunca el token raw.
 model PlatformSession {
-  id                 String   @id @default(uuid()) @db.Uuid
-  userId             String   @map("user_id") @db.Uuid
-  tokenHash          String   @unique @map("token_hash") @db.Char(64)
-  issuedAt           DateTime @map("issued_at") @db.Timestamptz(3)
-  lastSeenAt         DateTime @map("last_seen_at") @db.Timestamptz(3)
-  idleExpiresAt      DateTime @map("idle_expires_at") @db.Timestamptz(3)
-  absoluteExpiresAt  DateTime @map("absolute_expires_at") @db.Timestamptz(3)
-  revokedAt          DateTime? @map("revoked_at") @db.Timestamptz(3)
-  rotatedFromSessionId String? @unique(map: "platform_sessions_rotated_from_session_id_key") @map("rotated_from_session_id") @db.Uuid
-  user               PlatformUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                   String       @id @default(uuid()) @db.Uuid
+  userId               String       @map("user_id") @db.Uuid
+  tokenHash            String       @unique @map("token_hash") @db.Char(64)
+  issuedAt             DateTime     @map("issued_at") @db.Timestamptz(3)
+  lastSeenAt           DateTime     @map("last_seen_at") @db.Timestamptz(3)
+  idleExpiresAt        DateTime     @map("idle_expires_at") @db.Timestamptz(3)
+  absoluteExpiresAt    DateTime     @map("absolute_expires_at") @db.Timestamptz(3)
+  revokedAt            DateTime?    @map("revoked_at") @db.Timestamptz(3)
+  rotatedFromSessionId String?      @unique(map: "platform_sessions_rotated_from_session_id_key") @map("rotated_from_session_id") @db.Uuid
+  user                 PlatformUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, revokedAt])
   @@index([idleExpiresAt, absoluteExpiresAt])
@@ -71,32 +107,39 @@ model PlatformSession {
 
 /// Tenant de aislamiento institucional; configuración funcional queda diferida.
 model Tenant {
-  id                String             @id @default(uuid()) @db.Uuid
-  name              String             @db.VarChar(160)
-  status            TenantStatus       @default(ACTIVE)
-  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
-  memberships       Membership[]
-  roleAssignments   RoleAssignment[]
-  supportElevations SupportElevation[]
-  outboxMessages    OutboxMessage[]
+  id                 String              @id @default(uuid()) @db.Uuid
+  name               String              @db.VarChar(160)
+  status             TenantStatus        @default(ACTIVE)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  memberships        Membership[]
+  roleAssignments    RoleAssignment[]
+  supportElevations  SupportElevation[]
+  outboxMessages     OutboxMessage[]
+  campuses           Campus[]
+  academicYears      AcademicYear[]
+  courseLevels       CourseLevel[]
+  admissionProcesses AdmissionProcess[]
+  admissionOfferings AdmissionOffering[]
+  applications       Application[]
+  auditEvents        AuditEvent[]
 
   @@map("tenants")
 }
 
 /// Membership tenant-owned; su consulta de resolución usa candidate + actor transaction-local.
 model Membership {
-  id               String           @id @default(uuid()) @db.Uuid
-  tenantId         String           @map("tenant_id") @db.Uuid
-  userId           String           @map("user_id") @db.Uuid
-  status           MembershipStatus @default(ACTIVE)
-  startsAt         DateTime         @map("starts_at") @db.Timestamptz(3)
-  endsAt           DateTime?        @map("ends_at") @db.Timestamptz(3)
-  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
-  user             PlatformUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant           Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  roleAssignments  RoleAssignment[]
+  id              String           @id @default(uuid()) @db.Uuid
+  tenantId        String           @map("tenant_id") @db.Uuid
+  userId          String           @map("user_id") @db.Uuid
+  status          MembershipStatus @default(ACTIVE)
+  startsAt        DateTime         @map("starts_at") @db.Timestamptz(3)
+  endsAt          DateTime?        @map("ends_at") @db.Timestamptz(3)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user            PlatformUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  roleAssignments RoleAssignment[]
 
   @@unique([tenantId, id])
   @@unique([userId, tenantId])
@@ -133,7 +176,7 @@ model SupportElevation {
   reason      String       @db.VarChar(500)
   purpose     String       @db.VarChar(120)
   scopes      String[]
-  categories String[]
+  categories  String[]
   startedAt   DateTime     @map("started_at") @db.Timestamptz(3)
   expiresAt   DateTime     @map("expires_at") @db.Timestamptz(3)
   closedAt    DateTime?    @map("closed_at") @db.Timestamptz(3)
@@ -149,18 +192,18 @@ model SupportElevation {
 
 /// Outbox técnico sin topics funcionales de admisión; tenant-owned y protegido por RLS.
 model OutboxMessage {
-  id             String             @id @default(uuid()) @db.Uuid
-  tenantId       String             @map("tenant_id") @db.Uuid
-  topic          String             @db.VarChar(120)
+  id             String              @id @default(uuid()) @db.Uuid
+  tenantId       String              @map("tenant_id") @db.Uuid
+  topic          String              @db.VarChar(120)
   payload        Json
   status         OutboxMessageStatus @default(PENDING)
-  idempotencyKey String             @map("idempotency_key") @db.VarChar(160)
-  availableAt    DateTime           @map("available_at") @db.Timestamptz(3)
-  attempts       Int                @default(0)
-  claimedAt      DateTime?          @map("claimed_at") @db.Timestamptz(3)
-  lastErrorCode  String?            @map("last_error_code") @db.VarChar(120)
-  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
-  tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  idempotencyKey String              @map("idempotency_key") @db.VarChar(160)
+  availableAt    DateTime            @map("available_at") @db.Timestamptz(3)
+  attempts       Int                 @default(0)
+  claimedAt      DateTime?           @map("claimed_at") @db.Timestamptz(3)
+  lastErrorCode  String?             @map("last_error_code") @db.VarChar(120)
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@unique([tenantId, idempotencyKey])
   @@index([tenantId, status, availableAt])
@@ -177,4 +220,185 @@ model TenantProbeRecord {
 
   @@index([tenantId])
   @@map("tenant_probe_records")
+}
+
+/// Global family profile. Tenant access is derived from the application and resource ownership.
+model FamilyProfile {
+  id           String        @id @default(uuid()) @db.Uuid
+  userId       String        @unique @map("user_id") @db.Uuid
+  displayName  String        @map("display_name") @db.VarChar(160)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user         PlatformUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students     Student[]
+  applications Application[]
+
+  @@map("family_profiles")
+}
+
+/// Global family-owned student. No tenantId: the application establishes institutional context.
+model Student {
+  id              String        @id @default(uuid()) @db.Uuid
+  familyProfileId String        @map("family_profile_id") @db.Uuid
+  givenName       String        @map("given_name") @db.VarChar(120)
+  familyName      String        @map("family_name") @db.VarChar(160)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  familyProfile   FamilyProfile @relation(fields: [familyProfileId], references: [id], onDelete: Cascade)
+  applications    Application[]
+
+  @@index([familyProfileId, familyName, givenName])
+  @@map("students")
+}
+
+/// Tenant-owned configurable campus.
+model Campus {
+  id        String              @id @default(uuid()) @db.Uuid
+  tenantId  String              @map("tenant_id") @db.Uuid
+  code      String              @db.VarChar(80)
+  name      String              @db.VarChar(160)
+  status    CampusStatus        @default(ACTIVE)
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  offerings AdmissionOffering[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@index([tenantId, status])
+  @@map("campuses")
+}
+
+/// Tenant-owned academic year configuration.
+model AcademicYear {
+  id           String              @id @default(uuid()) @db.Uuid
+  tenantId     String              @map("tenant_id") @db.Uuid
+  code         String              @db.VarChar(40)
+  label        String              @db.VarChar(80)
+  status       AcademicYearStatus  @default(DRAFT)
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant       Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  processes    AdmissionProcess[]
+  offerings    AdmissionOffering[]
+  applications Application[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@index([tenantId, status])
+  @@map("academic_years")
+}
+
+/// Tenant-owned course/level catalog item for an offering.
+model CourseLevel {
+  id        String              @id @default(uuid()) @db.Uuid
+  tenantId  String              @map("tenant_id") @db.Uuid
+  code      String              @db.VarChar(80)
+  name      String              @db.VarChar(120)
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  offerings AdmissionOffering[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@map("course_levels")
+}
+
+/// Tenant-owned admission process. Only published processes can expose offerings.
+model AdmissionProcess {
+  id             String                 @id @default(uuid()) @db.Uuid
+  tenantId       String                 @map("tenant_id") @db.Uuid
+  academicYearId String                 @map("academic_year_id") @db.Uuid
+  code           String                 @db.VarChar(80)
+  name           String                 @db.VarChar(160)
+  status         AdmissionProcessStatus @default(DRAFT)
+  opensAt        DateTime?              @map("opens_at") @db.Timestamptz(3)
+  closesAt       DateTime?              @map("closes_at") @db.Timestamptz(3)
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant         Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear           @relation(fields: [tenantId, academicYearId], references: [tenantId, id], onDelete: Restrict)
+  offerings      AdmissionOffering[]
+  applications   Application[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, academicYearId, code])
+  @@index([tenantId, status, academicYearId])
+  @@map("admission_processes")
+}
+
+/// Tenant-owned public offering. The family projection exposes category only, never counts.
+model AdmissionOffering {
+  id                   String                  @id @default(uuid()) @db.Uuid
+  tenantId             String                  @map("tenant_id") @db.Uuid
+  campusId             String                  @map("campus_id") @db.Uuid
+  academicYearId       String                  @map("academic_year_id") @db.Uuid
+  processId            String                  @map("process_id") @db.Uuid
+  courseLevelId        String                  @map("course_level_id") @db.Uuid
+  code                 String                  @db.VarChar(80)
+  title                String                  @db.VarChar(160)
+  status               AdmissionOfferingStatus @default(DRAFT)
+  availabilityCategory AvailabilityCategory    @map("availability_category")
+  createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant               Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  campus               Campus                  @relation(fields: [tenantId, campusId], references: [tenantId, id], onDelete: Restrict)
+  academicYear         AcademicYear            @relation(fields: [tenantId, academicYearId], references: [tenantId, id], onDelete: Restrict)
+  process              AdmissionProcess        @relation(fields: [tenantId, processId], references: [tenantId, id], onDelete: Restrict)
+  courseLevel          CourseLevel             @relation(fields: [tenantId, courseLevelId], references: [tenantId, id], onDelete: Restrict)
+  applications         Application[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, processId, courseLevelId, code])
+  @@index([tenantId, status, availabilityCategory])
+  @@map("admission_offerings")
+}
+
+/// E5-A stops at DRAFT. Submission and snapshots belong to E5-B.
+model Application {
+  id              String            @id @default(uuid()) @db.Uuid
+  tenantId        String            @map("tenant_id") @db.Uuid
+  familyProfileId String            @map("family_profile_id") @db.Uuid
+  studentId       String            @map("student_id") @db.Uuid
+  academicYearId  String            @map("academic_year_id") @db.Uuid
+  processId       String            @map("process_id") @db.Uuid
+  offeringId      String            @map("offering_id") @db.Uuid
+  status          ApplicationStatus @default(DRAFT)
+  draftData       Json              @map("draft_data")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  familyProfile   FamilyProfile     @relation(fields: [familyProfileId], references: [id], onDelete: Restrict)
+  student         Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  academicYear    AcademicYear      @relation(fields: [tenantId, academicYearId], references: [tenantId, id], onDelete: Restrict)
+  process         AdmissionProcess  @relation(fields: [tenantId, processId], references: [tenantId, id], onDelete: Restrict)
+  offering        AdmissionOffering @relation(fields: [tenantId, offeringId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, familyProfileId, status, updatedAt])
+  @@index([tenantId, studentId, status])
+  @@map("applications")
+}
+
+/// Tenant-owned append-only critical audit records; metadata is allowlisted by the application.
+model AuditEvent {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  actorId          String   @map("actor_id") @db.Uuid
+  effectiveActorId String   @map("effective_actor_id") @db.Uuid
+  action           String   @db.VarChar(120)
+  purpose          String   @db.VarChar(120)
+  resourceType     String   @map("resource_type") @db.VarChar(120)
+  resourceId       String?  @map("resource_id") @db.Uuid
+  result           String   @db.VarChar(40)
+  reasonCode       String?  @map("reason_code") @db.VarChar(80)
+  correlationId    String   @map("correlation_id") @db.VarChar(120)
+  metadata         Json?
+  occurredAt       DateTime @map("occurred_at") @db.Timestamptz(3)
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, occurredAt])
+  @@index([tenantId, resourceType, resourceId])
+  @@map("audit_events")
 }

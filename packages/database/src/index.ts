@@ -1,5 +1,30 @@
 export { createAppPrismaClient } from "./prisma-client.js";
 export {
+  AVAILABILITY_LABELS,
+  IntakeDuplicateError,
+  IntakeNotFoundError,
+  IntakeService,
+  IntakeValidationError,
+  type AcademicYearDto,
+  type AcademicYearInput,
+  type AdmissionOfferingInput,
+  type AdmissionProcessInput,
+  type ApplicationDto,
+  type AvailabilityCategory,
+  type CampusDto,
+  type CampusInput,
+  type ConfigurationDto,
+  type CourseLevelDto,
+  type CourseLevelInput,
+  type DraftData,
+  type DraftPatch,
+  type OfferingDto,
+  type ProcessDto,
+  type StudentDto,
+  type StudentInput,
+} from "./intake.js";
+export { PrismaClient } from "./generated/prisma/client.js";
+export {
   getCorrelationId,
   resolveCorrelationId,
   runWithCorrelationContext,
