@@ -26,7 +26,10 @@ const cookieName = buildSessionCookieOptions({ environment: "local" }).name;
 type HttpFixture = {
   adminAllowedToken: string;
   adminDeniedToken: string;
+  adminManageToken: string;
   applicationBId: string;
+  formFieldAId: string;
+  formVersionAId: string;
   familyAToken: string;
   familyBToken: string;
   offeringAId: string;
@@ -55,6 +58,7 @@ async function seedFixture(): Promise<void> {
   const userB = randomUUID();
   const adminAllowed = randomUUID();
   const adminDenied = randomUUID();
+  const adminManage = randomUUID();
   const tenantA = randomUUID();
   const tenantB = randomUUID();
   const profileA = randomUUID();
@@ -66,6 +70,10 @@ async function seedFixture(): Promise<void> {
   const levelA = randomUUID();
   const processA = randomUUID();
   const offeringA = randomUUID();
+  const formDefinitionA = randomUUID();
+  const formVersionA = randomUUID();
+  const formSectionA = randomUUID();
+  const formFieldA = randomUUID();
   const campusB = randomUUID();
   const yearB = randomUUID();
   const levelB = randomUUID();
@@ -73,6 +81,8 @@ async function seedFixture(): Promise<void> {
   const offeringB = randomUUID();
   const membership = randomUUID();
   const roleAssignment = randomUUID();
+  const manageMembership = randomUUID();
+  const manageRoleAssignment = randomUUID();
   const applicationB = randomUUID();
 
   const client = await migrationPool.connect();
@@ -80,7 +90,7 @@ async function seedFixture(): Promise<void> {
     await client.query("BEGIN");
     await client.query(
       `INSERT INTO platform_users (id, email_normalized)
-       VALUES ($1, $2), ($3, $4), ($5, $6), ($7, $8)`,
+       VALUES ($1, $2), ($3, $4), ($5, $6), ($7, $8), ($9, $10)`,
       [
         userA,
         `synthetic-http-a-${userA}@example.invalid`,
@@ -90,6 +100,8 @@ async function seedFixture(): Promise<void> {
         `synthetic-http-admin-${adminAllowed}@example.invalid`,
         adminDenied,
         `synthetic-http-denied-${adminDenied}@example.invalid`,
+        adminManage,
+        `synthetic-http-manage-${adminManage}@example.invalid`,
       ],
     );
     await client.query(
@@ -138,9 +150,22 @@ async function seedFixture(): Promise<void> {
       INSERT INTO admission_processes (id, tenant_id, academic_year_id, code, name, status)
       VALUES (${processA}, ${tenantA}, ${yearA}, ${"HTTP-PROCESS-A"}, ${"Proceso HTTP A"}, 'PUBLISHED')`;
     await transaction.$executeRaw`
+      INSERT INTO form_definitions (id, tenant_id, name, purpose)
+      VALUES (${formDefinitionA}, ${tenantA}, ${"Formulario HTTP sintético"}, ${"admission_application"})`;
+    await transaction.$executeRaw`
+      INSERT INTO form_versions (id, tenant_id, form_definition_id, version_number, lifecycle, published_at)
+      VALUES (${formVersionA}, ${tenantA}, ${formDefinitionA}, 1, 'PUBLISHED', CURRENT_TIMESTAMP)`;
+    await transaction.$executeRaw`
+      INSERT INTO form_sections (id, tenant_id, form_version_id, title, "order")
+      VALUES (${formSectionA}, ${tenantA}, ${formVersionA}, ${"Antecedentes HTTP sintéticos"}, 1)`;
+    await transaction.$executeRaw`
+      INSERT INTO form_fields
+        (id, tenant_id, form_version_id, section_id, key, label, type, required, sensitivity, purpose, "order")
+      VALUES (${formFieldA}, ${tenantA}, ${formVersionA}, ${formSectionA}, ${"http_context"}, ${"Contexto HTTP sintético"}, 'TEXT', true, ${"restricted"}, ${"Validar el flujo HTTP sintético"}, 1)`;
+    await transaction.$executeRaw`
       INSERT INTO admission_offerings
-        (id, tenant_id, campus_id, academic_year_id, process_id, course_level_id, code, title, status, availability_category)
-      VALUES (${offeringA}, ${tenantA}, ${campusA}, ${yearA}, ${processA}, ${levelA}, ${"HTTP-OFFER-A"}, ${"Oferta HTTP A"}, 'PUBLISHED', 'LIMITED_CAPACITY')`;
+        (id, tenant_id, campus_id, academic_year_id, process_id, course_level_id, code, title, status, availability_category, form_version_id)
+      VALUES (${offeringA}, ${tenantA}, ${campusA}, ${yearA}, ${processA}, ${levelA}, ${"HTTP-OFFER-A"}, ${"Oferta HTTP A"}, 'PUBLISHED', 'LIMITED_CAPACITY', ${formVersionA})`;
   });
 
   await prisma.$transaction(async (transaction) => {
@@ -173,9 +198,16 @@ async function seedFixture(): Promise<void> {
       INSERT INTO memberships (id, tenant_id, user_id, status, starts_at)
       VALUES (${membership}, ${tenantA}, ${adminAllowed}, 'ACTIVE', CURRENT_TIMESTAMP)`;
     await transaction.$executeRaw`
+      INSERT INTO memberships (id, tenant_id, user_id, status, starts_at)
+      VALUES (${manageMembership}, ${tenantA}, ${adminManage}, 'ACTIVE', CURRENT_TIMESTAMP)`;
+    await transaction.$executeRaw`
       INSERT INTO role_assignments
         (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
-      VALUES (${roleAssignment}, ${tenantA}, ${membership}, ${"SYNTHETIC_E5A_ADMIN"}, ARRAY[${PERMISSIONS.ADMISSION_CONFIG_READ}, ${PERMISSIONS.ADMISSION_CONFIG_MANAGE}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
+       VALUES (${roleAssignment}, ${tenantA}, ${membership}, ${"SYNTHETIC_E5A_ADMIN"}, ARRAY[${PERMISSIONS.ADMISSION_CONFIG_READ}, ${PERMISSIONS.ADMISSION_CONFIG_MANAGE}, ${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}, ${PERMISSIONS.FORM_PUBLISH}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
+    await transaction.$executeRaw`
+      INSERT INTO role_assignments
+        (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
+      VALUES (${manageRoleAssignment}, ${tenantA}, ${manageMembership}, ${"SYNTHETIC_E5B_FORM_MANAGER"}, ARRAY[${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
   });
 
   const [
@@ -183,18 +215,23 @@ async function seedFixture(): Promise<void> {
     familyBSession,
     adminAllowedSession,
     adminDeniedSession,
+    adminManageSession,
   ] = await Promise.all([
     sessions.issueSession(userA),
     sessions.issueSession(userB),
     sessions.issueSession(adminAllowed),
     sessions.issueSession(adminDenied),
+    sessions.issueSession(adminManage),
   ]);
   fixture = {
     adminAllowedToken: adminAllowedSession.token,
     adminDeniedToken: adminDeniedSession.token,
+    adminManageToken: adminManageSession.token,
     applicationBId: applicationB,
     familyAToken: familySession.token,
     familyBToken: familyBSession.token,
+    formFieldAId: formFieldA,
+    formVersionAId: formVersionA,
     offeringAId: offeringA,
     processAId: processA,
     studentAId: studentA,
@@ -472,5 +509,266 @@ describe.sequential("E5-A real HTTP boundary", () => {
       },
     );
     expect(response.status).toBe(400);
+  });
+
+  it("E5B-HTTP-01: admin without membership is denied builder access", async () => {
+    const response = await request(
+      `/admin/tenants/${fixture.tenantAId}/forms`,
+      {
+        token: fixture.adminDeniedToken,
+      },
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("E5B-HTTP-02: form.manage without form.publish cannot publish", async () => {
+    const token = await csrf(fixture.adminManageToken);
+    const response = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/form-versions/${randomUUID()}/publish`,
+      fixture.adminManageToken,
+      token,
+      { method: "POST" },
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("E5B-HTTP-03: authorized admin creates and publishes a controlled version", async () => {
+    const token = await csrf(fixture.adminAllowedToken);
+    const definitionResponse = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/forms`,
+      fixture.adminAllowedToken,
+      token,
+      {
+        body: JSON.stringify({
+          name: "Formulario HTTP publicable",
+          purpose: "admission_application",
+        }),
+        method: "POST",
+      },
+    );
+    expect(definitionResponse.status).toBe(201);
+    const definition = (await definitionResponse.json()) as { id: string };
+    const versionResponse = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/forms/${definition.id}/versions`,
+      fixture.adminAllowedToken,
+      token,
+      { body: JSON.stringify({}), method: "POST" },
+    );
+    expect(versionResponse.status).toBe(201);
+    const version = (await versionResponse.json()) as { id: string };
+    const sectionResponse = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/form-versions/${version.id}/sections`,
+      fixture.adminAllowedToken,
+      token,
+      {
+        body: JSON.stringify({ order: 1, title: "Sección HTTP controlada" }),
+        method: "POST",
+      },
+    );
+    expect(sectionResponse.status).toBe(201);
+    const section = (await sectionResponse.json()) as { id: string };
+    const fieldResponse = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/form-versions/${version.id}/fields`,
+      fixture.adminAllowedToken,
+      token,
+      {
+        body: JSON.stringify({
+          key: "http_boolean",
+          label: "Confirmación HTTP sintética",
+          order: 1,
+          purpose: "Validar publicación HTTP",
+          required: true,
+          sectionId: section.id,
+          sensitivity: "restricted",
+          type: "BOOLEAN",
+        }),
+        method: "POST",
+      },
+    );
+    expect(fieldResponse.status).toBe(201);
+    const publish = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/form-versions/${version.id}/publish`,
+      fixture.adminAllowedToken,
+      token,
+      { method: "POST" },
+    );
+    expect(publish.status).toBe(201);
+    expect((await publish.json()) as object).toMatchObject({
+      lifecycle: "PUBLISHED",
+      versionNumber: 1,
+    });
+  });
+
+  it("E5B-HTTP-04: family receives the form version pinned at draft creation", async () => {
+    const token = await csrf(fixture.familyAToken);
+    const created = await mutation(
+      `/family/tenants/${fixture.tenantAId}/applications`,
+      fixture.familyAToken,
+      token,
+      {
+        body: JSON.stringify({
+          offeringId: fixture.offeringAId,
+          studentId: fixture.studentAId,
+        }),
+        method: "POST",
+      },
+    );
+    const application = (await created.json()) as {
+      formVersionId: string;
+      id: string;
+    };
+    expect(application.formVersionId).toBe(fixture.formVersionAId);
+    const response = await request(
+      `/family/tenants/${fixture.tenantAId}/applications/${application.id}/form`,
+      { token: fixture.familyAToken },
+    );
+    expect(response.status).toBe(200);
+    expect((await response.json()) as object).toMatchObject({
+      applicationId: application.id,
+      form: { id: fixture.formVersionAId, lifecycle: "PUBLISHED" },
+    });
+  });
+
+  it("E5B-HTTP-05: saving answers requires CSRF", async () => {
+    const token = await csrf(fixture.familyAToken);
+    const created = await mutation(
+      `/family/tenants/${fixture.tenantAId}/applications`,
+      fixture.familyAToken,
+      token,
+      {
+        body: JSON.stringify({
+          offeringId: fixture.offeringAId,
+          studentId: fixture.studentAId,
+        }),
+        method: "POST",
+      },
+    );
+    const application = (await created.json()) as { id: string };
+    const response = await mutation(
+      `/family/tenants/${fixture.tenantAId}/applications/${application.id}/answers`,
+      fixture.familyAToken,
+      undefined,
+      {
+        body: JSON.stringify({
+          answers: [{ fieldId: fixture.formFieldAId, value: "Sintético" }],
+        }),
+        method: "PUT",
+      },
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("E5B-HTTP-06: foreign family application remains anti-enumeration 404", async () => {
+    const response = await request(
+      `/family/tenants/${fixture.tenantAId}/applications/${fixture.applicationBId}/form`,
+      { token: fixture.familyAToken },
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("E5B-HTTP-07: active content is rejected at the HTTP boundary", async () => {
+    const token = await csrf(fixture.adminAllowedToken);
+    const response = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/forms`,
+      fixture.adminAllowedToken,
+      token,
+      {
+        body: JSON.stringify({
+          name: "<script>alert('synthetic')</script>",
+          purpose: "admission_application",
+        }),
+        method: "POST",
+      },
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("E5B-HTTP-08: required missing rejects submit and preserves draft", async () => {
+    const token = await csrf(fixture.familyAToken);
+    const created = await mutation(
+      `/family/tenants/${fixture.tenantAId}/applications`,
+      fixture.familyAToken,
+      token,
+      {
+        body: JSON.stringify({
+          offeringId: fixture.offeringAId,
+          studentId: fixture.studentAId,
+        }),
+        method: "POST",
+      },
+    );
+    const application = (await created.json()) as { id: string };
+    const response = await mutation(
+      `/family/tenants/${fixture.tenantAId}/applications/${application.id}/submit`,
+      fixture.familyAToken,
+      token,
+      { method: "POST" },
+    );
+    expect(response.status).toBe(400);
+    const persisted = await prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT set_config('admission.tenant_id', ${fixture.tenantAId}, true)`;
+      return transaction.application.findUnique({
+        where: { id: application.id },
+      });
+    });
+    expect(persisted?.status).toBe("DRAFT");
+  });
+
+  it("E5B-HTTP-09/10: valid submit is durable and retry does not duplicate snapshot", async () => {
+    const token = await csrf(fixture.familyAToken);
+    const created = await mutation(
+      `/family/tenants/${fixture.tenantAId}/applications`,
+      fixture.familyAToken,
+      token,
+      {
+        body: JSON.stringify({
+          offeringId: fixture.offeringAId,
+          studentId: fixture.studentAId,
+        }),
+        method: "POST",
+      },
+    );
+    const application = (await created.json()) as { id: string };
+    const saved = await mutation(
+      `/family/tenants/${fixture.tenantAId}/applications/${application.id}/answers`,
+      fixture.familyAToken,
+      token,
+      {
+        body: JSON.stringify({
+          answers: [
+            { fieldId: fixture.formFieldAId, value: "Respuesta sintética" },
+          ],
+        }),
+        method: "PUT",
+      },
+    );
+    expect(saved.status).toBe(200);
+    const review = await request(
+      `/family/tenants/${fixture.tenantAId}/applications/${application.id}/review`,
+      { token: fixture.familyAToken },
+    );
+    expect(review.status).toBe(200);
+    expect((await review.json()) as object).toMatchObject({
+      missingRequired: [],
+    });
+    const path = `/family/tenants/${fixture.tenantAId}/applications/${application.id}/submit`;
+    const first = await mutation(path, fixture.familyAToken, token, {
+      method: "POST",
+    });
+    const second = await mutation(path, fixture.familyAToken, token, {
+      method: "POST",
+    });
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    const firstBody = (await first.json()) as { snapshotId: string };
+    const secondBody = (await second.json()) as { snapshotId: string };
+    expect(secondBody.snapshotId).toBe(firstBody.snapshotId);
+    const snapshotCount = await prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT set_config('admission.tenant_id', ${fixture.tenantAId}, true)`;
+      return transaction.applicationSnapshot.count({
+        where: { applicationId: application.id },
+      });
+    });
+    expect(snapshotCount).toBe(1);
   });
 });

@@ -9,6 +9,8 @@ import {
 } from "@admission/database";
 
 import { HealthController } from "./health.controller.js";
+import { FormController } from "./form.controller.js";
+import { ApiFormService } from "./form.service.js";
 import { HealthService } from "./health.service.js";
 import { IntakeController } from "./intake.controller.js";
 import { ApiIntakeService } from "./intake.service.js";
@@ -30,11 +32,12 @@ const sessionProvider = {
 };
 
 @Module({
-  controllers: [HealthController, IntakeController],
+  controllers: [HealthController, IntakeController, FormController],
   providers: [
     prismaProvider,
     sessionProvider,
     ApiIntakeService,
+    ApiFormService,
     HealthService,
     RequestContextService,
   ],
