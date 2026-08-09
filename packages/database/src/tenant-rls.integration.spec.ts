@@ -6,6 +6,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { getRequiredEnvironment } from "./environment.js";
 import { createAppPrismaClient } from "./prisma-client.js";
 import {
+  runWithFamilyContext,
   getRequiredTenantContext,
   runWithTenantContext,
   TenantContextMissingError,
@@ -46,11 +47,6 @@ async function listForCurrentTenant() {
 
 describe.sequential("ADR-0003 PostgreSQL/Prisma tenant RLS PoC", () => {
   beforeEach(clearProbeRecords);
-
-  afterAll(async () => {
-    await appPrisma.$disconnect();
-    await migrationPool.end();
-  });
 
   it("POC-01 request context tenant A only sees tenant A", async () => {
     await runWithTenantContext(syntheticAuthenticatedRequestContext("A"), () =>
@@ -261,4 +257,278 @@ describe.sequential("ADR-0003 PostgreSQL/Prisma tenant RLS PoC", () => {
       false,
     );
   });
+});
+
+type E5BRlsRows = {
+  answerId: string;
+  definitionId: string;
+  fieldId: string;
+  sectionId: string;
+  snapshotId: string;
+  versionId: string;
+};
+
+async function clearE5BRlsRows(): Promise<void> {
+  await migrationPool.query(`TRUNCATE TABLE
+    "application_snapshots", "application_draft_answers", "audit_events", "applications",
+    "admission_offerings", "form_fields", "form_sections", "form_versions", "form_definitions",
+    "admission_processes", "course_levels", "academic_years", "campuses", "students",
+    "family_profiles", "platform_sessions", "platform_users", "tenants" CASCADE`);
+}
+
+async function seedE5BRlsTenant(
+  context: ReturnType<typeof syntheticAuthenticatedRequestContext>,
+  suffix: string,
+): Promise<E5BRlsRows> {
+  const userId = randomUUID();
+  const profileId = randomUUID();
+  const studentId = randomUUID();
+  await migrationPool.query(
+    `INSERT INTO tenants (id, name) VALUES ($1, $2)
+     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name`,
+    [context.tenantId, `Synthetic E5B RLS Tenant ${suffix}`],
+  );
+  await migrationPool.query(
+    `INSERT INTO platform_users (id, email_normalized) VALUES ($1, $2)`,
+    [userId, `synthetic-e5b-rls-${suffix}-${userId}@example.invalid`],
+  );
+  await migrationPool.query(
+    `INSERT INTO family_profiles (id, user_id, display_name) VALUES ($1, $2, $3)`,
+    [profileId, userId, `Familia RLS sintética ${suffix}`],
+  );
+  await migrationPool.query(
+    `INSERT INTO students (id, family_profile_id, given_name, family_name) VALUES ($1, $2, $3, $4)`,
+    [studentId, profileId, `Estudiante ${suffix}`, `Familia ${suffix}`],
+  );
+
+  return runWithTenantContext(context, () =>
+    withTenantTransaction(appPrisma, async (transaction) => {
+      const campus = await transaction.campus.create({
+        data: {
+          code: `RLS-CAMPUS-${suffix}`,
+          name: `Sede ${suffix}`,
+          tenantId: context.tenantId,
+        },
+      });
+      const year = await transaction.academicYear.create({
+        data: {
+          code: `RLS-YEAR-${suffix}`,
+          label: `Año ${suffix}`,
+          status: "OPEN",
+          tenantId: context.tenantId,
+        },
+      });
+      const level = await transaction.courseLevel.create({
+        data: {
+          code: `RLS-LEVEL-${suffix}`,
+          name: `Nivel ${suffix}`,
+          tenantId: context.tenantId,
+        },
+      });
+      const process = await transaction.admissionProcess.create({
+        data: {
+          academicYearId: year.id,
+          code: `RLS-PROCESS-${suffix}`,
+          name: `Proceso ${suffix}`,
+          status: "PUBLISHED",
+          tenantId: context.tenantId,
+        },
+      });
+      const definition = await transaction.formDefinition.create({
+        data: {
+          name: `Formulario RLS ${suffix}`,
+          purpose: "admission_application",
+          tenantId: context.tenantId,
+        },
+      });
+      const version = await transaction.formVersion.create({
+        data: {
+          formDefinitionId: definition.id,
+          lifecycle: "PUBLISHED",
+          publishedAt: new Date(),
+          tenantId: context.tenantId,
+          versionNumber: 1,
+        },
+      });
+      const section = await transaction.formSection.create({
+        data: {
+          formVersionId: version.id,
+          order: 1,
+          tenantId: context.tenantId,
+          title: `Sección RLS ${suffix}`,
+        },
+      });
+      const field = await transaction.formField.create({
+        data: {
+          formVersionId: version.id,
+          key: `rls_field_${suffix.toLowerCase()}`,
+          label: `Campo RLS ${suffix}`,
+          order: 1,
+          purpose: "Validar RLS",
+          required: false,
+          sectionId: section.id,
+          sensitivity: "restricted",
+          tenantId: context.tenantId,
+          type: "TEXT",
+        },
+      });
+      const offering = await transaction.admissionOffering.create({
+        data: {
+          academicYearId: year.id,
+          availabilityCategory: "POSTULATIONS_OPEN",
+          campusId: campus.id,
+          code: `RLS-OFFER-${suffix}`,
+          courseLevelId: level.id,
+          formVersionId: version.id,
+          processId: process.id,
+          status: "PUBLISHED",
+          tenantId: context.tenantId,
+          title: `Oferta RLS ${suffix}`,
+        },
+      });
+      const application = await transaction.application.create({
+        data: {
+          academicYearId: year.id,
+          draftData: { acknowledgedNoGuarantee: false, currentStep: "CONTEXT" },
+          familyProfileId: profileId,
+          formVersionId: version.id,
+          offeringId: offering.id,
+          processId: process.id,
+          studentId,
+          tenantId: context.tenantId,
+        },
+      });
+      const answer = await transaction.applicationDraftAnswer.create({
+        data: {
+          applicationId: application.id,
+          fieldId: field.id,
+          formVersionId: version.id,
+          tenantId: context.tenantId,
+          value: `Respuesta RLS ${suffix}`,
+        },
+      });
+      const snapshot = await transaction.applicationSnapshot.create({
+        data: {
+          applicationId: application.id,
+          formVersionId: version.id,
+          payload: { schemaVersion: 1, synthetic: true },
+          submittedAt: new Date(),
+          submittedBy: userId,
+          tenantId: context.tenantId,
+        },
+      });
+      await transaction.application.update({
+        data: { status: "SUBMITTED", submittedAt: snapshot.submittedAt },
+        where: { id: application.id },
+      });
+      return {
+        answerId: answer.id,
+        definitionId: definition.id,
+        fieldId: field.id,
+        sectionId: section.id,
+        snapshotId: snapshot.id,
+        versionId: version.id,
+      };
+    }),
+  );
+}
+
+describe.sequential("E5-B tenant-owned form and snapshot RLS", () => {
+  let rowsA: E5BRlsRows;
+  let rowsB: E5BRlsRows;
+
+  beforeEach(async () => {
+    await clearE5BRlsRows();
+    rowsA = await seedE5BRlsTenant(
+      syntheticAuthenticatedRequestContext("A"),
+      "A",
+    );
+    rowsB = await seedE5BRlsTenant(
+      syntheticAuthenticatedRequestContext("B"),
+      "B",
+    );
+  });
+
+  it("E5B-TEN-01: form definitions are isolated", async () => {
+    const visible = await runWithTenantContext(
+      syntheticAuthenticatedRequestContext("A"),
+      () =>
+        withTenantTransaction(appPrisma, (transaction) =>
+          transaction.formDefinition.findMany(),
+        ),
+    );
+    expect(visible.map((row) => row.id)).toEqual([rowsA.definitionId]);
+    expect(visible.some((row) => row.id === rowsB.definitionId)).toBe(false);
+  });
+
+  it("E5B-TEN-02: versions, sections and fields are isolated", async () => {
+    const visible = await runWithTenantContext(
+      syntheticAuthenticatedRequestContext("A"),
+      () =>
+        withTenantTransaction(appPrisma, async (transaction) => ({
+          fields: await transaction.formField.findMany(),
+          sections: await transaction.formSection.findMany(),
+          versions: await transaction.formVersion.findMany(),
+        })),
+    );
+    expect(visible.versions.map((row) => row.id)).toEqual([rowsA.versionId]);
+    expect(visible.sections.map((row) => row.id)).toEqual([rowsA.sectionId]);
+    expect(visible.fields.map((row) => row.id)).toEqual([rowsA.fieldId]);
+  });
+
+  it("E5B-TEN-03: draft answers are isolated", async () => {
+    const visible = await runWithTenantContext(
+      syntheticAuthenticatedRequestContext("A"),
+      () =>
+        withTenantTransaction(appPrisma, (transaction) =>
+          transaction.applicationDraftAnswer.findMany(),
+        ),
+    );
+    expect(visible.map((row) => row.id)).toEqual([rowsA.answerId]);
+    expect(visible.some((row) => row.id === rowsB.answerId)).toBe(false);
+  });
+
+  it("E5B-TEN-04: application snapshots are isolated", async () => {
+    const visible = await runWithTenantContext(
+      syntheticAuthenticatedRequestContext("A"),
+      () =>
+        withTenantTransaction(appPrisma, (transaction) =>
+          transaction.applicationSnapshot.findMany(),
+        ),
+    );
+    expect(visible.map((row) => row.id)).toEqual([rowsA.snapshotId]);
+    expect(visible.some((row) => row.id === rowsB.snapshotId)).toBe(false);
+  });
+
+  it("E5B-TEN-05: absence of tenant context denies all new tables", async () => {
+    await expect(appPrisma.formDefinition.findMany()).resolves.toEqual([]);
+    await expect(appPrisma.formVersion.findMany()).resolves.toEqual([]);
+    await expect(appPrisma.formSection.findMany()).resolves.toEqual([]);
+    await expect(appPrisma.formField.findMany()).resolves.toEqual([]);
+    await expect(appPrisma.applicationDraftAnswer.findMany()).resolves.toEqual(
+      [],
+    );
+    await expect(appPrisma.applicationSnapshot.findMany()).resolves.toEqual([]);
+  });
+
+  it("E5B-TEN-06: platform/family context does not obtain tenant content", async () => {
+    const platformLikeFamilyContext = {
+      actorId: randomUUID(),
+      contextOrigin: "synthetic_test" as const,
+      correlationId: `synthetic-platform-${randomUUID()}`,
+      effectiveActorId: randomUUID(),
+      familyCapabilities: [] as const,
+      purpose: "platform.metrics",
+      source: "trusted_job" as const,
+    };
+    const visible = await runWithFamilyContext(platformLikeFamilyContext, () =>
+      appPrisma.formDefinition.findMany(),
+    );
+    expect(visible).toEqual([]);
+  });
+});
+
+afterAll(async () => {
+  await appPrisma.$disconnect();
+  await migrationPool.end();
 });

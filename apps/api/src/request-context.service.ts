@@ -35,6 +35,7 @@ function readCookie(request: RequestLike, name: string): string | undefined {
 const FAMILY_CAPABILITIES = [
   PERMISSIONS.APPLICATION_CREATE,
   PERMISSIONS.APPLICATION_READ,
+  PERMISSIONS.APPLICATION_SUBMIT,
   PERMISSIONS.APPLICATION_WRITE,
   PERMISSIONS.FAMILY_PROFILE_READ,
   PERMISSIONS.FAMILY_PROFILE_WRITE,
@@ -149,7 +150,9 @@ export class RequestContextService {
     tenantId: string,
     purpose: string,
     permission:
-      "application.read" | "application.write" = PERMISSIONS.APPLICATION_READ,
+      | "application.read"
+      | "application.submit"
+      | "application.write" = PERMISSIONS.APPLICATION_READ,
   ): Promise<TenantExecutionContext> {
     const session = await this.requireUser(request);
     const tenant = await this.prisma.tenant.findUnique({

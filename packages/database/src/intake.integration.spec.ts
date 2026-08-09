@@ -11,6 +11,7 @@ import {
   isAdmissionOfferingCurrent,
 } from "./intake.js";
 import { getRequiredEnvironment } from "./environment.js";
+import { FormService } from "./forms.js";
 import { createAppPrismaClient } from "./prisma-client.js";
 import { PERMISSIONS } from "./permission-catalog.js";
 import {
@@ -36,6 +37,7 @@ let fixture: {
   courseLevelAId: string;
   familyA: FamilyExecutionContext;
   familyB: FamilyExecutionContext;
+  formVersionId: string;
   academicYearAId: string;
   mismatchedYearId: string;
   processAId: string;
@@ -79,10 +81,14 @@ function familyContext(actorId: string): FamilyExecutionContext {
 const configCapabilities = [
   PERMISSIONS.ADMISSION_CONFIG_MANAGE,
   PERMISSIONS.ADMISSION_CONFIG_READ,
+  PERMISSIONS.FORM_MANAGE,
+  PERMISSIONS.FORM_PUBLISH,
+  PERMISSIONS.FORM_READ,
 ];
 const familyCapabilities = [
   PERMISSIONS.APPLICATION_CREATE,
   PERMISSIONS.APPLICATION_READ,
+  PERMISSIONS.APPLICATION_SUBMIT,
   PERMISSIONS.APPLICATION_WRITE,
   PERMISSIONS.FAMILY_PROFILE_READ,
   PERMISSIONS.FAMILY_PROFILE_WRITE,
@@ -143,6 +149,7 @@ async function seedFixture(): Promise<void> {
     "synthetic_test",
   );
   const intake = new IntakeService(prisma);
+  const forms = new FormService(prisma);
 
   await runWithTenantContext(contextA, async () => {
     const year = await intake.createAcademicYear(contextA, {
@@ -179,6 +186,27 @@ async function seedFixture(): Promise<void> {
       status: "PUBLISHED",
       title: "Oferta sintética",
     });
+    const definition = await forms.createDefinition(contextA, {
+      name: "Formulario sintético E5-B",
+      purpose: "admission_application",
+    });
+    const version = await forms.createDraftVersion(contextA, definition.id);
+    const section = await forms.createSection(contextA, version.id, {
+      order: 1,
+      title: "Antecedentes sintéticos",
+    });
+    await forms.createField(contextA, version.id, {
+      key: "synthetic_context",
+      label: "Contexto sintético",
+      order: 1,
+      purpose: "Validar el flujo sintético",
+      required: false,
+      sectionId: section.id,
+      sensitivity: "restricted",
+      type: "TEXT",
+    });
+    const published = await forms.publishVersion(contextA, version.id);
+    await forms.assignOfferingVersion(contextA, offering.id, published.id);
     fixture = {
       applicationOfferingId: offering.id,
       applicantContextA,
@@ -187,6 +215,7 @@ async function seedFixture(): Promise<void> {
       courseLevelAId: level.id,
       familyA,
       familyB,
+      formVersionId: published.id,
       academicYearAId: year.id,
       mismatchedYearId: mismatchedYear.id,
       processAId: process.id,

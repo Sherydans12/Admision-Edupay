@@ -131,10 +131,12 @@ export interface ConfigurationDto {
 export interface ApplicationDto {
   createdAt: string;
   draft: DraftData;
+  formVersionId: string | null;
   id: string;
   offering: OfferingDto;
-  status: "DRAFT";
+  status: "DRAFT" | "SUBMITTED";
   student: StudentDto;
+  submittedAt: string | null;
   updatedAt: string;
 }
 
@@ -331,10 +333,12 @@ function mapApplication(
   return {
     createdAt: application.createdAt.toISOString(),
     draft: toDraftData(application.draftData),
+    formVersionId: application.formVersionId,
     id: application.id,
     offering: mapOffering(application.offering),
     status: application.status,
     student: mapStudent(application.student),
+    submittedAt: application.submittedAt?.toISOString() ?? null,
     updatedAt: application.updatedAt.toISOString(),
   };
 }
@@ -970,7 +974,7 @@ export class IntakeService {
           this.prisma,
           async (transaction) =>
             transaction.admissionOffering.findFirst({
-              include: { academicYear: true, process: true },
+              include: { academicYear: true, formVersion: true, process: true },
               where: {
                 id: input.offeringId,
                 status: "PUBLISHED",
@@ -986,6 +990,14 @@ export class IntakeService {
         }
         if (offering.availabilityCategory === "PROCESS_CLOSED") {
           throw new IntakeValidationError("Offering is closed");
+        }
+        if (
+          offering.formVersionId === null ||
+          offering.formVersion?.lifecycle !== "PUBLISHED"
+        ) {
+          throw new IntakeValidationError(
+            "Offering does not have a published form version",
+          );
         }
         applicantContext = this.applicantContext(
           familyContext,
@@ -1007,6 +1019,7 @@ export class IntakeService {
                   currentStep: "CONTEXT",
                 } as unknown as Prisma.InputJsonValue,
                 familyProfileId: profile.id,
+                formVersionId: offering.formVersionId,
                 offeringId: offering.id,
                 processId: offering.processId,
                 studentId: student.id,

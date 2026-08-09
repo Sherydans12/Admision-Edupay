@@ -70,6 +70,28 @@ enum AvailabilityCategory {
 
 enum ApplicationStatus {
   DRAFT
+  SUBMITTED
+}
+
+enum FormVersionLifecycle {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum FormFieldType {
+  TEXT
+  TEXTAREA
+  SELECT
+  RADIO
+  BOOLEAN
+  DATE
+}
+
+enum FormConditionOperator {
+  EQUALS
+  NOT_EQUALS
+  IN
 }
 
 enum AuditEventScope {
@@ -127,6 +149,12 @@ model Tenant {
   admissionProcesses AdmissionProcess[]
   admissionOfferings AdmissionOffering[]
   applications       Application[]
+  formDefinitions    FormDefinition[]
+  formVersions       FormVersion[]
+  formSections       FormSection[]
+  formFields         FormField[]
+  applicationAnswers ApplicationDraftAnswer[]
+  applicationSnapshots ApplicationSnapshot[]
   auditEvents        AuditEvent[]
 
   @@map("tenants")
@@ -346,6 +374,7 @@ model AdmissionOffering {
   title                String                  @db.VarChar(160)
   status               AdmissionOfferingStatus @default(DRAFT)
   availabilityCategory AvailabilityCategory    @map("availability_category")
+  formVersionId        String?                 @map("form_version_id") @db.Uuid
   createdAt            DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime                @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenant               Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -353,6 +382,7 @@ model AdmissionOffering {
   academicYear         AcademicYear            @relation(fields: [tenantId, academicYearId], references: [tenantId, id], onDelete: Restrict)
   process              AdmissionProcess        @relation(fields: [tenantId, processId, academicYearId], references: [tenantId, id, academicYearId], onDelete: Restrict)
   courseLevel          CourseLevel             @relation(fields: [tenantId, courseLevelId], references: [tenantId, id], onDelete: Restrict)
+  formVersion          FormVersion?            @relation(fields: [tenantId, formVersionId], references: [tenantId, id], onDelete: Restrict)
   applications         Application[]
 
   @@unique([tenantId, id])
@@ -371,8 +401,10 @@ model Application {
   academicYearId  String            @map("academic_year_id") @db.Uuid
   processId       String            @map("process_id") @db.Uuid
   offeringId      String            @map("offering_id") @db.Uuid
+  formVersionId   String?           @map("form_version_id") @db.Uuid
   status          ApplicationStatus @default(DRAFT)
   draftData       Json              @map("draft_data")
+  submittedAt     DateTime?         @map("submitted_at") @db.Timestamptz(3)
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -381,11 +413,149 @@ model Application {
   academicYear    AcademicYear      @relation(fields: [tenantId, academicYearId], references: [tenantId, id], onDelete: Restrict)
   process         AdmissionProcess  @relation(fields: [tenantId, processId], references: [tenantId, id], onDelete: Restrict)
   offering        AdmissionOffering @relation(fields: [tenantId, offeringId, processId, academicYearId], references: [tenantId, id, processId, academicYearId], onDelete: Restrict)
+  formVersion     FormVersion?       @relation(fields: [tenantId, formVersionId], references: [tenantId, id], onDelete: Restrict)
+  draftAnswers    ApplicationDraftAnswer[]
+  snapshot        ApplicationSnapshot?
 
   @@unique([tenantId, id])
+  @@unique([tenantId, id, formVersionId])
   @@index([tenantId, familyProfileId, status, updatedAt])
   @@index([tenantId, studentId, status])
   @@map("applications")
+}
+
+/// Stable tenant-owned identity for an admission form; not a general CMS.
+model FormDefinition {
+  id          String        @id @default(uuid()) @db.Uuid
+  tenantId    String        @map("tenant_id") @db.Uuid
+  name        String        @db.VarChar(160)
+  purpose     String        @db.VarChar(120)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions    FormVersion[]
+
+  @@unique([tenantId, id])
+  @@index([tenantId, purpose, name])
+  @@map("form_definitions")
+}
+
+/// Versioned immutable-after-publication form configuration.
+model FormVersion {
+  id               String               @id @default(uuid()) @db.Uuid
+  tenantId         String               @map("tenant_id") @db.Uuid
+  formDefinitionId String               @map("form_definition_id") @db.Uuid
+  versionNumber    Int                  @map("version_number")
+  lifecycle        FormVersionLifecycle @default(DRAFT)
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  publishedAt      DateTime?            @map("published_at") @db.Timestamptz(3)
+  archivedAt       DateTime?            @map("archived_at") @db.Timestamptz(3)
+  tenant           Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  definition       FormDefinition       @relation(fields: [tenantId, formDefinitionId], references: [tenantId, id], onDelete: Restrict)
+  sections         FormSection[]
+  fields           FormField[]
+  offerings        AdmissionOffering[]
+  applications     Application[]
+  draftAnswers     ApplicationDraftAnswer[]
+  snapshots        ApplicationSnapshot[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, formDefinitionId, versionNumber])
+  @@index([tenantId, formDefinitionId, lifecycle])
+  @@map("form_versions")
+}
+
+model FormSection {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  formVersionId String      @map("form_version_id") @db.Uuid
+  title         String      @db.VarChar(160)
+  description   String?     @db.VarChar(500)
+  order         Int
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  formVersion   FormVersion @relation(fields: [tenantId, formVersionId], references: [tenantId, id], onDelete: Restrict)
+  fields        FormField[]
+
+  @@unique([tenantId, formVersionId, id])
+  @@unique([tenantId, formVersionId, order])
+  @@index([tenantId, formVersionId])
+  @@map("form_sections")
+}
+
+model FormField {
+  id                String                 @id @default(uuid()) @db.Uuid
+  tenantId          String                 @map("tenant_id") @db.Uuid
+  formVersionId     String                 @map("form_version_id") @db.Uuid
+  sectionId         String                 @map("section_id") @db.Uuid
+  key               String                 @db.VarChar(80)
+  label             String                 @db.VarChar(200)
+  helpText          String?                @map("help_text") @db.VarChar(500)
+  type              FormFieldType
+  required          Boolean                @default(false)
+  sensitivity       String                 @db.VarChar(40)
+  purpose           String                 @db.VarChar(160)
+  order             Int
+  options            Json?
+  validationConfig  Json?                  @map("validation_config")
+  conditionOperator FormConditionOperator? @map("condition_operator")
+  conditionFieldId  String?                @map("condition_field_id") @db.Uuid
+  conditionValue    Json?                  @map("condition_value")
+  createdAt         DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant            Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  formVersion       FormVersion            @relation(fields: [tenantId, formVersionId], references: [tenantId, id], onDelete: Restrict)
+  section           FormSection            @relation(fields: [tenantId, formVersionId, sectionId], references: [tenantId, formVersionId, id], onDelete: Restrict)
+  conditionField    FormField?              @relation("FormFieldCondition", fields: [tenantId, formVersionId, conditionFieldId], references: [tenantId, formVersionId, id], onDelete: Restrict)
+  conditionDependents FormField[]           @relation("FormFieldCondition")
+  draftAnswers      ApplicationDraftAnswer[]
+
+  @@unique([tenantId, formVersionId, id])
+  @@unique([tenantId, formVersionId, key])
+  @@unique([tenantId, formVersionId, sectionId, order])
+  @@index([tenantId, formVersionId, sectionId])
+  @@map("form_fields")
+}
+
+model ApplicationDraftAnswer {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  applicationId String      @map("application_id") @db.Uuid
+  formVersionId String      @map("form_version_id") @db.Uuid
+  fieldId       String      @map("field_id") @db.Uuid
+  value         Json
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application   Application @relation(fields: [tenantId, applicationId, formVersionId], references: [tenantId, id, formVersionId], onDelete: Restrict)
+  formVersion   FormVersion @relation(fields: [tenantId, formVersionId], references: [tenantId, id], onDelete: Restrict)
+  field         FormField   @relation(fields: [tenantId, formVersionId, fieldId], references: [tenantId, formVersionId, id], onDelete: Restrict)
+
+  @@unique([tenantId, applicationId, fieldId])
+  @@index([tenantId, applicationId, formVersionId])
+  @@map("application_draft_answers")
+}
+
+/// One immutable durable submission snapshot per application in E5-B.
+model ApplicationSnapshot {
+  id              String      @id @default(uuid()) @db.Uuid
+  tenantId        String      @map("tenant_id") @db.Uuid
+  applicationId   String      @unique @map("application_id") @db.Uuid
+  formVersionId   String      @map("form_version_id") @db.Uuid
+  schemaVersion   Int         @default(1) @map("schema_version")
+  payload         Json
+  submittedBy     String      @map("submitted_by") @db.Uuid
+  submittedAt     DateTime    @map("submitted_at") @db.Timestamptz(3)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application     Application @relation(fields: [tenantId, applicationId, formVersionId], references: [tenantId, id, formVersionId], onDelete: Restrict)
+  formVersion     FormVersion @relation(fields: [tenantId, formVersionId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, applicationId, formVersionId])
+  @@index([tenantId, applicationId])
+  @@map("application_snapshots")
 }
 
 /// Tenant-owned append-only critical audit records; metadata is allowlisted by the application.
