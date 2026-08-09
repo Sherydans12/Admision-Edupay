@@ -13,9 +13,9 @@ flowchart LR
     E2 --> G2{"G2 Aprobada / cerrada"}
     G2 --> E3["E3 Prototipo UX — cerrada"]
     E3 --> G3{"G3 Aprobada / cerrada"}
-    G3 --> E4["E4 Fundación técnica — autorizada"]
-    E4 --> G4{"G4 Autorizar construcción MVP"}
-    G4 --> E5["E5 MVP"]
+    G3 --> E4["E4 Fundación técnica — cerrada"]
+    E4 --> G4{"G4 Aprobada / cerrada"}
+    G4 --> E5["E5 MVP — autorizada"]
     E5 --> G5{"G5 Autorizar piloto"}
     G5 --> E6["E6 Piloto Conquistadores"]
     E6 --> G6{"G6 Evaluar salida"}
@@ -76,28 +76,13 @@ La arquitectura aprobada establece modular monolith, monorepo independiente, sta
 - Registro: `docs/approvals/G2-architecture-approval-2026-08-08.md`.
 - Etapa autorizada: E3.
 
-Condición obligatoria heredada: antes de G4 debe existir PoC sintética tenant/RLS/Prisma que demuestre request/job correctos, ausencia de contexto y cross-tenant en deny, pooling sin fuga, compatibilidad Prisma/transacciones/RLS, roles DB separados y fail-closed. Si falla, RLS no se deshabilita silenciosamente.
+La condición ADR-0003 quedó satisfecha en E4 mediante la PoC tenant/RLS/Prisma, sin deshabilitar RLS y con aislamiento/fail-closed comprobados.
 
 ## E3 — Prototipo UX
 
 **Estado:** `CLOSED / UX APPROVED`.
 
-E3 consolidó:
-
-- IA por audiencia;
-- 42 pantallas conceptuales;
-- wireflows Familia/Secretaría/Admisión/Dirección;
-- workspace de expediente;
-- estados técnicos y de negocio;
-- visibilidad por rol/tenant/sensibilidad/propósito;
-- WCAG 2.2 AA y responsive;
-- formularios y builder mínimo;
-- cupos/waitlist/oferta;
-- sesión y SELF-ELEVATION;
-- 20 tareas sintéticas;
-- UX-D-001..UX-D-013;
-- HUX-001..HUX-005 resueltas;
-- checklist `PASS_WITH_DEFERRED`, sin bloqueantes UX materiales.
+E3 consolidó IA por audiencia, 42 pantallas conceptuales, wireflows P0, workspace de expediente, estados técnicos y de negocio, visibilidad por rol/tenant/sensibilidad/propósito, WCAG 2.2 AA, formularios, cupos/waitlist/oferta, sesión/SELF-ELEVATION, 20 tareas sintéticas, UX-D-001..UX-D-013 y HUX-001..HUX-005.
 
 ### G3 — Validación UX
 
@@ -105,94 +90,67 @@ E3 consolidó:
 
 - Aprobación: `2026-08-08T15:30:00-04:00`.
 - Commit UX aprobado: `a659191f5b5190ddf6913b6417cdfccb7baf1a90`.
-- PR: #6 — `E3: Prototype UX and G3 preparation`.
-- Aprobador: Nicolás Sena.
+- PR: #6.
 - Registro: `docs/approvals/G3-ux-approval-2026-08-08.md`.
-- Resultado: `PASS_WITH_DEFERRED`, sin bloqueantes UX materiales.
-- Etapa autorizada: E4 — Fundación técnica, después de fusionar PR #6.
-
-G3 ratifica HUX-001..HUX-005. HUX-005 incorpora UX-D-010 para confirmaciones críticas. La disponibilidad del proceso debe seguir diferenciándose de una oferta emitida.
-
-G3 no autoriza G4, datos reales, infraestructura productiva ni integración técnica EduPay.
+- Resultado: `PASS_WITH_DEFERRED`.
+- Etapa autorizada: E4.
 
 ## E4 — Fundación técnica
 
-**Estado:** `IN PROGRESS / READY FOR G4 REVIEW` después de completar E4-A..E en el PR #7 draft.
+**Estado:** `CLOSED / TECHNICAL FOUNDATION APPROVED`.
 
-### Objetivo
-
-Crear la base mínima segura y verificable para implementar posteriormente el MVP aprobado.
-
-### Trabajo autorizado en E4
-
-Con datos sintéticos y respetando G1/G2/G3:
-
-- crear monorepo y workspaces;
-- instalar/fijar dependencias;
-- scaffolding Next.js, NestJS y worker;
-- Prisma y PostgreSQL de desarrollo;
-- schemas/migraciones iniciales de fundación técnica;
-- identidad/sesión/autorización base;
-- contexto tenant y aislamiento;
-- PoC tenant/RLS/Prisma;
-- testing automatizado;
-- CI y herramientas de calidad/seguridad;
-- Docker/Compose o infraestructura local/de desarrollo necesaria;
-- observabilidad, auditoría y manejo de errores base;
-- datos sintéticos y fixtures seguros.
-
-### Límites de E4
-
-E4 no autoriza:
-
-- G4 ni construcción funcional completa del MVP;
-- datos reales o piloto productivo;
-- infraestructura productiva;
-- secretos productivos;
-- integración técnica con EduPay;
-- resolución de Q-301..Q-309.
+E4-A..E quedaron `COMPLETE` con resultado `PASS_WITH_DEFERRED`, sin bloqueantes G4 materiales. La fundación incluye monorepo reproducible, web/API/worker, PostgreSQL/Prisma, RLS, identidad/sesiones/autorización, SELF-ELEVATION, outbox, observabilidad base, CI, deployment smoke local/development y recovery sintético.
 
 ### G4 — Autorización de construcción MVP
 
-**Estado:** `NO APROBADA`.
+**Estado:** `APPROVED / CLOSED`.
 
-G4 requiere como mínimo:
+- Aprobación: `2026-08-08T20:25:00-04:00`.
+- Commit técnico aprobado: `cb5d4be14fd9149a20e1acd36b5dfad563c2836a`.
+- PR: #7.
+- Resultado: `PASS_WITH_DEFERRED`, sin `BLOCKING_G4` material.
+- Registro: `docs/approvals/G4-mvp-construction-approval-2026-08-08.md`.
+- Etapa autorizada: E5 — construcción del MVP funcional.
 
-- PoC tenant/RLS/Prisma aprobada o defensa equivalente revisada;
-- pruebas de aislamiento multiempresa;
-- escaneo de secretos/dependencias y controles base;
-- despliegue y recuperación mínimos demostrados en entorno autorizado;
-- alcance MVP y criterios de salida confirmados;
-- responsables operacionales identificados.
+G4 autoriza construir E5 dentro de `BL-001..BL-022`, `AC-001..AC-058` y `E2E-001..E2E-022` usando exclusivamente datos sintéticos/non-production e infraestructura local/development necesaria.
 
-E4-E consolidó evidencia reproducible para esos puntos en:
-`docs/e4/07-reproducibility-and-deployment-evidence.md`,
-`docs/e4/08-recovery-evidence.md`, `docs/e4/09-residual-risks-and-operational-ownership.md`,
-`docs/e4/10-g4-mvp-scope-and-exit.md` y `docs/e4/11-g4-readiness-checklist.md`.
-El resultado técnico es `PASS_WITH_DEFERRED`, sin `BLOCKING_G4` identificado; esto sólo
-habilita revisión y decisión humana. G4 no está aprobada, E5 no está autorizada y PR #7
-permanece draft/no merge.
+G4 **no** autoriza datos reales, piloto, producción, secretos productivos, aceptación legal C-013, integración técnica EduPay/Q-301..Q-309 ni G5. RPO 1 hora y RTO 4 horas continúan como objetivos técnicos iniciales, no SLA productivo.
 
 ## E5 — MVP
 
+**Estado:** `AUTHORIZED TO START`.
+
 ### Objetivo
 
-Implementar el recorrido mínimo de postulación y gestión para el piloto después de G4.
+Implementar el recorrido mínimo de postulación y gestión aprobado para el MVP, manteniendo las fronteras de G1/G2/G3/G4 y usando sólo datos sintéticos/non-production durante desarrollo.
 
-### Entregables tentativos
+### Alcance autorizado
+
+- `BL-001..BL-022`;
+- `AC-001..AC-058`;
+- `E2E-001..E2E-022`.
+
+### Entregables previstos
 
 - oferta, cuenta, familia, estudiante, formulario y envío;
 - constructor controlado/versionado;
 - documentos privados, escaneo, revisión y corrección;
 - actividades;
-- revisión, decisión, cupos, waitlist, oferta y respuesta;
+- revisión, recomendación y decisión;
+- cupos, waitlist, oferta y respuesta;
 - vista familiar y comunicaciones;
 - administración/configuración/permisos mínimos;
 - pruebas funcionales, accesibilidad, seguridad, concurrencia y recuperación.
 
+### Límites de E5
+
+E5 no autoriza datos reales, piloto, producción ni integración técnica con EduPay. C-013 y Q-301..Q-309 mantienen sus compuertas. BL-022 sólo conserva el borde funcional conceptual de handoff, no una integración ejecutable.
+
 ### G5 — Autorización de piloto
 
-Requiere criterios críticos aprobados, seguridad, aislamiento, respaldo/restauración, operación, legal/privacidad y autorización explícita de datos reales.
+**Estado:** `NO APROBADA`.
+
+Requiere P0 funcional implementado, criterios críticos aprobados, seguridad, aislamiento, documentos privados, concurrencia, respaldo/restauración, operación, accesibilidad, legal/privacidad y autorización explícita de datos reales/piloto.
 
 ## E6 — Piloto Colegio Conquistadores
 
