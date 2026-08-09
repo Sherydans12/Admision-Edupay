@@ -6,7 +6,7 @@
 | --- | --- |
 | Estado | `COMPLETE` |
 | Rama | `feat/e5-mvp` |
-| HEAD de entrada | `fcb81ca773c0c0fe91cb5696d9d059494059c991` |
+| HEAD de entrada | `fcb81ca856e01d27523e13bc0c1b87e661257627` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Compuerta | G4 `APPROVED / CLOSED`; G5 `NO APROBADA` |
 | Datos | Sólo sintéticos/non-production |
