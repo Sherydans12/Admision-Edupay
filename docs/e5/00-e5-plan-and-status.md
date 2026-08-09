@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A + E5-B COMPLETE — READY FOR E5-B REVIEW` |
+| Estado | `IN PROGRESS / E5-A+B COMPLETE — READY FOR E5-C REVIEW` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
@@ -88,12 +88,17 @@ Cobertura principal: `BL-004` + cierre funcional de `BL-005`, incluyendo builder
 **Estado:** `COMPLETE`. El incremento implementa definición, versionado,
 builder controlado, publicación inmutable, asignación a oferta, respuestas de
 borrador, revisión, submission transaccional idempotente y snapshot inmutable.
+El cierre final además revalida el estado durable completo en submission,
+valida operandos de condición contra su field origen, usa fechas calendario
+estrictas y oculta del discovery ofertas sin una versión publicada utilizable.
 La evidencia ejecutable y los límites se documentan en
 [`02-e5b-form-submission-evidence.md`](02-e5b-form-submission-evidence.md).
 El desistimiento de `BL-005`, documentos y postulación asistida permanecen
 fuera de E5-B.
 
 ### E5-C — Documentos y postulación asistida
+
+**Estado:** `NOT_STARTED`.
 
 Cobertura principal: `BL-006` y `BL-007`, incluyendo privacidad, versiones, observación/corrección, equivalencia/exención y asistencia institucional sin expediente paralelo.
 

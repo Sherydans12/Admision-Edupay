@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { ForbiddenError } from "./authorization.js";
@@ -25,6 +25,10 @@ const prisma = createAppPrismaClient();
 const migrationPool = new Pool({
   connectionString: getRequiredEnvironment("DATABASE_MIGRATION_URL"),
   max: 4,
+});
+const rawHarnessPool = new Pool({
+  connectionString: getRequiredEnvironment("DATABASE_APP_URL"),
+  max: 2,
 });
 const now = new Date("2026-08-09T15:00:00.000Z");
 
@@ -113,6 +117,27 @@ async function clearTables(): Promise<void> {
     "admission_processes", "course_levels", "academic_years", "campuses", "students",
     "family_profiles", "tenant_probe_records", "outbox_messages", "support_elevations",
     "role_assignments", "memberships", "platform_sessions", "platform_users", "tenants" CASCADE`);
+}
+
+async function withRawTenantHarness<T>(
+  tenantId: string,
+  operation: (client: PoolClient) => Promise<T>,
+): Promise<T> {
+  const client = await rawHarnessPool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT set_config('admission.tenant_id', $1, true)", [
+      tenantId,
+    ]);
+    const result = await operation(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 async function createPublishedForm(
@@ -435,6 +460,76 @@ async function saveMinimum(applicationId: string, support = "NO") {
   );
 }
 
+async function createConditionDraft(source: {
+  options?: Array<{ label: string; order: number; value: string }>;
+  type: "BOOLEAN" | "DATE" | "RADIO" | "SELECT" | "TEXT" | "TEXTAREA";
+  validation?: { maxLength?: number; minLength?: number };
+}) {
+  const forms = new FormService(prisma);
+  return runWithTenantContext(fixture.adminA, async () => {
+    const definition = await forms.createDefinition(fixture.adminA, {
+      name: `Condición sintética ${randomUUID()}`,
+      purpose: "integrity_condition_test",
+    });
+    const version = await forms.createDraftVersion(
+      fixture.adminA,
+      definition.id,
+    );
+    const section = await forms.createSection(fixture.adminA, version.id, {
+      order: 1,
+      title: "Condición sintética",
+    });
+    const sourceField = await forms.createField(fixture.adminA, version.id, {
+      key: "condition_source",
+      label: "Origen sintético",
+      options: source.options,
+      order: 1,
+      purpose: "Validar dominio de condición",
+      required: false,
+      sectionId: section.id,
+      sensitivity: "restricted",
+      type: source.type,
+      validation: source.validation,
+    });
+    return { forms, section, sourceField, version };
+  });
+}
+
+async function createPublishedDateForm() {
+  const forms = new FormService(prisma);
+  return runWithTenantContext(fixture.adminA, async () => {
+    const definition = await forms.createDefinition(fixture.adminA, {
+      name: `Fecha sintética ${randomUUID()}`,
+      purpose: "integrity_date_test",
+    });
+    const version = await forms.createDraftVersion(
+      fixture.adminA,
+      definition.id,
+    );
+    const section = await forms.createSection(fixture.adminA, version.id, {
+      order: 1,
+      title: "Fecha sintética",
+    });
+    const dateField = await forms.createField(fixture.adminA, version.id, {
+      key: "calendar_date",
+      label: "Fecha calendario sintética",
+      order: 1,
+      purpose: "Validar fecha calendario",
+      required: true,
+      sectionId: section.id,
+      sensitivity: "restricted",
+      type: "DATE",
+    });
+    await forms.publishVersion(fixture.adminA, version.id);
+    await forms.assignOfferingVersion(
+      fixture.adminA,
+      fixture.offeringId,
+      version.id,
+    );
+    return { dateField, forms, version };
+  });
+}
+
 describe.sequential("E5-B versioned forms and submission", () => {
   beforeEach(async () => {
     await clearTables();
@@ -444,6 +539,7 @@ describe.sequential("E5-B versioned forms and submission", () => {
   afterAll(async () => {
     await prisma.$disconnect();
     await migrationPool.end();
+    await rawHarnessPool.end();
   });
 
   it("E5B-FORM-01: DRAFT content is editable", async () => {
@@ -1103,6 +1199,370 @@ describe.sequential("E5-B versioned forms and submission", () => {
       ),
     );
     expect(retry).toEqual(first);
+  });
+
+  it("E5B-INTEGRITY-01: corrupted durable answer rejects submit without side effects", async () => {
+    const draft = await createDraft();
+    await saveMinimum(draft.id);
+    const corrupted = await withRawTenantHarness(fixture.tenantA, (client) =>
+      client.query(
+        `UPDATE "application_draft_answers"
+         SET "value" = $1::jsonb
+         WHERE "application_id" = $2::uuid AND "field_id" = $3::uuid`,
+        [
+          JSON.stringify("OUTSIDE_CATALOG"),
+          draft.id,
+          fixture.supportTriggerFieldId,
+        ],
+      ),
+    );
+    expect(corrupted.rowCount).toBe(1);
+    const forms = new FormService(prisma);
+    await expect(
+      runWithTenantContext(fixture.applicantA, () =>
+        forms.submitApplication(
+          fixture.familyA,
+          fixture.applicantA,
+          draft.id,
+          now,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(IntakeValidationError);
+    const [application, snapshotCount, submittedAuditCount] =
+      await runWithTenantContext(fixture.applicantA, () =>
+        withTenantTransaction(prisma, (transaction) =>
+          Promise.all([
+            transaction.application.findUnique({ where: { id: draft.id } }),
+            transaction.applicationSnapshot.count({
+              where: { applicationId: draft.id },
+            }),
+            transaction.auditEvent.count({
+              where: {
+                action: "APPLICATION_SUBMITTED",
+                resourceId: draft.id,
+                result: "SUCCESS",
+              },
+            }),
+          ]),
+        ),
+      );
+    expect(application?.status).toBe("DRAFT");
+    expect(snapshotCount).toBe(0);
+    expect(submittedAuditCount).toBe(0);
+  });
+
+  it("E5B-INTEGRITY-02: DB denies an answer whose version differs from the pinned application", async () => {
+    const draft = await createDraft();
+    const forms = new FormService(prisma);
+    const v2 = await runWithTenantContext(fixture.adminA, () =>
+      forms.createDraftVersion(
+        fixture.adminA,
+        fixture.definitionId,
+        fixture.formVersionId,
+      ),
+    );
+    const foreignField = v2.sections[0]!.fields[0]!;
+    await expect(
+      withRawTenantHarness(fixture.tenantA, (client) =>
+        client.query(
+          `INSERT INTO "application_draft_answers"
+            ("id", "tenant_id", "application_id", "form_version_id", "field_id", "value")
+           VALUES ($1::uuid, $2::uuid, $3::uuid, $4::uuid, $5::uuid, $6::jsonb)`,
+          [
+            randomUUID(),
+            fixture.tenantA,
+            draft.id,
+            v2.id,
+            foreignField.id,
+            JSON.stringify(true),
+          ],
+        ),
+      ),
+    ).rejects.toThrow(
+      /application_draft_answers_application_fkey|foreign key/i,
+    );
+  });
+
+  it('E5B-INTEGRITY-03: RADIO condition rejects EQUALS "MAYBE"', async () => {
+    const setup = await createConditionDraft({
+      options: [
+        { label: "Sí", order: 1, value: "YES" },
+        { label: "No", order: 2, value: "NO" },
+      ],
+      type: "RADIO",
+    });
+    await expect(
+      runWithTenantContext(fixture.adminA, () =>
+        setup.forms.createField(fixture.adminA, setup.version.id, {
+          condition: {
+            fieldId: setup.sourceField.id,
+            operator: "EQUALS",
+            value: "MAYBE",
+          },
+          key: "radio_dependent",
+          label: "Dependiente sintético",
+          order: 2,
+          purpose: "Validar catálogo",
+          required: false,
+          sectionId: setup.section.id,
+          sensitivity: "restricted",
+          type: "TEXT",
+        }),
+      ),
+    ).rejects.toBeInstanceOf(IntakeValidationError);
+  });
+
+  it('E5B-INTEGRITY-04: BOOLEAN condition rejects string "true"', async () => {
+    const setup = await createConditionDraft({ type: "BOOLEAN" });
+    await expect(
+      runWithTenantContext(fixture.adminA, () =>
+        setup.forms.createField(fixture.adminA, setup.version.id, {
+          condition: {
+            fieldId: setup.sourceField.id,
+            operator: "EQUALS",
+            value: "true",
+          },
+          key: "boolean_string_dependent",
+          label: "Dependiente sintético",
+          order: 2,
+          purpose: "Validar boolean",
+          required: false,
+          sectionId: setup.section.id,
+          sensitivity: "restricted",
+          type: "TEXT",
+        }),
+      ),
+    ).rejects.toBeInstanceOf(IntakeValidationError);
+  });
+
+  it("E5B-INTEGRITY-05: BOOLEAN condition accepts true", async () => {
+    const setup = await createConditionDraft({ type: "BOOLEAN" });
+    await runWithTenantContext(fixture.adminA, async () => {
+      await setup.forms.createField(fixture.adminA, setup.version.id, {
+        condition: {
+          fieldId: setup.sourceField.id,
+          operator: "EQUALS",
+          value: true,
+        },
+        key: "boolean_dependent",
+        label: "Dependiente sintético",
+        order: 2,
+        purpose: "Validar boolean",
+        required: false,
+        sectionId: setup.section.id,
+        sensitivity: "restricted",
+        type: "TEXT",
+      });
+      await expect(
+        setup.forms.publishVersion(fixture.adminA, setup.version.id),
+      ).resolves.toMatchObject({ lifecycle: "PUBLISHED" });
+    });
+  });
+
+  it('E5B-INTEGRITY-06: RADIO condition accepts IN ["YES", "NO"]', async () => {
+    const setup = await createConditionDraft({
+      options: [
+        { label: "Sí", order: 1, value: "YES" },
+        { label: "No", order: 2, value: "NO" },
+      ],
+      type: "RADIO",
+    });
+    await runWithTenantContext(fixture.adminA, async () => {
+      await setup.forms.createField(fixture.adminA, setup.version.id, {
+        condition: {
+          fieldId: setup.sourceField.id,
+          operator: "IN",
+          value: ["YES", "NO"],
+        },
+        key: "radio_in_dependent",
+        label: "Dependiente sintético",
+        order: 2,
+        purpose: "Validar catálogo",
+        required: false,
+        sectionId: setup.section.id,
+        sensitivity: "restricted",
+        type: "TEXT",
+      });
+      await expect(
+        setup.forms.publishVersion(fixture.adminA, setup.version.id),
+      ).resolves.toMatchObject({ lifecycle: "PUBLISHED" });
+    });
+  });
+
+  it("E5B-INTEGRITY-07: publish rejects persisted IN value outside the RADIO catalog", async () => {
+    const setup = await createConditionDraft({
+      options: [
+        { label: "Sí", order: 1, value: "YES" },
+        { label: "No", order: 2, value: "NO" },
+      ],
+      type: "RADIO",
+    });
+    const dependent = await runWithTenantContext(fixture.adminA, () =>
+      setup.forms.createField(fixture.adminA, setup.version.id, {
+        condition: {
+          fieldId: setup.sourceField.id,
+          operator: "IN",
+          value: ["YES"],
+        },
+        key: "corrupted_in_dependent",
+        label: "Dependiente sintético",
+        order: 2,
+        purpose: "Validar defensa de publicación",
+        required: false,
+        sectionId: setup.section.id,
+        sensitivity: "restricted",
+        type: "TEXT",
+      }),
+    );
+    const corrupted = await withRawTenantHarness(fixture.tenantA, (client) =>
+      client.query(
+        `UPDATE "form_fields" SET "condition_value" = $1::jsonb WHERE "id" = $2::uuid`,
+        [JSON.stringify(["YES", "MAYBE"]), dependent.id],
+      ),
+    );
+    expect(corrupted.rowCount).toBe(1);
+    await expect(
+      runWithTenantContext(fixture.adminA, () =>
+        setup.forms.publishVersion(fixture.adminA, setup.version.id),
+      ),
+    ).rejects.toBeInstanceOf(IntakeValidationError);
+  });
+
+  it("E5B-INTEGRITY-08: 2026-02-31 is rejected", async () => {
+    const setup = await createPublishedDateForm();
+    const draft = await createDraft();
+    await expect(
+      runWithTenantContext(fixture.applicantA, () =>
+        setup.forms.saveAnswers(fixture.familyA, fixture.applicantA, draft.id, [
+          { fieldId: setup.dateField.id, value: "2026-02-31" },
+        ]),
+      ),
+    ).rejects.toBeInstanceOf(IntakeValidationError);
+  });
+
+  it("E5B-INTEGRITY-09: 2024-02-29 is accepted through submission", async () => {
+    const setup = await createPublishedDateForm();
+    const draft = await createDraft();
+    await runWithTenantContext(fixture.applicantA, () =>
+      setup.forms.saveAnswers(fixture.familyA, fixture.applicantA, draft.id, [
+        { fieldId: setup.dateField.id, value: "2024-02-29" },
+      ]),
+    );
+    await expect(
+      runWithTenantContext(fixture.applicantA, () =>
+        setup.forms.submitApplication(
+          fixture.familyA,
+          fixture.applicantA,
+          draft.id,
+          now,
+        ),
+      ),
+    ).resolves.toMatchObject({ status: "SUBMITTED" });
+  });
+
+  it("E5B-INTEGRITY-10: 2026-02-29 is rejected", async () => {
+    const setup = await createPublishedDateForm();
+    const draft = await createDraft();
+    await expect(
+      runWithTenantContext(fixture.applicantA, () =>
+        setup.forms.saveAnswers(fixture.familyA, fixture.applicantA, draft.id, [
+          { fieldId: setup.dateField.id, value: "2026-02-29" },
+        ]),
+      ),
+    ).rejects.toBeInstanceOf(IntakeValidationError);
+  });
+
+  it("E5B-INTEGRITY-11: discovery exposes a current offering with a PUBLISHED form", async () => {
+    const intake = new IntakeService(prisma);
+    const offerings = await runWithTenantContext(fixture.publicA, () =>
+      intake.listPublicOfferings(fixture.publicA, now),
+    );
+    expect(offerings.map((offering) => offering.id)).toContain(
+      fixture.offeringId,
+    );
+    await expect(createDraft()).resolves.toMatchObject({
+      formVersionId: fixture.formVersionId,
+    });
+  });
+
+  it("E5B-INTEGRITY-12: archived assigned form hides offering and rejects a new draft", async () => {
+    const forms = new FormService(prisma);
+    await runWithTenantContext(fixture.adminA, () =>
+      forms.archiveVersion(fixture.adminA, fixture.formVersionId),
+    );
+    const intake = new IntakeService(prisma);
+    const offerings = await runWithTenantContext(fixture.publicA, () =>
+      intake.listPublicOfferings(fixture.publicA, now),
+    );
+    expect(offerings.map((offering) => offering.id)).not.toContain(
+      fixture.offeringId,
+    );
+    await expect(createDraft()).rejects.toBeInstanceOf(IntakeValidationError);
+  });
+
+  it("E5B-INTEGRITY-13: application pinned to archived V1 can read, review and submit", async () => {
+    const draft = await createDraft();
+    await saveMinimum(draft.id);
+    const forms = new FormService(prisma);
+    await runWithTenantContext(fixture.adminA, () =>
+      forms.archiveVersion(fixture.adminA, fixture.formVersionId),
+    );
+    const familyForm = await runWithTenantContext(fixture.applicantA, () =>
+      forms.getFamilyForm(fixture.familyA, fixture.applicantA, draft.id),
+    );
+    const review = await runWithTenantContext(fixture.applicantA, () =>
+      forms.getReview(fixture.familyA, fixture.applicantA, draft.id),
+    );
+    expect(familyForm.form.lifecycle).toBe("ARCHIVED");
+    expect(review.missingRequired).toEqual([]);
+    await expect(
+      runWithTenantContext(fixture.applicantA, () =>
+        forms.submitApplication(
+          fixture.familyA,
+          fixture.applicantA,
+          draft.id,
+          now,
+        ),
+      ),
+    ).resolves.toMatchObject({ status: "SUBMITTED" });
+  });
+
+  it("E5B-INTEGRITY-14: assigning PUBLISHED V2 restores discovery and preserves V1 pin", async () => {
+    const oldDraft = await createDraft(fixture.studentA);
+    const forms = new FormService(prisma);
+    const v2 = await runWithTenantContext(fixture.adminA, () =>
+      forms.createDraftVersion(
+        fixture.adminA,
+        fixture.definitionId,
+        fixture.formVersionId,
+      ),
+    );
+    await runWithTenantContext(fixture.adminA, async () => {
+      await forms.archiveVersion(fixture.adminA, fixture.formVersionId);
+      await forms.publishVersion(fixture.adminA, v2.id);
+      await forms.assignOfferingVersion(
+        fixture.adminA,
+        fixture.offeringId,
+        v2.id,
+      );
+    });
+    const intake = new IntakeService(prisma);
+    const offerings = await runWithTenantContext(fixture.publicA, () =>
+      intake.listPublicOfferings(fixture.publicA, now),
+    );
+    expect(offerings.map((offering) => offering.id)).toContain(
+      fixture.offeringId,
+    );
+    const newDraft = await createDraft(fixture.studentA3);
+    const historical = await runWithTenantContext(fixture.applicantA, () =>
+      forms.getFamilyForm(fixture.familyA, fixture.applicantA, oldDraft.id),
+    );
+    expect(oldDraft.formVersionId).toBe(fixture.formVersionId);
+    expect(historical.form).toMatchObject({
+      id: fixture.formVersionId,
+      lifecycle: "ARCHIVED",
+    });
+    expect(newDraft.formVersionId).toBe(v2.id);
   });
 
   it("E5B legacy draft remains readable but controlled submit rejects without assigning a version", async () => {

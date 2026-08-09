@@ -197,6 +197,11 @@ const offeringProjection = {
   },
 } as const;
 
+const publicOfferingProjection = {
+  ...offeringProjection,
+  formVersion: { select: { lifecycle: true } },
+} as const;
+
 type OfferingWithProjection = Prisma.AdmissionOfferingGetPayload<{
   include: typeof offeringProjection;
 }>;
@@ -914,12 +919,17 @@ export class IntakeService {
     assertPublicAdmissionContext(context);
     return withTenantTransaction(this.prisma, async (transaction) => {
       const offerings = await transaction.admissionOffering.findMany({
-        include: offeringProjection,
+        include: publicOfferingProjection,
         orderBy: [{ title: "asc" }, { code: "asc" }],
         where: { status: "PUBLISHED" },
       });
       return offerings
-        .filter((offering) => isAdmissionOfferingCurrent(offering, now))
+        .filter(
+          (offering) =>
+            isAdmissionOfferingCurrent(offering, now) &&
+            offering.formVersionId !== null &&
+            offering.formVersion?.lifecycle === "PUBLISHED",
+        )
         .map(mapOffering);
     });
   }

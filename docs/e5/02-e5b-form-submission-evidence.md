@@ -7,6 +7,7 @@
 | Estado | `COMPLETE` |
 | Rama | `feat/e5-mvp` |
 | HEAD de entrada | `fcb81ca856e01d27523e13bc0c1b87e661257627` |
+| HEAD de entrada al hardening final | `a76822ff6261740b00ca3c84e6e6fb4c45b64c7b` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Compuerta | G4 `APPROVED / CLOSED`; G5 `NO APROBADA` |
 | Datos | Sólo sintéticos/non-production |
@@ -71,7 +72,17 @@ El catálogo cerrado admite `TEXT`, `TEXTAREA`, `SELECT`, `RADIO`, `BOOLEAN` y
 para texto. Las opciones tienen valor estable allowlisted, orden y etiqueta.
 Una condición sólo puede depender de un campo previo de la misma versión. La
 publicación vuelve a comprobar referencias, ciclos, claves, órdenes, opciones,
-contenido activo y estructura no vacía.
+contenido activo y estructura no vacía. La primitive única
+`validateConditionAgainstSourceField` valida además cada operando contra el
+tipo y configuración del field origen tanto al crear/editar como al publicar:
+boolean real para `BOOLEAN`, pertenencia exacta al catálogo para
+`SELECT/RADIO`, string compatible para texto y fecha calendario estricta para
+`DATE`. `IN` valida cada elemento; `EQUALS/NOT_EQUALS` admiten sólo un valor.
+No se interpretan expresiones ni se agregan operadores.
+
+Las respuestas `DATE` conservan `YYYY-MM-DD`, pero no dependen de la
+normalización permisiva de `Date.parse`: se validan año, mes, día, bisiesto y
+cantidad real de días del mes de forma determinista.
 
 Permisos separados:
 
@@ -97,15 +108,19 @@ sola transacción:
 1. verifica ownership, tenant, versión y estado;
 2. vuelve a validar vigencia de oferta/proceso/año y categoría pública;
 3. permite la versión histórica fijada aunque haya pasado a `ARCHIVED`;
-4. recalcula aplicabilidad y obligatorios;
-5. crea `ApplicationSnapshot` con oferta, estudiante, perfil, formulario
+4. revalida cada respuesta durable contra application, versión fijada, field,
+   tipo, catálogo, límites de texto y fecha calendario;
+5. recalcula aplicabilidad y obligatorios usando sólo valores revalidados;
+6. crea `ApplicationSnapshot` con oferta, estudiante, perfil, formulario
    exacto, reglas aplicadas y respuestas aplicables;
-6. cambia `Application` a `SUBMITTED` y fija `submittedAt`;
-7. registra `APPLICATION_SUBMITTED` con metadatos mínimos.
+7. cambia `Application` a `SUBMITTED` y fija `submittedAt`;
+8. registra `APPLICATION_SUBMITTED` con metadatos mínimos.
 
 Un retry posterior retorna el mismo `snapshotId`; la restricción única impide
 duplicar snapshots. No se usan locks en memoria. Un error deja la postulación
-en `DRAFT` sin snapshot parcial.
+en `DRAFT` sin snapshot parcial ni evento `APPLICATION_SUBMITTED` exitoso. El
+hito no confía en que un guardado anterior haya validado el valor: vuelve a
+validar el estado persistido completo inmediatamente antes del snapshot.
 
 El snapshot contiene las respuestas porque es la evidencia funcional del
 envío, pero la auditoría no replica texto ni valores de respuestas: conserva
@@ -132,6 +147,13 @@ Rutas familiares:
 Los recursos ajenos se proyectan como `404`; falta de capacidad propia como
 `403`; payload o estructura inválidos como `400`; duplicados como `409`.
 
+El discovery público conserva la disponibilidad categórica, pero una oferta
+para nueva postulación sólo aparece cuando está vigente, tiene
+`formVersionId` y esa versión continúa `PUBLISHED`. El DTO no expone lifecycle
+ni estructura interna del formulario. Si V1 se archiva, una postulación ya
+fijada a V1 conserva lectura, revisión y submission; la oferta deja de ser
+iniciable hasta asignar una V2 publicada.
+
 ## UI y accesibilidad
 
 La experiencia familiar incluye progreso por sección, guardado explícito,
@@ -156,7 +178,7 @@ usaron datos reales para la inspección.
 
 | Suite | Cobertura | Resultado |
 | --- | --- | --- |
-| `packages/database/src/forms.integration.spec.ts` | `FORM-01..10`, `ANS-01..08`, `VER-01..04`, `SUB-01..10` | PASS — 36/36 |
+| `packages/database/src/forms.integration.spec.ts` | `FORM-01..10`, `ANS-01..08`, `VER-01..04`, `SUB-01..10`, `INTEGRITY-01..14` | PASS — 50/50 |
 | `apps/api/src/intake.http.integration.spec.ts` | E5-A regresión + `E5B-HTTP-01..10` sobre Nest real | PASS — 22/22 |
 | `packages/database/src/tenant-rls.integration.spec.ts` | POC E4 + `E5B-TEN-01..06` | PASS — 14/14 |
 
@@ -165,12 +187,25 @@ cross-tenant, respuestas inválidas/no aplicables, version pinning,
 inmutabilidad, reintento idempotente, snapshot durable, legado E5-A legible y
 ausencia de grants de mutación sobre snapshots.
 
+### E5B-INTEGRITY-01..14
+
+| IDs | Evidencia | Resultado |
+| --- | --- | --- |
+| `E5B-INTEGRITY-01` | Un harness raw interno persiste `RADIO=OUTSIDE_CATALOG`; el servicio normal rechaza submit y conserva `DRAFT`, 0 snapshots y 0 eventos success | PASS |
+| `E5B-INTEGRITY-02` | FK compuesta niega asociar un field/version V2 a una application fijada en V1 | PASS |
+| `E5B-INTEGRITY-03..07` | Dominio RADIO/BOOLEAN, `IN`, casos válidos y defensa final de publish frente a configuración durable corrupta | PASS |
+| `E5B-INTEGRITY-08..10` | `2026-02-31` y `2026-02-29` rechazadas; `2024-02-29` aceptada hasta submission | PASS |
+| `E5B-INTEGRITY-11..12` | Offering vigente con versión publicada es descubrible; al archivar la versión desaparece y no permite nuevo draft | PASS |
+| `E5B-INTEGRITY-13..14` | Application histórica V1 archivada sigue leyendo/revisando/enviando; V2 publicada restaura discovery y sólo nuevas applications fijan V2 | PASS |
+
 ## Migrations y validaciones
 
 - Upgrade incremental comprobado: aplicar las 5 migrations existentes y luego
   `20260809150000_e5b_form_submission` como sexta migration: PASS.
 - Fresh comprobado con las 6 migrations desde volumen limpio: PASS.
 - No se modificaron migrations ya publicadas.
+- El cierre de integridad no cambia schema ni constraints: no agrega migration;
+  reutiliza las FK compuestas E5-B y endurece service/domain/tests.
 - `admission_app` permanece `NOSUPERUSER`, `NOBYPASSRLS`; ownership de
   estructura permanece en `admission_migrator`.
 
@@ -181,7 +216,7 @@ ausencia de grants de mutación sobre snapshots.
 | `pnpm format:check` | PASS |
 | `pnpm lint` | PASS |
 | `pnpm typecheck` | PASS |
-| `pnpm test` | PASS — 13 archivos, 140/140 |
+| `pnpm test` | PASS — 13 archivos, 154/154 |
 | `pnpm test:rls` | PASS — 14/14 |
 | `pnpm build` | PASS — database, API, web y worker |
 | `pnpm security:secrets` | PASS; 201 archivos versionados inspeccionados |
@@ -190,16 +225,19 @@ ausencia de grants de mutación sobre snapshots.
 | `pnpm e4:deploy:smoke` | PASS — migrator, PostgreSQL, API, web y worker |
 | `git diff --check` | PASS; sólo avisos de conversión CRLF de Windows |
 
-Una primera corrida global, iniciada mientras seguían vivos procesos locales de
-la inspección visual, produjo una colisión de fixtures (`139/140`). Los procesos
-creados por esta tarea se cerraron de forma acotada y la repetición limpia
-serial terminó `140/140`; no se ocultó ni se clasificó esa corrida como PASS.
+El cierre de integridad agregó 14 pruebas y la corrida limpia serial actual
+terminó `154/154`, más `14/14` en la suite RLS separada. En el cierre anterior,
+una primera corrida global iniciada mientras seguían vivos procesos locales de
+inspección visual produjo una colisión de fixtures (`139/140`); esa corrida no
+se clasificó como PASS y quedó sustituida por las repeticiones limpias
+documentadas.
 
 ## Supuestos, riesgos y fuera de alcance
 
 **Hechos confirmados:** G4 está `APPROVED / CLOSED`; E5-B sólo opera con datos
-sintéticos; la migration es la sexta y pasó fresh/incremental; las suites y
-controles enumerados tienen resultados ejecutados en esta rama.
+sintéticos; permanecen exactamente seis migrations y el hardening no modificó
+ninguna; las suites y controles enumerados tienen resultados ejecutados en esta
+rama.
 
 **Decisiones aprobadas aplicadas:** lifecycle explícito; versión exacta fijada al crear
 la postulación; snapshot inmutable; autorización por tenant, propósito y rol;

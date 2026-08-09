@@ -133,6 +133,32 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_OPTIONS = 50;
 const MAX_ANSWERS_PER_PATCH = 100;
 
+function isStrictIsoCalendarDate(value: string): boolean {
+  if (!DATE_PATTERN.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number) as [
+    number,
+    number,
+    number,
+  ];
+  if (month < 1 || month > 12 || day < 1) return false;
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ];
+  return day <= daysInMonth[month - 1]!;
+}
+
 const versionInclude = {
   sections: {
     include: {
@@ -477,10 +503,7 @@ function validateAnswer(field: FormFieldDto, value: unknown): AnswerValue {
   if (typeof value !== "string")
     throw new IntakeValidationError(`Invalid answer for ${field.key}`);
   if (field.type === "DATE") {
-    if (
-      !DATE_PATTERN.test(value) ||
-      Number.isNaN(Date.parse(`${value}T00:00:00Z`))
-    ) {
+    if (!isStrictIsoCalendarDate(value)) {
       throw new IntakeValidationError(`Invalid date answer for ${field.key}`);
     }
   }
@@ -507,6 +530,26 @@ function validateAnswer(field: FormFieldDto, value: unknown): AnswerValue {
     }
   }
   return value;
+}
+
+function validateConditionAgainstSourceField(
+  condition: FormConditionInput,
+  sourceField: FormFieldDto,
+): void {
+  const normalized = validateConditionShape(condition)!;
+  const values = Array.isArray(normalized.value)
+    ? normalized.value
+    : [normalized.value];
+  if (normalized.operator === "IN") {
+    if (!Array.isArray(normalized.value)) {
+      throw new IntakeValidationError(
+        "IN condition requires a controlled value list",
+      );
+    }
+  } else if (Array.isArray(normalized.value)) {
+    throw new IntakeValidationError("Condition requires one controlled value");
+  }
+  for (const value of values) validateAnswer(sourceField, value);
 }
 
 function equalValue(
@@ -574,6 +617,11 @@ function validatePublishedStructure(form: FormVersionDto): void {
   const fieldIds = new Set(
     form.sections.flatMap((section) => section.fields).map((field) => field.id),
   );
+  const fieldsById = new Map(
+    form.sections
+      .flatMap((section) => section.fields)
+      .map((field) => [field.id, field]),
+  );
   const fieldPositions = new Map(
     form.sections
       .flatMap((section) => section.fields)
@@ -594,6 +642,12 @@ function validatePublishedStructure(form: FormVersionDto): void {
       if (field.condition !== null && !fieldIds.has(field.condition.fieldId)) {
         throw new IntakeValidationError(
           "Condition field does not belong to this form version",
+        );
+      }
+      if (field.condition !== null) {
+        validateConditionAgainstSourceField(
+          field.condition,
+          fieldsById.get(field.condition.fieldId)!,
         );
       }
       if (
@@ -971,6 +1025,10 @@ export class FormService {
           throw new IntakeValidationError(
             "Condition field must belong to the same form version",
           );
+        validateConditionAgainstSourceField(
+          normalized.condition,
+          mapField(source),
+        );
       }
       const field = await transaction.formField.create({
         data: {
@@ -1044,6 +1102,10 @@ export class FormService {
           throw new IntakeValidationError(
             "Condition field must belong to the same form version",
           );
+        validateConditionAgainstSourceField(
+          normalized.condition,
+          mapField(source),
+        );
       }
       const field = await transaction.formField.update({
         data: {
@@ -1422,18 +1484,21 @@ export class FormService {
     application: NonNullable<
       Awaited<ReturnType<FormService["loadOwnedApplication"]>>
     >,
+    validatedAnswers?: Map<string, AnswerValue>,
   ): ReviewDto {
     if (application.formVersion === null)
       throw new IntakeValidationError(
         "Legacy development draft has no form version and cannot be submitted",
       );
     const form = mapVersion(application.formVersion);
-    const answers = new Map(
-      application.draftAnswers.map((answer) => [
-        answer.fieldId,
-        answer.value as AnswerValue,
-      ]),
-    );
+    const answers =
+      validatedAnswers ??
+      new Map(
+        application.draftAnswers.map((answer) => [
+          answer.fieldId,
+          answer.value as AnswerValue,
+        ]),
+      );
     const applicability = calculateApplicability(form, answers);
     const missingRequired: ReviewDto["missingRequired"] = [];
     const sections = form.sections.map((section) => ({
@@ -1559,19 +1624,32 @@ export class FormService {
         throw new IntakeValidationError(
           "Admission offering is no longer open for submission",
         );
-      const review = this.buildReview(application);
+      const form = mapVersion(application.formVersion);
+      const fields = new Map(
+        form.sections
+          .flatMap((section) => section.fields)
+          .map((field) => [field.id, field]),
+      );
+      const answerMap = new Map<string, AnswerValue>();
+      for (const answer of application.draftAnswers) {
+        const field = fields.get(answer.fieldId);
+        if (
+          answer.tenantId !== applicantContext.tenantId ||
+          answer.applicationId !== application.id ||
+          answer.formVersionId !== application.formVersionId ||
+          field === undefined
+        ) {
+          throw new IntakeValidationError(
+            "Persisted answer is inconsistent with the pinned form version",
+          );
+        }
+        answerMap.set(answer.fieldId, validateAnswer(field, answer.value));
+      }
+      const review = this.buildReview(application, answerMap);
       if (review.missingRequired.length > 0)
         throw new IntakeValidationError(
           "Required applicable answers are missing",
         );
-
-      const form = mapVersion(application.formVersion);
-      const answerMap = new Map(
-        application.draftAnswers.map((answer) => [
-          answer.fieldId,
-          answer.value as AnswerValue,
-        ]),
-      );
       const applicability = calculateApplicability(form, answerMap);
       const profileSnapshot = await transaction.familyProfile.findUnique({
         where: { id: application.familyProfileId },
