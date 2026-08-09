@@ -1,5 +1,7 @@
 import {
+  runWithFamilyContext,
   runWithTenantContext,
+  type FamilyExecutionContext,
   type TenantExecutionContext,
 } from "@admission/database";
 import {
@@ -30,6 +32,7 @@ import { RequestContextService } from "./request-context.service.js";
 
 interface RequestLike {
   headers?: Record<string, string | string[] | undefined>;
+  method?: string;
 }
 
 @Controller()
@@ -49,7 +52,7 @@ export class IntakeController {
     @Req() request: RequestLike,
     @Param("tenantId") tenantId: string,
   ) {
-    const context = await this.familyContext(
+    const context = await this.publicAdmissionContext(
       request,
       tenantId,
       "family.offerings.read",
@@ -59,19 +62,14 @@ export class IntakeController {
     }));
   }
 
-  @Put("family/tenants/:tenantId/profile")
-  async saveProfile(
-    @Req() request: RequestLike,
-    @Param("tenantId") tenantId: string,
-    @Body() body: unknown,
-  ) {
+  @Put("family/profile")
+  async saveProfile(@Req() request: RequestLike, @Body() body: unknown) {
     await this.contexts.assertMutationSafe(request);
-    const context = await this.familyContext(
+    const context = await this.requireFamilyContext(
       request,
-      tenantId,
       "family.profile.write",
     );
-    return this.inTenantContext(context, () =>
+    return this.inFamilyContext(context, () =>
       this.intake.getOrCreateFamilyProfile(
         context,
         parseBody(profileSchema, body).displayName,
@@ -79,67 +77,56 @@ export class IntakeController {
     );
   }
 
-  @Get("family/tenants/:tenantId/profile")
-  async getProfile(
-    @Req() request: RequestLike,
-    @Param("tenantId") tenantId: string,
-  ) {
-    const context = await this.familyContext(
+  @Get("family/profile")
+  async getProfile(@Req() request: RequestLike) {
+    const context = await this.requireFamilyContext(
       request,
-      tenantId,
       "family.profile.read",
+      true,
     );
-    return this.inTenantContext(context, () =>
+    return this.inFamilyContext(context, () =>
       this.intake.getFamilyProfile(context),
     );
   }
 
-  @Get("family/tenants/:tenantId/students")
-  async listStudents(
-    @Req() request: RequestLike,
-    @Param("tenantId") tenantId: string,
-  ) {
-    const context = await this.familyContext(
+  @Get("family/students")
+  async listStudents(@Req() request: RequestLike) {
+    const context = await this.requireFamilyContext(
       request,
-      tenantId,
       "family.students.read",
+      true,
     );
-    return this.inTenantContext(context, async () => ({
+    return this.inFamilyContext(context, async () => ({
       items: await this.intake.listStudents(context),
     }));
   }
 
-  @Post("family/tenants/:tenantId/students")
-  async createStudent(
-    @Req() request: RequestLike,
-    @Param("tenantId") tenantId: string,
-    @Body() body: unknown,
-  ) {
+  @Post("family/students")
+  async createStudent(@Req() request: RequestLike, @Body() body: unknown) {
     await this.contexts.assertMutationSafe(request);
-    const context = await this.familyContext(
+    const context = await this.requireFamilyContext(
       request,
-      tenantId,
       "family.students.write",
+      true,
     );
-    return this.inTenantContext(context, () =>
+    return this.inFamilyContext(context, () =>
       this.intake.createStudent(context, parseBody(studentSchema, body)),
     );
   }
 
-  @Patch("family/tenants/:tenantId/students/:studentId")
+  @Patch("family/students/:studentId")
   async updateStudent(
     @Req() request: RequestLike,
-    @Param("tenantId") tenantId: string,
     @Param("studentId") studentId: string,
     @Body() body: unknown,
   ) {
     await this.contexts.assertMutationSafe(request);
-    const context = await this.familyContext(
+    const context = await this.requireFamilyContext(
       request,
-      tenantId,
       "family.students.write",
+      true,
     );
-    return this.inTenantContext(context, () =>
+    return this.inFamilyContext(context, () =>
       this.intake.updateStudent(
         context,
         parseUuid(studentId),
@@ -155,14 +142,20 @@ export class IntakeController {
     @Body() body: unknown,
   ) {
     await this.contexts.assertMutationSafe(request);
-    const context = await this.familyContext(
+    const familyContext = await this.requireFamilyContext(
+      request,
+      "family.application.create",
+      true,
+    );
+    const publicContext = await this.publicAdmissionContext(
       request,
       tenantId,
       "family.application.create",
     );
-    return this.inTenantContext(context, () =>
+    return this.inFamilyContext(familyContext, () =>
       this.intake.createApplicationDraft(
-        context,
+        familyContext,
+        publicContext,
         parseBody(applicationSchema, body),
       ),
     );
@@ -173,13 +166,21 @@ export class IntakeController {
     @Req() request: RequestLike,
     @Param("tenantId") tenantId: string,
   ) {
-    const context = await this.familyContext(
+    const familyContext = await this.requireFamilyContext(
+      request,
+      "family.application.read",
+      true,
+    );
+    const applicantContext = await this.applicationContext(
       request,
       tenantId,
       "family.application.read",
     );
-    return this.inTenantContext(context, async () => ({
-      items: await this.intake.listApplications(context),
+    return this.inTenantContext(applicantContext, async () => ({
+      items: await this.intake.listApplications(
+        familyContext,
+        applicantContext,
+      ),
     }));
   }
 
@@ -189,13 +190,22 @@ export class IntakeController {
     @Param("tenantId") tenantId: string,
     @Param("applicationId") applicationId: string,
   ) {
-    const context = await this.familyContext(
+    const familyContext = await this.requireFamilyContext(
+      request,
+      "family.application.read",
+      true,
+    );
+    const applicantContext = await this.applicationContext(
       request,
       tenantId,
       "family.application.read",
     );
-    return this.inTenantContext(context, () =>
-      this.intake.getApplication(context, parseUuid(applicationId)),
+    return this.inTenantContext(applicantContext, () =>
+      this.intake.getApplication(
+        familyContext,
+        applicantContext,
+        parseUuid(applicationId),
+      ),
     );
   }
 
@@ -207,14 +217,21 @@ export class IntakeController {
     @Body() body: unknown,
   ) {
     await this.contexts.assertMutationSafe(request);
-    const context = await this.familyContext(
+    const familyContext = await this.requireFamilyContext(
+      request,
+      "family.application.write",
+      true,
+    );
+    const applicantContext = await this.applicationContext(
       request,
       tenantId,
       "family.application.write",
+      "application.write",
     );
-    return this.inTenantContext(context, () =>
+    return this.inTenantContext(applicantContext, () =>
       this.intake.saveApplicationDraft(
-        context,
+        familyContext,
+        applicantContext,
         parseUuid(applicationId),
         parseBody(draftSchema, body),
       ),
@@ -403,15 +420,46 @@ export class IntakeController {
     return runWithTenantContext(context, operation);
   }
 
-  private async familyContext(
+  private inFamilyContext<T>(
+    context: FamilyExecutionContext,
+    operation: () => Promise<T>,
+  ): Promise<T> {
+    return runWithFamilyContext(context, operation);
+  }
+
+  private async requireFamilyContext(
+    request: RequestLike,
+    purpose: string,
+    requiresProfile = false,
+  ) {
+    return this.contexts.requireFamilyContext(request, purpose, {
+      requiresProfile,
+    });
+  }
+
+  private async publicAdmissionContext(
     request: RequestLike,
     tenantId: string,
     purpose: string,
   ) {
-    return this.contexts.requireFamilyTenant(
+    return this.contexts.resolvePublicAdmissionContext(
       request,
       parseUuid(tenantId),
       purpose,
+    );
+  }
+
+  private async applicationContext(
+    request: RequestLike,
+    tenantId: string,
+    purpose: string,
+    permission: "application.read" | "application.write" = "application.read",
+  ) {
+    return this.contexts.requireApplicationTenant(
+      request,
+      parseUuid(tenantId),
+      purpose,
+      permission,
     );
   }
 

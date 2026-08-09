@@ -34,3 +34,16 @@ export async function withTenantTransaction<T>(
     return operation(transaction);
   });
 }
+
+export async function withPlatformAuditTransaction<T>(
+  prisma: PrismaClient,
+  operation: (transaction: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  return prisma.$transaction(async (transaction) => {
+    await transaction.$queryRaw<Array<{ audit_scope: string }>>`
+      SELECT set_config('admission.audit_scope', 'platform_global', true) AS audit_scope
+    `;
+
+    return operation(transaction);
+  });
+}

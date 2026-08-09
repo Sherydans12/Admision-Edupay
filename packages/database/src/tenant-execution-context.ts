@@ -2,7 +2,13 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 export type TenantContextSource = "authenticated_request" | "trusted_job";
 export type TenantContextOrigin =
-  "family_profile" | "membership" | "support_elevation" | "synthetic_test";
+  | "family_application"
+  | "membership"
+  | "public_admission"
+  | "support_elevation"
+  | "synthetic_test";
+
+export type FamilyContextOrigin = "family_profile" | "synthetic_test";
 
 const VERIFIED_ELEVATION_BRAND = Symbol("verified-support-elevation");
 
@@ -14,6 +20,16 @@ export interface PlatformExecutionContext {
   readonly globalSuperadmin: boolean;
   readonly purpose: string;
   readonly source: "authenticated_request" | "trusted_job";
+}
+
+export interface FamilyExecutionContext {
+  readonly actorId: string;
+  readonly correlationId: string;
+  readonly effectiveActorId?: string;
+  readonly familyCapabilities?: readonly string[];
+  readonly contextOrigin: FamilyContextOrigin;
+  readonly purpose: string;
+  readonly source: TenantContextSource;
 }
 
 export interface VerifiedSupportElevation {
@@ -52,6 +68,9 @@ const UUID_PATTERN =
 const tenantContextStorage = new AsyncLocalStorage<
   Readonly<TenantExecutionContext>
 >();
+const familyContextStorage = new AsyncLocalStorage<
+  Readonly<FamilyExecutionContext>
+>();
 
 export class TenantContextMissingError extends Error {
   constructor() {
@@ -64,6 +83,43 @@ export class PlatformContextTenantError extends Error {
   constructor() {
     super("Platform execution context cannot execute tenant-owned operations");
     this.name = "PlatformContextTenantError";
+  }
+}
+
+export class FamilyContextMissingError extends Error {
+  constructor() {
+    super("Family execution context is required");
+    this.name = "FamilyContextMissingError";
+  }
+}
+
+function validateFamilyContext(context: FamilyExecutionContext): void {
+  for (const name of [
+    "actorId",
+    "correlationId",
+    "purpose",
+    "source",
+    "contextOrigin",
+  ] as const) {
+    if (context[name].trim() === "") {
+      throw new TypeError(`Family execution context requires ${name}`);
+    }
+  }
+
+  if (
+    context.effectiveActorId !== undefined &&
+    context.effectiveActorId.trim() === ""
+  ) {
+    throw new TypeError("Family execution context requires effectiveActorId");
+  }
+
+  if (
+    context.familyCapabilities !== undefined &&
+    context.familyCapabilities.some((value) => value.trim() === "")
+  ) {
+    throw new TypeError(
+      "Family execution context requires non-empty familyCapabilities",
+    );
   }
 }
 
@@ -149,11 +205,38 @@ export function runWithTenantContext<T>(
   return tenantContextStorage.run(Object.freeze(frozenContext), operation);
 }
 
+export function runWithFamilyContext<T>(
+  context: FamilyExecutionContext,
+  operation: () => T,
+): T {
+  validateFamilyContext(context);
+
+  const frozenContext = {
+    ...context,
+    familyCapabilities:
+      context.familyCapabilities === undefined
+        ? undefined
+        : Object.freeze([...context.familyCapabilities]),
+  } as Readonly<FamilyExecutionContext>;
+
+  return familyContextStorage.run(Object.freeze(frozenContext), operation);
+}
+
 export function getRequiredTenantContext(): Readonly<TenantExecutionContext> {
   const context = tenantContextStorage.getStore();
 
   if (context === undefined) {
     throw new TenantContextMissingError();
+  }
+
+  return context;
+}
+
+export function getRequiredFamilyContext(): Readonly<FamilyExecutionContext> {
+  const context = familyContextStorage.getStore();
+
+  if (context === undefined) {
+    throw new FamilyContextMissingError();
   }
 
   return context;

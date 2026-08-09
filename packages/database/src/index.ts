@@ -85,15 +85,22 @@ export {
 } from "./tenant-resolution.js";
 export {
   assertTenantContext,
+  FamilyContextMissingError,
   getRequiredTenantContext,
+  getRequiredFamilyContext,
   PlatformContextTenantError,
+  runWithFamilyContext,
   runWithTenantContext,
   TenantContextMissingError,
+  type FamilyExecutionContext,
   type PlatformExecutionContext,
+  type FamilyContextOrigin,
+  type TenantContextOrigin,
   type VerifiedSupportElevation,
   type TenantExecutionContext,
 } from "./tenant-execution-context.js";
 export {
   withTenantCandidateTransaction,
+  withPlatformAuditTransaction,
   withTenantTransaction,
 } from "./tenant-transaction.js";

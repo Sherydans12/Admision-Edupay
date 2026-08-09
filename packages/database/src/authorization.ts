@@ -1,4 +1,5 @@
 import type {
+  FamilyExecutionContext,
   PlatformExecutionContext,
   TenantExecutionContext,
 } from "./tenant-execution-context.js";
@@ -35,7 +36,13 @@ export interface AuthorizationRequirement {
 export type AuthorizationDecision =
   { decision: "ALLOW" } | { code: AuthorizationDenyCode; decision: "DENY" };
 export type AuthorizationContext =
-  PlatformExecutionContext | TenantExecutionContext;
+  FamilyExecutionContext | PlatformExecutionContext | TenantExecutionContext;
+
+function isFamilyContext(
+  context: AuthorizationContext,
+): context is FamilyExecutionContext {
+  return "familyCapabilities" in context;
+}
 
 function isTenantContext(
   context: AuthorizationContext,
@@ -71,11 +78,28 @@ export function authorize(
   if (requirement.permission === PERMISSIONS.PLATFORM_SUPPORT_ELEVATE) {
     if (
       isTenantContext(context) ||
+      isFamilyContext(context) ||
       context.globalSuperadmin !== true ||
       context.globalCapabilities?.includes(
         PERMISSIONS.PLATFORM_SUPPORT_ELEVATE,
       ) !== true
     ) {
+      return { code: "MISSING_PERMISSION", decision: "DENY" };
+    }
+    if (
+      requirement.purpose !== undefined &&
+      requirement.purpose !== context.purpose
+    ) {
+      return { code: "PURPOSE_MISMATCH", decision: "DENY" };
+    }
+    return { decision: "ALLOW" };
+  }
+
+  if (isFamilyContext(context)) {
+    if (requirement.resourceTenantId !== undefined) {
+      return { code: "TENANT_MISMATCH", decision: "DENY" };
+    }
+    if (!context.familyCapabilities?.includes(requirement.permission)) {
       return { code: "MISSING_PERMISSION", decision: "DENY" };
     }
     if (

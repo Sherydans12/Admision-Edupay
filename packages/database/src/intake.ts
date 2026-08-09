@@ -1,7 +1,17 @@
+import { randomUUID } from "node:crypto";
+
 import type { Prisma, PrismaClient } from "./generated/prisma/client.js";
 import { authorizeOrThrow } from "./authorization.js";
-import type { TenantExecutionContext } from "./tenant-execution-context.js";
-import { withTenantTransaction } from "./tenant-transaction.js";
+import { PERMISSIONS } from "./permission-catalog.js";
+import type {
+  FamilyExecutionContext,
+  TenantExecutionContext,
+} from "./tenant-execution-context.js";
+import { runWithTenantContext } from "./tenant-execution-context.js";
+import {
+  withPlatformAuditTransaction,
+  withTenantTransaction,
+} from "./tenant-transaction.js";
 
 export const AVAILABILITY_LABELS = {
   LIMITED_CAPACITY: "Cupos limitados",
@@ -303,22 +313,52 @@ function assertConfigPermission(
 }
 
 function assertFamilyPermission(
-  context: TenantExecutionContext,
+  context: FamilyExecutionContext,
   permission:
     | "application.create"
     | "application.read"
     | "application.write"
     | "family.profile.read"
     | "family.profile.write"
-    | "offering.public.read"
     | "student.read"
     | "student.write",
+): void {
+  authorizeOrThrow(context, {
+    permission,
+    purpose: context.purpose,
+  });
+}
+
+function assertAdmissionPermission(
+  context: TenantExecutionContext,
+  permission:
+    | "application.create"
+    | "application.read"
+    | "application.write"
+    | "offering.public.read",
 ): void {
   authorizeOrThrow(context, {
     permission,
     resourceTenantId: context.tenantId,
     purpose: context.purpose,
   });
+}
+
+function assertPublicAdmissionContext(context: TenantExecutionContext): void {
+  if (context.contextOrigin !== "public_admission") {
+    throw new IntakeValidationError("Public admission context is required");
+  }
+  assertAdmissionPermission(context, PERMISSIONS.OFFERING_PUBLIC_READ);
+}
+
+function assertApplicantContext(
+  context: TenantExecutionContext,
+  permission: "application.create" | "application.read" | "application.write",
+): void {
+  if (context.contextOrigin !== "family_application") {
+    throw new IntakeValidationError("Applicant context is required");
+  }
+  assertAdmissionPermission(context, permission);
 }
 
 async function recordAudit(
@@ -348,8 +388,36 @@ async function recordAudit(
     ...(input.resourceId === undefined ? {} : { resourceId: input.resourceId }),
   };
   await transaction.auditEvent.create({
-    data,
+    data: { ...data, scope: "TENANT" },
   });
+}
+
+async function recordPlatformAudit(
+  transaction: Prisma.TransactionClient,
+  context: FamilyExecutionContext,
+  input: {
+    action:
+      | "FAMILY_PROFILE_CREATED"
+      | "FAMILY_PROFILE_UPDATED"
+      | "STUDENT_CREATED"
+      | "STUDENT_UPDATED";
+    resourceId?: string;
+    resourceType: string;
+    result: "DENY" | "SUCCESS";
+  },
+): Promise<void> {
+  await transaction.$executeRaw`
+    INSERT INTO "audit_events" (
+      "id", "tenant_id", "scope", "actor_id", "effective_actor_id", "action",
+      "purpose", "resource_type", "resource_id", "result", "correlation_id",
+      "occurred_at"
+    ) VALUES (
+      ${randomUUID()}::uuid, NULL, 'PLATFORM_GLOBAL'::"AuditEventScope", ${context.actorId}::uuid,
+      ${context.effectiveActorId ?? context.actorId}::uuid, ${input.action},
+      ${context.purpose}, ${input.resourceType}, ${input.resourceId ?? null}::uuid,
+      ${input.result}, ${context.correlationId}, CURRENT_TIMESTAMP
+    )
+  `;
 }
 
 function isUniqueViolation(error: unknown): boolean {
@@ -361,31 +429,93 @@ function isUniqueViolation(error: unknown): boolean {
   );
 }
 
+async function ensureAdmissionProcessYear(
+  transaction: Prisma.TransactionClient,
+  tenantId: string,
+  academicYearId: string,
+): Promise<void> {
+  const year = await transaction.academicYear.findFirst({
+    where: { id: academicYearId, tenantId },
+  });
+  if (year === null) throw new IntakeNotFoundError();
+}
+
+async function ensureOfferingReferences(
+  transaction: Prisma.TransactionClient,
+  tenantId: string,
+  input: AdmissionOfferingInput,
+): Promise<void> {
+  const process = await transaction.admissionProcess.findFirst({
+    where: { id: input.processId, tenantId },
+  });
+  if (process === null) {
+    throw new IntakeNotFoundError();
+  }
+  if (process.academicYearId !== input.academicYearId) {
+    throw new IntakeValidationError(
+      "Offering process and academic year must match",
+    );
+  }
+  const [year, campus, courseLevel] = await Promise.all([
+    transaction.academicYear.findFirst({
+      where: { id: input.academicYearId, tenantId },
+    }),
+    transaction.campus.findFirst({ where: { id: input.campusId, tenantId } }),
+    transaction.courseLevel.findFirst({
+      where: { id: input.courseLevelId, tenantId },
+    }),
+  ]);
+  if (year === null || campus === null || courseLevel === null) {
+    throw new IntakeNotFoundError();
+  }
+}
+
 export class IntakeService {
   constructor(private readonly prisma: PrismaClient) {}
 
   async getOrCreateFamilyProfile(
-    context: TenantExecutionContext,
+    context: FamilyExecutionContext,
     displayName: string,
   ): Promise<{ displayName: string; id: string; userId: string }> {
-    assertFamilyPermission(context, "family.profile.write");
+    assertFamilyPermission(context, PERMISSIONS.FAMILY_PROFILE_WRITE);
     const normalizedName = requireText(displayName, "displayName", 160);
-    const profile = await this.prisma.familyProfile.upsert({
-      create: { displayName: normalizedName, userId: context.actorId },
-      update: { displayName: normalizedName },
-      where: { userId: context.actorId },
+    return withPlatformAuditTransaction(this.prisma, async (transaction) => {
+      const existing = await transaction.familyProfile.findUnique({
+        where: { userId: context.actorId },
+      });
+      const profile =
+        existing === null
+          ? await transaction.familyProfile.create({
+              data: {
+                displayName: normalizedName,
+                userId: context.actorId,
+              },
+            })
+          : await transaction.familyProfile.update({
+              data: { displayName: normalizedName },
+              where: { id: existing.id },
+            });
+      await recordPlatformAudit(transaction, context, {
+        action:
+          existing === null
+            ? "FAMILY_PROFILE_CREATED"
+            : "FAMILY_PROFILE_UPDATED",
+        resourceId: profile.id,
+        resourceType: "FamilyProfile",
+        result: "SUCCESS",
+      });
+      return {
+        displayName: profile.displayName,
+        id: profile.id,
+        userId: profile.userId,
+      };
     });
-    return {
-      displayName: profile.displayName,
-      id: profile.id,
-      userId: profile.userId,
-    };
   }
 
   async getFamilyProfile(
-    context: TenantExecutionContext,
+    context: FamilyExecutionContext,
   ): Promise<{ displayName: string; id: string; userId: string }> {
-    assertFamilyPermission(context, "family.profile.read");
+    assertFamilyPermission(context, PERMISSIONS.FAMILY_PROFILE_READ);
     const profile = await this.prisma.familyProfile.findUnique({
       where: { userId: context.actorId },
     });
@@ -397,8 +527,8 @@ export class IntakeService {
     };
   }
 
-  async listStudents(context: TenantExecutionContext): Promise<StudentDto[]> {
-    assertFamilyPermission(context, "student.read");
+  async listStudents(context: FamilyExecutionContext): Promise<StudentDto[]> {
+    assertFamilyPermission(context, PERMISSIONS.STUDENT_READ);
     const profile = await this.prisma.familyProfile.findUnique({
       where: { userId: context.actorId },
     });
@@ -411,22 +541,21 @@ export class IntakeService {
   }
 
   async createStudent(
-    context: TenantExecutionContext,
+    context: FamilyExecutionContext,
     input: StudentInput,
   ): Promise<StudentDto> {
-    assertFamilyPermission(context, "student.write");
+    assertFamilyPermission(context, PERMISSIONS.STUDENT_WRITE);
     const givenName = requireText(input.givenName, "givenName", 120);
     const familyName = requireText(input.familyName, "familyName", 160);
-    const profile = await this.prisma.familyProfile.findUnique({
-      where: { userId: context.actorId },
-    });
-    if (profile === null) throw new IntakeNotFoundError();
-
-    return withTenantTransaction(this.prisma, async (transaction) => {
+    return withPlatformAuditTransaction(this.prisma, async (transaction) => {
+      const profile = await transaction.familyProfile.findUnique({
+        where: { userId: context.actorId },
+      });
+      if (profile === null) throw new IntakeNotFoundError();
       const student = await transaction.student.create({
         data: { familyName, familyProfileId: profile.id, givenName },
       });
-      await recordAudit(transaction, context, {
+      await recordPlatformAudit(transaction, context, {
         action: "STUDENT_CREATED",
         resourceId: student.id,
         resourceType: "Student",
@@ -437,19 +566,18 @@ export class IntakeService {
   }
 
   async updateStudent(
-    context: TenantExecutionContext,
+    context: FamilyExecutionContext,
     studentId: string,
     input: StudentInput,
   ): Promise<StudentDto> {
-    assertFamilyPermission(context, "student.write");
+    assertFamilyPermission(context, PERMISSIONS.STUDENT_WRITE);
     const givenName = requireText(input.givenName, "givenName", 120);
     const familyName = requireText(input.familyName, "familyName", 160);
-    const profile = await this.prisma.familyProfile.findUnique({
-      where: { userId: context.actorId },
-    });
-    if (profile === null) throw new IntakeNotFoundError();
-
-    return withTenantTransaction(this.prisma, async (transaction) => {
+    return withPlatformAuditTransaction(this.prisma, async (transaction) => {
+      const profile = await transaction.familyProfile.findUnique({
+        where: { userId: context.actorId },
+      });
+      if (profile === null) throw new IntakeNotFoundError();
       const owned = await transaction.student.findFirst({
         where: { familyProfileId: profile.id, id: studentId },
       });
@@ -458,7 +586,7 @@ export class IntakeService {
         data: { familyName, givenName },
         where: { id: studentId },
       });
-      await recordAudit(transaction, context, {
+      await recordPlatformAudit(transaction, context, {
         action: "STUDENT_UPDATED",
         resourceId: student.id,
         resourceType: "Student",
@@ -571,6 +699,11 @@ export class IntakeService {
     const code = requireText(input.code, "code", 80);
     const name = requireText(input.name, "name", 160);
     return withTenantTransaction(this.prisma, async (transaction) => {
+      await ensureAdmissionProcessYear(
+        transaction,
+        context.tenantId,
+        input.academicYearId,
+      );
       const process = await transaction.admissionProcess.create({
         data: {
           academicYearId: input.academicYearId,
@@ -601,6 +734,11 @@ export class IntakeService {
     const code = requireText(input.code, "code", 80);
     const name = requireText(input.name, "name", 160);
     return withTenantTransaction(this.prisma, async (transaction) => {
+      await ensureAdmissionProcessYear(
+        transaction,
+        context.tenantId,
+        input.academicYearId,
+      );
       const result = await transaction.admissionProcess.updateMany({
         data: {
           academicYearId: input.academicYearId,
@@ -634,6 +772,7 @@ export class IntakeService {
     const code = requireText(input.code, "code", 80);
     const title = requireText(input.title, "title", 160);
     return withTenantTransaction(this.prisma, async (transaction) => {
+      await ensureOfferingReferences(transaction, context.tenantId, input);
       const offering = await transaction.admissionOffering.create({
         data: {
           academicYearId: input.academicYearId,
@@ -667,6 +806,7 @@ export class IntakeService {
     const code = requireText(input.code, "code", 80);
     const title = requireText(input.title, "title", 160);
     return withTenantTransaction(this.prisma, async (transaction) => {
+      await ensureOfferingReferences(transaction, context.tenantId, input);
       const result = await transaction.admissionOffering.updateMany({
         data: {
           academicYearId: input.academicYearId,
@@ -724,7 +864,7 @@ export class IntakeService {
   async listPublicOfferings(
     context: TenantExecutionContext,
   ): Promise<OfferingDto[]> {
-    assertFamilyPermission(context, "offering.public.read");
+    assertPublicAdmissionContext(context);
     return withTenantTransaction(this.prisma, async (transaction) => {
       const offerings = await transaction.admissionOffering.findMany({
         include: offeringProjection,
@@ -736,7 +876,7 @@ export class IntakeService {
   }
 
   private async ownedFamilyProfile(
-    context: TenantExecutionContext,
+    context: FamilyExecutionContext,
   ): Promise<{ id: string }> {
     const profile = await this.prisma.familyProfile.findUnique({
       select: { id: true },
@@ -746,79 +886,131 @@ export class IntakeService {
     return profile;
   }
 
+  private applicantContext(
+    familyContext: FamilyExecutionContext,
+    tenantId: string,
+    purpose: string,
+    permission: "application.create" | "application.read" | "application.write",
+  ): TenantExecutionContext {
+    return {
+      actorId: familyContext.actorId,
+      capabilities: [permission],
+      contextOrigin: "family_application",
+      correlationId: familyContext.correlationId,
+      effectiveActorId: familyContext.effectiveActorId ?? familyContext.actorId,
+      purpose,
+      source: familyContext.source,
+      tenantId,
+    };
+  }
+
   async createApplicationDraft(
-    context: TenantExecutionContext,
+    familyContext: FamilyExecutionContext,
+    publicContext: TenantExecutionContext,
     input: { offeringId: string; studentId: string },
   ): Promise<ApplicationDto> {
-    assertFamilyPermission(context, "application.create");
-    const profile = await this.ownedFamilyProfile(context);
+    assertFamilyPermission(familyContext, PERMISSIONS.APPLICATION_CREATE);
+    assertPublicAdmissionContext(publicContext);
+    const profile = await this.ownedFamilyProfile(familyContext);
     const student = await this.prisma.student.findFirst({
       where: { familyProfileId: profile.id, id: input.studentId },
     });
     if (student === null) throw new IntakeNotFoundError();
 
+    let applicantContext: TenantExecutionContext | undefined;
     try {
-      return await withTenantTransaction(this.prisma, async (transaction) => {
-        const offering = await transaction.admissionOffering.findFirst({
-          include: { process: true },
-          where: {
-            id: input.offeringId,
-            status: "PUBLISHED",
-          },
-        });
+      return await runWithTenantContext(publicContext, async () => {
+        const offering = await withTenantTransaction(
+          this.prisma,
+          async (transaction) =>
+            transaction.admissionOffering.findFirst({
+              include: { process: true },
+              where: {
+                id: input.offeringId,
+                status: "PUBLISHED",
+              },
+            }),
+        );
         if (offering === null) throw new IntakeNotFoundError();
+        if (offering.tenantId !== publicContext.tenantId) {
+          throw new IntakeNotFoundError();
+        }
         if (
           offering.process.status !== "PUBLISHED" ||
           offering.availabilityCategory === "PROCESS_CLOSED"
         ) {
           throw new IntakeValidationError("Offering is closed");
         }
-        const application = await transaction.application.create({
-          data: {
-            academicYearId: offering.academicYearId,
-            draftData: {
-              acknowledgedNoGuarantee: false,
-              currentStep: "CONTEXT",
-            } as unknown as Prisma.InputJsonValue,
-            familyProfileId: profile.id,
-            offeringId: offering.id,
-            processId: offering.processId,
-            studentId: student.id,
-            tenantId: context.tenantId,
-          },
-          include: applicationProjection,
-        });
-        await recordAudit(transaction, context, {
-          action: "APPLICATION_DRAFT_CREATED",
-          resourceId: application.id,
-          resourceType: "Application",
-          result: "SUCCESS",
-        });
-        return mapApplication(application);
+        applicantContext = this.applicantContext(
+          familyContext,
+          offering.tenantId,
+          familyContext.purpose,
+          PERMISSIONS.APPLICATION_CREATE,
+        );
+        return runWithTenantContext(applicantContext, () =>
+          withTenantTransaction(this.prisma, async (transaction) => {
+            assertApplicantContext(
+              applicantContext as TenantExecutionContext,
+              PERMISSIONS.APPLICATION_CREATE,
+            );
+            const application = await transaction.application.create({
+              data: {
+                academicYearId: offering.academicYearId,
+                draftData: {
+                  acknowledgedNoGuarantee: false,
+                  currentStep: "CONTEXT",
+                } as unknown as Prisma.InputJsonValue,
+                familyProfileId: profile.id,
+                offeringId: offering.id,
+                processId: offering.processId,
+                studentId: student.id,
+                tenantId: offering.tenantId,
+              },
+              include: applicationProjection,
+            });
+            await recordAudit(
+              transaction,
+              applicantContext as TenantExecutionContext,
+              {
+                action: "APPLICATION_DRAFT_CREATED",
+                resourceId: application.id,
+                resourceType: "Application",
+                result: "SUCCESS",
+              },
+            );
+            return mapApplication(application);
+          }),
+        );
       });
     } catch (error) {
-      if (!isUniqueViolation(error)) throw error;
-      await withTenantTransaction(this.prisma, (transaction) =>
-        recordAudit(transaction, context, {
-          action: "APPLICATION_DRAFT_DUPLICATE_DENIED",
-          metadata: {
-            offeringId: input.offeringId,
-            studentId: input.studentId,
-          },
-          reasonCode: "ACTIVE_DRAFT_EXISTS",
-          resourceType: "Application",
-          result: "DENY",
-        }),
+      if (!isUniqueViolation(error) || applicantContext === undefined) {
+        throw error;
+      }
+      await runWithTenantContext(applicantContext, () =>
+        withTenantTransaction(this.prisma, (transaction) =>
+          recordAudit(transaction, applicantContext as TenantExecutionContext, {
+            action: "APPLICATION_DRAFT_DUPLICATE_DENIED",
+            metadata: {
+              offeringId: input.offeringId,
+              studentId: input.studentId,
+            },
+            reasonCode: "ACTIVE_DRAFT_EXISTS",
+            resourceType: "Application",
+            result: "DENY",
+          }),
+        ),
       );
       throw new IntakeDuplicateError();
     }
   }
 
   async listApplications(
-    context: TenantExecutionContext,
+    familyContext: FamilyExecutionContext,
+    applicantContext: TenantExecutionContext,
   ): Promise<ApplicationDto[]> {
-    assertFamilyPermission(context, "application.read");
-    const profile = await this.ownedFamilyProfile(context);
+    assertFamilyPermission(familyContext, PERMISSIONS.APPLICATION_READ);
+    assertApplicantContext(applicantContext, PERMISSIONS.APPLICATION_READ);
+    const profile = await this.ownedFamilyProfile(familyContext);
     return withTenantTransaction(this.prisma, async (transaction) => {
       const applications = await transaction.application.findMany({
         include: applicationProjection,
@@ -830,11 +1022,13 @@ export class IntakeService {
   }
 
   async getApplication(
-    context: TenantExecutionContext,
+    familyContext: FamilyExecutionContext,
+    applicantContext: TenantExecutionContext,
     applicationId: string,
   ): Promise<ApplicationDto> {
-    assertFamilyPermission(context, "application.read");
-    const profile = await this.ownedFamilyProfile(context);
+    assertFamilyPermission(familyContext, PERMISSIONS.APPLICATION_READ);
+    assertApplicantContext(applicantContext, PERMISSIONS.APPLICATION_READ);
+    const profile = await this.ownedFamilyProfile(familyContext);
     return withTenantTransaction(this.prisma, async (transaction) => {
       const application = await transaction.application.findFirst({
         include: applicationProjection,
@@ -846,12 +1040,14 @@ export class IntakeService {
   }
 
   async saveApplicationDraft(
-    context: TenantExecutionContext,
+    familyContext: FamilyExecutionContext,
+    applicantContext: TenantExecutionContext,
     applicationId: string,
     input: DraftPatch,
   ): Promise<ApplicationDto> {
-    assertFamilyPermission(context, "application.write");
-    const profile = await this.ownedFamilyProfile(context);
+    assertFamilyPermission(familyContext, PERMISSIONS.APPLICATION_WRITE);
+    assertApplicantContext(applicantContext, PERMISSIONS.APPLICATION_WRITE);
+    const profile = await this.ownedFamilyProfile(familyContext);
     const draftData = toDraftData(input);
     return withTenantTransaction(this.prisma, async (transaction) => {
       const existing = await transaction.application.findFirst({
@@ -871,7 +1067,7 @@ export class IntakeService {
           include: applicationProjection,
           where: { id: application.id },
         });
-      await recordAudit(transaction, context, {
+      await recordAudit(transaction, applicantContext, {
         action: "APPLICATION_DRAFT_UPDATED",
         metadata: { currentStep: draftData.currentStep },
         resourceId: application.id,

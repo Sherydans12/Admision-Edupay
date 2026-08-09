@@ -72,6 +72,11 @@ enum ApplicationStatus {
   DRAFT
 }
 
+enum AuditEventScope {
+  TENANT
+  PLATFORM_GLOBAL
+}
+
 /// Identidad global de control-plane; no representa onboarding funcional.
 model PlatformUser {
   id                String             @id @default(uuid()) @db.Uuid
@@ -323,6 +328,7 @@ model AdmissionProcess {
   applications   Application[]
 
   @@unique([tenantId, id])
+  @@unique([tenantId, id, academicYearId])
   @@unique([tenantId, academicYearId, code])
   @@index([tenantId, status, academicYearId])
   @@map("admission_processes")
@@ -345,11 +351,12 @@ model AdmissionOffering {
   tenant               Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   campus               Campus                  @relation(fields: [tenantId, campusId], references: [tenantId, id], onDelete: Restrict)
   academicYear         AcademicYear            @relation(fields: [tenantId, academicYearId], references: [tenantId, id], onDelete: Restrict)
-  process              AdmissionProcess        @relation(fields: [tenantId, processId], references: [tenantId, id], onDelete: Restrict)
+  process              AdmissionProcess        @relation(fields: [tenantId, processId, academicYearId], references: [tenantId, id, academicYearId], onDelete: Restrict)
   courseLevel          CourseLevel             @relation(fields: [tenantId, courseLevelId], references: [tenantId, id], onDelete: Restrict)
   applications         Application[]
 
   @@unique([tenantId, id])
+  @@unique([tenantId, id, processId, academicYearId])
   @@unique([tenantId, processId, courseLevelId, code])
   @@index([tenantId, status, availabilityCategory])
   @@map("admission_offerings")
@@ -373,7 +380,7 @@ model Application {
   student         Student           @relation(fields: [studentId], references: [id], onDelete: Restrict)
   academicYear    AcademicYear      @relation(fields: [tenantId, academicYearId], references: [tenantId, id], onDelete: Restrict)
   process         AdmissionProcess  @relation(fields: [tenantId, processId], references: [tenantId, id], onDelete: Restrict)
-  offering        AdmissionOffering @relation(fields: [tenantId, offeringId], references: [tenantId, id], onDelete: Restrict)
+  offering        AdmissionOffering @relation(fields: [tenantId, offeringId, processId, academicYearId], references: [tenantId, id, processId, academicYearId], onDelete: Restrict)
 
   @@unique([tenantId, id])
   @@index([tenantId, familyProfileId, status, updatedAt])
@@ -384,7 +391,8 @@ model Application {
 /// Tenant-owned append-only critical audit records; metadata is allowlisted by the application.
 model AuditEvent {
   id               String   @id @default(uuid()) @db.Uuid
-  tenantId         String   @map("tenant_id") @db.Uuid
+  tenantId         String?  @map("tenant_id") @db.Uuid
+  scope            AuditEventScope @default(TENANT)
   actorId          String   @map("actor_id") @db.Uuid
   effectiveActorId String   @map("effective_actor_id") @db.Uuid
   action           String   @db.VarChar(120)
@@ -396,7 +404,7 @@ model AuditEvent {
   correlationId    String   @map("correlation_id") @db.VarChar(120)
   metadata         Json?
   occurredAt       DateTime @map("occurred_at") @db.Timestamptz(3)
-  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenant           Tenant?  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId, occurredAt])
   @@index([tenantId, resourceType, resourceId])

@@ -91,7 +91,7 @@ export default function Home() {
     try {
       const [studentResult, offeringResult, applicationResult] =
         await Promise.all([
-          apiFetch<{ items: Student[] }>(`${tenantPath}/students`),
+          apiFetch<{ items: Student[] }>("/family/students"),
           apiFetch<{ items: Offering[] }>(`${tenantPath}/offerings`),
           apiFetch<{ items: Application[] }>(`${tenantPath}/applications`),
         ]);
@@ -156,7 +156,7 @@ export default function Home() {
     const data = new FormData(event.currentTarget);
     setError("");
     try {
-      await mutate(`${tenantPath}/students`, "POST", {
+      await mutate("/family/students", "POST", {
         familyName: data.get("familyName"),
         givenName: data.get("givenName"),
       });
