@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A COMPLETE — READY FOR E5-B REVIEW` |
+| Estado | `IN PROGRESS / E5-A + E5-B COMPLETE — READY FOR E5-B REVIEW` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
@@ -84,6 +84,14 @@ Fuera de E5-A: builder completo, submission final, documentos, actividades, deci
 ### E5-B — Formulario versionado y submission
 
 Cobertura principal: `BL-004` + cierre funcional de `BL-005`, incluyendo builder controlado, versión publicada inmutable, snapshot y envío con validaciones/duplicados.
+
+**Estado:** `COMPLETE`. El incremento implementa definición, versionado,
+builder controlado, publicación inmutable, asignación a oferta, respuestas de
+borrador, revisión, submission transaccional idempotente y snapshot inmutable.
+La evidencia ejecutable y los límites se documentan en
+[`02-e5b-form-submission-evidence.md`](02-e5b-form-submission-evidence.md).
+El desistimiento de `BL-005`, documentos y postulación asistida permanecen
+fuera de E5-B.
 
 ### E5-C — Documentos y postulación asistida
 

@@ -467,7 +467,21 @@ describe.sequential("E5-B versioned forms and submission", () => {
     expect(updated.label).toBe("Etiqueta sintética actualizada");
   });
 
-  it("E5B-FORM-02: PostgreSQL denies UPDATE and DELETE on PUBLISHED content", async () => {
+  it("E5B-FORM-02: PostgreSQL denies INSERT, UPDATE and DELETE on PUBLISHED content", async () => {
+    await expect(
+      runWithTenantContext(fixture.adminA, () =>
+        withTenantTransaction(prisma, (transaction) =>
+          transaction.formSection.create({
+            data: {
+              formVersionId: fixture.formVersionId,
+              order: 99,
+              tenantId: fixture.tenantA,
+              title: "No permitida",
+            },
+          }),
+        ),
+      ),
+    ).rejects.toThrow(/published form content is immutable/i);
     await expect(
       runWithTenantContext(fixture.adminA, () =>
         withTenantTransaction(prisma, (transaction) =>
@@ -702,6 +716,20 @@ describe.sequential("E5-B versioned forms and submission", () => {
     const draft = await createDraft();
     const saved = await saveMinimum(draft.id);
     expect(saved.answers).toHaveLength(2);
+    const forms = new FormService(prisma);
+    await runWithTenantContext(fixture.applicantA, () =>
+      forms.saveAnswers(fixture.familyA, fixture.applicantA, draft.id, [
+        { fieldId: fixture.neeFieldId, value: "Nota sintética temporal" },
+      ]),
+    );
+    const cleared = await runWithTenantContext(fixture.applicantA, () =>
+      forms.saveAnswers(fixture.familyA, fixture.applicantA, draft.id, [
+        { fieldId: fixture.neeFieldId, value: "" },
+      ]),
+    );
+    expect(
+      cleared.answers.some((answer) => answer.fieldId === fixture.neeFieldId),
+    ).toBe(false);
   });
 
   it("E5B-ANS-02: family B cannot read or write family A answers", async () => {

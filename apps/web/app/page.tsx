@@ -1,15 +1,17 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { AdminFormBuilder, FamilyApplicationFlow } from "./form-workflows";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
 const FALLBACK_TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 type Mode = "family" | "admin";
-type FamilySection = "home" | "students" | "offerings" | "applications";
+type FamilySection =
+  "home" | "students" | "offerings" | "applications" | "form";
 type AdminSection =
-  "campus" | "academicYear" | "courseLevel" | "process" | "offering";
+  "forms" | "campus" | "academicYear" | "courseLevel" | "process" | "offering";
 
 interface Offering {
   academicYear: string;
@@ -33,9 +35,11 @@ interface Application {
   createdAt: string;
   draft: { acknowledgedNoGuarantee: boolean; currentStep: string };
   id: string;
+  formVersionId: string | null;
   offering: Offering;
   status: string;
   student: Student;
+  submittedAt: string | null;
   updatedAt: string;
 }
 
@@ -69,7 +73,7 @@ export default function Home() {
     process.env.NEXT_PUBLIC_ADMISSION_TENANT_ID ?? FALLBACK_TENANT,
   );
   const [familySection, setFamilySection] = useState<FamilySection>("home");
-  const [adminSection, setAdminSection] = useState<AdminSection>("campus");
+  const [adminSection, setAdminSection] = useState<AdminSection>("forms");
   const [students, setStudents] = useState<Student[]>([]);
   const [offerings, setOfferings] = useState<Offering[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -77,6 +81,7 @@ export default function Home() {
     null,
   );
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [activeApplicationId, setActiveApplicationId] = useState("");
   const [notice, setNotice] = useState(
     "Listo para conectar con la sesión opaca de Admisión.",
   );
@@ -176,13 +181,18 @@ export default function Home() {
       return;
     }
     try {
-      await mutate(`${tenantPath}/applications`, "POST", {
-        offeringId,
-        studentId: selectedStudentId,
-      });
+      const application = await mutate<Application>(
+        `${tenantPath}/applications`,
+        "POST",
+        {
+          offeringId,
+          studentId: selectedStudentId,
+        },
+      );
       await loadFamily();
-      setFamilySection("applications");
-      setNotice("Borrador creado. Postular no garantiza vacante.");
+      setActiveApplicationId(application.id);
+      setFamilySection("form");
+      setNotice("Borrador creado con una versión de formulario fijada.");
     } catch (requestError) {
       setError(
         requestError instanceof Error && requestError.message === "HTTP_409"
@@ -271,8 +281,8 @@ export default function Home() {
       </a>
       <header className="topbar">
         <div>
-          <p className="eyebrow">Admisión · E5-A / Intake core</p>
-          <p className="brand">Primer recorrido funcional sintético</p>
+          <p className="eyebrow">Admisión · E5-B / Formulario versionado</p>
+          <p className="brand">Recorrido funcional sintético</p>
         </div>
         <div className="topbar-actions">
           <label className="tenant-field">
@@ -280,7 +290,15 @@ export default function Home() {
             <input
               aria-label="Tenant de desarrollo"
               value={tenantId}
-              onChange={(event) => setTenantId(event.target.value)}
+              onChange={(event) => {
+                setTenantId(event.target.value);
+                setActiveApplicationId("");
+                setFamilySection("home");
+                setApplications([]);
+                setOfferings([]);
+                setStudents([]);
+                setConfiguration(null);
+              }}
             />
           </label>
           <button
@@ -317,8 +335,8 @@ export default function Home() {
             </h1>
             <p className="lede">
               {mode === "family"
-                ? "Administra estudiantes, revisa ofertas y guarda un borrador seguro desde un mismo lugar."
-                : "Prepara sede, año, curso, proceso y oferta sin hardcodear una institución piloto."}
+                ? "Completa un formulario dinámico, guarda avances y revisa antes de enviar."
+                : "Configura procesos y publica formularios versionados sin hardcodear una institución piloto."}
             </p>
           </div>
           <div className="status-panel" aria-live="polite">
@@ -339,10 +357,17 @@ export default function Home() {
 
         {mode === "family" ? (
           <FamilyView
+            tenantId={tenantId}
             applications={applications}
             familySection={familySection}
             onCreateStudent={saveStudent}
             onDraftSave={saveDraft}
+            onRefresh={loadFamily}
+            activeApplicationId={activeApplicationId}
+            onOpenApplication={(applicationId) => {
+              setActiveApplicationId(applicationId);
+              setFamilySection("form");
+            }}
             onSectionChange={setFamilySection}
             onStartApplication={startApplication}
             offerings={offerings}
@@ -356,6 +381,7 @@ export default function Home() {
             configuration={configuration}
             onSectionChange={setAdminSection}
             onSubmit={saveAdminResource}
+            tenantId={tenantId}
           />
         )}
       </main>
@@ -364,6 +390,7 @@ export default function Home() {
 }
 
 function FamilyView(props: {
+  activeApplicationId: string;
   applications: Application[];
   familySection: FamilySection;
   onCreateStudent: (event: FormEvent<HTMLFormElement>) => void;
@@ -371,12 +398,15 @@ function FamilyView(props: {
     application: Application,
     acknowledgedNoGuarantee: boolean,
   ) => void;
+  onOpenApplication: (applicationId: string) => void;
+  onRefresh: () => Promise<void>;
   onSectionChange: (section: FamilySection) => void;
   onStartApplication: (offeringId: string) => void;
   offerings: Offering[];
   selectedStudentId: string;
   setSelectedStudentId: (id: string) => void;
   students: Student[];
+  tenantId: string;
 }) {
   const { familySection, onSectionChange } = props;
   return (
@@ -419,6 +449,16 @@ function FamilyView(props: {
         {familySection === "applications" ? (
           <ApplicationsSection {...props} />
         ) : null}
+        {familySection === "form" && props.activeApplicationId ? (
+          <FamilyApplicationFlow
+            apiBase={API_BASE}
+            applicationId={props.activeApplicationId}
+            key={`${props.tenantId}:${props.activeApplicationId}`}
+            onExit={() => props.onSectionChange("applications")}
+            onSubmitted={props.onRefresh}
+            tenantId={props.tenantId}
+          />
+        ) : null}
       </section>
     </div>
   );
@@ -450,10 +490,10 @@ function FamilyHome({
       <div className="split-grid">
         <article className="info-card">
           <p className="eyebrow">Estado del slice</p>
-          <h3>Intake en construcción</h3>
+          <h3>Formulario y envío habilitados</h3>
           <p>
-            Registra estudiantes, consulta disponibilidad categórica y guarda
-            una postulación en DRAFT. El envío final queda para E5-B.
+            Registra estudiantes, consulta disponibilidad categórica, guarda
+            avances y envía una postulación con su versión exacta preservada.
           </p>
           <button
             className="text-button"
@@ -630,12 +670,14 @@ function OfferingsSection({
 function ApplicationsSection({
   applications,
   onDraftSave,
+  onOpenApplication,
 }: {
   applications: Application[];
   onDraftSave: (
     application: Application,
     acknowledgedNoGuarantee: boolean,
   ) => void;
+  onOpenApplication: (applicationId: string) => void;
 }) {
   return (
     <>
@@ -644,7 +686,7 @@ function ApplicationsSection({
           <p className="eyebrow">Seguimiento</p>
           <h2>Mis postulaciones</h2>
         </div>
-        <span className="badge">Sólo DRAFT en E5-A</span>
+        <span className="badge">Borradores y envíos</span>
       </div>
       <div className="stack-list">
         {applications.length === 0 ? (
@@ -653,31 +695,52 @@ function ApplicationsSection({
           applications.map((application) => (
             <article className="application-card" key={application.id}>
               <div>
-                <span className="badge badge-draft">DRAFT</span>
+                <span
+                  className={
+                    application.status === "SUBMITTED"
+                      ? "badge badge-open"
+                      : "badge badge-draft"
+                  }
+                >
+                  {application.status}
+                </span>
                 <h3>
                   {application.student.givenName}{" "}
                   {application.student.familyName} ·{" "}
                   {application.offering.title}
                 </h3>
                 <p className="muted">
-                  Paso actual:{" "}
-                  {application.draft.currentStep === "CONTEXT"
-                    ? "Contexto"
-                    : application.draft.currentStep === "STUDENT_DETAILS"
-                      ? "Datos del estudiante"
-                      : "Revisión"}
+                  {application.status === "SUBMITTED"
+                    ? `Enviada${application.submittedAt ? ` · ${new Date(application.submittedAt).toLocaleDateString("es-CL")}` : ""}`
+                    : `Formulario v${application.formVersionId ? " fijado" : " histórico"}`}
                 </p>
               </div>
-              <label className="checkbox-row">
-                <input
-                  checked={application.draft.acknowledgedNoGuarantee}
-                  onChange={(event) =>
-                    onDraftSave(application, event.target.checked)
-                  }
-                  type="checkbox"
-                />{" "}
-                <span>Entiendo que postular no garantiza vacante</span>
-              </label>
+              {application.status === "DRAFT" && application.formVersionId ? (
+                <div className="application-actions">
+                  <button
+                    className="button button-primary"
+                    onClick={() => onOpenApplication(application.id)}
+                    type="button"
+                  >
+                    Continuar formulario
+                  </button>
+                  <label className="checkbox-row">
+                    <input
+                      checked={application.draft.acknowledgedNoGuarantee}
+                      onChange={(event) =>
+                        onDraftSave(application, event.target.checked)
+                      }
+                      type="checkbox"
+                    />
+                    <span>Entiendo que postular no garantiza vacante</span>
+                  </label>
+                </div>
+              ) : null}
+              {application.status === "DRAFT" && !application.formVersionId ? (
+                <span className="muted">
+                  Borrador histórico legible; no admite envío versionado.
+                </span>
+              ) : null}
             </article>
           ))
         )}
@@ -691,13 +754,16 @@ function AdminView({
   configuration,
   onSectionChange,
   onSubmit,
+  tenantId,
 }: {
   adminSection: AdminSection;
   configuration: Configuration | null;
   onSectionChange: (section: AdminSection) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  tenantId: string;
 }) {
   const sections: { key: AdminSection; label: string }[] = [
+    { key: "forms", label: "Formularios" },
     { key: "campus", label: "Sede" },
     { key: "academicYear", label: "Año" },
     { key: "courseLevel", label: "Curso" },
@@ -707,7 +773,7 @@ function AdminView({
   return (
     <div className="content-grid">
       <aside className="side-nav" aria-label="Navegación administrativa">
-        <p className="nav-label">Configuración mínima</p>
+        <p className="nav-label">Administración</p>
         {sections.map((section) => (
           <button
             className={
@@ -739,11 +805,20 @@ function AdminView({
           </div>
           <span className="badge badge-synthetic">Auditado</span>
         </div>
-        <AdminForm
-          adminSection={adminSection}
-          configuration={configuration}
-          onSubmit={onSubmit}
-        />
+        {adminSection === "forms" ? (
+          <AdminFormBuilder
+            apiBase={API_BASE}
+            key={tenantId}
+            offerings={configuration?.offerings ?? []}
+            tenantId={tenantId}
+          />
+        ) : (
+          <AdminForm
+            adminSection={adminSection}
+            configuration={configuration}
+            onSubmit={onSubmit}
+          />
+        )}
       </section>
     </div>
   );
@@ -754,7 +829,7 @@ function AdminForm({
   configuration,
   onSubmit,
 }: {
-  adminSection: AdminSection;
+  adminSection: Exclude<AdminSection, "forms">;
   configuration: Configuration | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {

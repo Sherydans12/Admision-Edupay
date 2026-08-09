@@ -4,8 +4,9 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  description: "Intake core de Admisión para datos sintéticos.",
-  title: "Admisión — Intake core",
+  description:
+    "Formulario versionado y envío de Admisión con datos sintéticos.",
+  title: "Admisión — Formulario versionado",
 };
 
 export default function RootLayout({

@@ -1357,10 +1357,24 @@ export class FormService {
           );
         return {
           fieldId: answer.fieldId,
-          value: validateAnswer(field, answer.value),
+          value:
+            answer.value === null ||
+            (typeof answer.value === "string" && answer.value.trim() === "")
+              ? null
+              : validateAnswer(field, answer.value),
         };
       });
       for (const answer of normalized) {
+        if (answer.value === null) {
+          await transaction.applicationDraftAnswer.deleteMany({
+            where: {
+              applicationId,
+              fieldId: answer.fieldId,
+              tenantId: applicantContext.tenantId,
+            },
+          });
+          continue;
+        }
         await transaction.applicationDraftAnswer.upsert({
           create: {
             applicationId,
@@ -1381,7 +1395,11 @@ export class FormService {
       }
       await recordAudit(transaction, applicantContext, {
         action: "APPLICATION_DRAFT_ANSWERS_SAVED",
-        metadata: { fieldCount: normalized.length },
+        metadata: {
+          clearedCount: normalized.filter((answer) => answer.value === null)
+            .length,
+          fieldCount: normalized.length,
+        },
         resourceId: applicationId,
         resourceType: "Application",
       });

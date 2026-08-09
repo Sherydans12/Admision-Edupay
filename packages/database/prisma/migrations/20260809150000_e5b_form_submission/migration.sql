@@ -168,12 +168,19 @@ CREATE INDEX "application_snapshots_tenant_application_idx" ON "application_snap
 
 CREATE OR REPLACE FUNCTION admission_guard_published_form_content() RETURNS trigger
 LANGUAGE plpgsql AS $$
-DECLARE version_state "FormVersionLifecycle";
 BEGIN
-  SELECT "lifecycle" INTO version_state FROM "form_versions"
-    WHERE "tenant_id" = COALESCE(OLD."tenant_id", NEW."tenant_id")
-      AND "id" = COALESCE(OLD."form_version_id", NEW."form_version_id");
-  IF version_state IN ('PUBLISHED', 'ARCHIVED') THEN
+  IF TG_OP <> 'INSERT' AND EXISTS (
+    SELECT 1 FROM "form_versions"
+    WHERE "tenant_id" = OLD."tenant_id" AND "id" = OLD."form_version_id"
+      AND "lifecycle" IN ('PUBLISHED', 'ARCHIVED')
+  ) THEN
+    RAISE EXCEPTION 'published form content is immutable' USING ERRCODE = '55000';
+  END IF;
+  IF TG_OP <> 'DELETE' AND EXISTS (
+    SELECT 1 FROM "form_versions"
+    WHERE "tenant_id" = NEW."tenant_id" AND "id" = NEW."form_version_id"
+      AND "lifecycle" IN ('PUBLISHED', 'ARCHIVED')
+  ) THEN
     RAISE EXCEPTION 'published form content is immutable' USING ERRCODE = '55000';
   END IF;
   RETURN COALESCE(NEW, OLD);
@@ -181,10 +188,10 @@ END;
 $$;
 
 CREATE TRIGGER "form_sections_published_immutable"
-  BEFORE UPDATE OR DELETE ON "form_sections"
+  BEFORE INSERT OR UPDATE OR DELETE ON "form_sections"
   FOR EACH ROW EXECUTE FUNCTION admission_guard_published_form_content();
 CREATE TRIGGER "form_fields_published_immutable"
-  BEFORE UPDATE OR DELETE ON "form_fields"
+  BEFORE INSERT OR UPDATE OR DELETE ON "form_fields"
   FOR EACH ROW EXECUTE FUNCTION admission_guard_published_form_content();
 
 CREATE OR REPLACE FUNCTION admission_guard_form_version_history() RETURNS trigger
@@ -275,7 +282,7 @@ ALTER FUNCTION admission_guard_snapshot_immutable() OWNER TO admission_migrator;
 REVOKE ALL ON TABLE "form_definitions", "form_versions", "form_sections", "form_fields", "application_draft_answers", "application_snapshots" FROM PUBLIC;
 GRANT SELECT, INSERT, UPDATE ON TABLE "form_definitions", "form_versions" TO admission_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "form_sections", "form_fields" TO admission_app;
-GRANT SELECT, INSERT, UPDATE ON TABLE "application_draft_answers" TO admission_app;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE "application_draft_answers" TO admission_app;
 GRANT SELECT, INSERT ON TABLE "application_snapshots" TO admission_app;
 
 ALTER TABLE "form_definitions" ENABLE ROW LEVEL SECURITY;

@@ -344,8 +344,6 @@ async function seedE5BRlsTenant(
       const version = await transaction.formVersion.create({
         data: {
           formDefinitionId: definition.id,
-          lifecycle: "PUBLISHED",
-          publishedAt: new Date(),
           tenantId: context.tenantId,
           versionNumber: 1,
         },
@@ -371,6 +369,10 @@ async function seedE5BRlsTenant(
           tenantId: context.tenantId,
           type: "TEXT",
         },
+      });
+      await transaction.formVersion.update({
+        data: { lifecycle: "PUBLISHED", publishedAt: new Date() },
+        where: { id: version.id },
       });
       const offering = await transaction.admissionOffering.create({
         data: {

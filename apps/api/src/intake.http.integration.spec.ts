@@ -153,8 +153,8 @@ async function seedFixture(): Promise<void> {
       INSERT INTO form_definitions (id, tenant_id, name, purpose)
       VALUES (${formDefinitionA}, ${tenantA}, ${"Formulario HTTP sintético"}, ${"admission_application"})`;
     await transaction.$executeRaw`
-      INSERT INTO form_versions (id, tenant_id, form_definition_id, version_number, lifecycle, published_at)
-      VALUES (${formVersionA}, ${tenantA}, ${formDefinitionA}, 1, 'PUBLISHED', CURRENT_TIMESTAMP)`;
+      INSERT INTO form_versions (id, tenant_id, form_definition_id, version_number, lifecycle)
+      VALUES (${formVersionA}, ${tenantA}, ${formDefinitionA}, 1, 'DRAFT')`;
     await transaction.$executeRaw`
       INSERT INTO form_sections (id, tenant_id, form_version_id, title, "order")
       VALUES (${formSectionA}, ${tenantA}, ${formVersionA}, ${"Antecedentes HTTP sintéticos"}, 1)`;
@@ -162,6 +162,10 @@ async function seedFixture(): Promise<void> {
       INSERT INTO form_fields
         (id, tenant_id, form_version_id, section_id, key, label, type, required, sensitivity, purpose, "order")
       VALUES (${formFieldA}, ${tenantA}, ${formVersionA}, ${formSectionA}, ${"http_context"}, ${"Contexto HTTP sintético"}, 'TEXT', true, ${"restricted"}, ${"Validar el flujo HTTP sintético"}, 1)`;
+    await transaction.$executeRaw`
+      UPDATE form_versions
+      SET lifecycle = 'PUBLISHED', published_at = CURRENT_TIMESTAMP
+      WHERE id = ${formVersionA}`;
     await transaction.$executeRaw`
       INSERT INTO admission_offerings
         (id, tenant_id, campus_id, academic_year_id, process_id, course_level_id, code, title, status, availability_category, form_version_id)

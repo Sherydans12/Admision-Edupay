@@ -4,6 +4,7 @@ import { z } from "zod";
 const text = (max: number) => z.string().trim().min(1).max(max);
 const uuid = z.string().uuid();
 const answerValue = z.union([z.string().max(2000), z.boolean()]);
+const answerPatchValue = answerValue.nullable();
 
 export const formDefinitionSchema = z
   .object({ name: text(160), purpose: text(120) })
@@ -72,7 +73,7 @@ export const moveFormItemSchema = z
 export const answersSchema = z
   .object({
     answers: z
-      .array(z.object({ fieldId: uuid, value: answerValue }).strict())
+      .array(z.object({ fieldId: uuid, value: answerPatchValue }).strict())
       .min(1)
       .max(100),
   })
