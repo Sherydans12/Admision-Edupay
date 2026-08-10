@@ -17,6 +17,7 @@ const migrationRoot = resolve(root, "packages/database/prisma/migrations");
 const e5cBaseMigration = "20260810120000_e5c_documents_assisted";
 const e5cHardeningMigration =
   "20260810150000_e5c_review_job_assistance_hardening";
+const e5dMigration = "20260810180000_e5d_activities";
 const databaseName = `admission_e5c_${randomUUID().replaceAll("-", "")}`;
 const temporaryRoot = await mkdtemp(join(tmpdir(), "admission-e5c-migration-"));
 const temporaryPrisma = join(temporaryRoot, "prisma");
@@ -110,13 +111,15 @@ try {
     .sort();
   const e5cBaseIndex = migrations.indexOf(e5cBaseMigration);
   const hardeningIndex = migrations.indexOf(e5cHardeningMigration);
+  const e5dIndex = migrations.indexOf(e5dMigration);
   if (
-    e5cBaseIndex !== migrations.length - 2 ||
-    hardeningIndex !== migrations.length - 1 ||
-    hardeningIndex !== 7
+    migrations.length !== 9 ||
+    e5cBaseIndex !== 6 ||
+    hardeningIndex !== 7 ||
+    e5dIndex !== 8
   ) {
     throw new Error(
-      "E5-C hardening must be migration 8 immediately after the approved E5-C base",
+      "E5-C base/hardening must remain migrations 7/8 and E5-D must follow as migration 9",
     );
   }
 

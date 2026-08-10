@@ -18,6 +18,7 @@
     "e4:recovery:smoke": "node scripts/e4-recovery-smoke.mjs",
     "e5c:documents:smoke": "node scripts/e5c-documents-smoke.mjs",
     "e5c:migration:smoke": "node scripts/e5c-migration-smoke.mjs",
+    "e5d:migration:smoke": "node scripts/e5d-migration-smoke.mjs",
     "db:up": "docker compose up -d postgres",
     "dev:api": "pnpm --filter @admission/api dev",
     "dev:web": "pnpm --filter @admission/web dev",

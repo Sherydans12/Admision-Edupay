@@ -296,7 +296,7 @@ La validación local final quedó completa:
 - regresión: 247/247 pruebas `PASS` en 15 suites;
 - RLS: 22/22 pruebas `PASS`; total combinado 269 pruebas;
 - formato, lint, typecheck y build: `PASS`;
-- secret scan: `PASS`, 215 archivos tracked inspeccionados;
+- secret scan: `PASS`, 216 archivos tracked inspeccionados;
 - dependency audit: `PASS`, sin vulnerabilidades conocidas en el umbral
   configurado (`high`);
 - `docker compose config`: `PASS`;
