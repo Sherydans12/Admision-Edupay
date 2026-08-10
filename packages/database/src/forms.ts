@@ -1694,11 +1694,8 @@ export class FormService {
   async submitAssistedApplication(
     context: TenantExecutionContext,
     input: {
-      adultResponsibleUserId: string;
       applicationId: string;
       assistanceSessionId: string;
-      familyProfileId: string;
-      operatorUserId: string;
     },
     now = new Date(),
   ): Promise<{
@@ -1714,30 +1711,30 @@ export class FormService {
     });
     return this.submitApplicationCore(
       {
-        adultResponsibleUserId: input.adultResponsibleUserId,
         applicantContext: context,
         applicationId: input.applicationId,
         assistanceSessionId: input.assistanceSessionId,
-        familyProfileId: input.familyProfileId,
-        operatorUserId: input.operatorUserId,
         submissionMode: "ASSISTED",
-        submittedBy: input.operatorUserId,
       },
       now,
     );
   }
 
   private submitApplicationCore(
-    input: {
-      adultResponsibleUserId?: string;
-      applicantContext: TenantExecutionContext;
-      applicationId: string;
-      assistanceSessionId?: string;
-      familyProfileId: string;
-      operatorUserId?: string;
-      submissionMode: "ASSISTED" | "SELF_SERVICE";
-      submittedBy: string;
-    },
+    input:
+      | {
+          applicantContext: TenantExecutionContext;
+          applicationId: string;
+          assistanceSessionId: string;
+          submissionMode: "ASSISTED";
+        }
+      | {
+          applicantContext: TenantExecutionContext;
+          applicationId: string;
+          familyProfileId: string;
+          submissionMode: "SELF_SERVICE";
+          submittedBy: string;
+        },
     now: Date,
   ): Promise<{
     applicationId: string;
@@ -1745,23 +1742,82 @@ export class FormService {
     status: "SUBMITTED";
     submittedAt: string;
   }> {
-    const { applicantContext, applicationId, familyProfileId } = input;
+    const { applicantContext, applicationId } = input;
     return withTenantTransaction(this.prisma, async (transaction) => {
+      let verifiedAssistanceSession:
+        | NonNullable<
+            Awaited<
+              ReturnType<
+                Prisma.TransactionClient["assistanceSession"]["findFirst"]
+              >
+            >
+          >
+        | undefined;
+      if (input.submissionMode === "ASSISTED") {
+        const sessionLock = await transaction.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "assistance_sessions"
+          WHERE "tenant_id" = ${applicantContext.tenantId}::uuid
+            AND "id" = ${input.assistanceSessionId}::uuid
+          FOR UPDATE
+        `;
+        if (sessionLock.length !== 1) throw new IntakeNotFoundError();
+        const session = await transaction.assistanceSession.findFirst({
+          where: { id: input.assistanceSessionId },
+        });
+        if (
+          session === null ||
+          session.tenantId !== applicantContext.tenantId ||
+          session.status !== "ACTIVE" ||
+          session.operatorUserId !==
+            (applicantContext.effectiveActorId ?? applicantContext.actorId) ||
+          !session.adultPresentConfirmed ||
+          !session.authorizationConfirmed ||
+          session.authorizationRecordedAt === null
+        ) {
+          throw new IntakeNotFoundError();
+        }
+        verifiedAssistanceSession = session;
+      }
+
       const locked = await transaction.$queryRaw<Array<{ id: string }>>`
         SELECT "id" FROM "applications"
         WHERE "tenant_id" = ${applicantContext.tenantId}::uuid AND "id" = ${applicationId}::uuid
         FOR UPDATE
       `;
       if (locked.length !== 1) throw new IntakeNotFoundError();
+      const familyProfileId =
+        verifiedAssistanceSession?.familyProfileId ??
+        (input.submissionMode === "SELF_SERVICE"
+          ? input.familyProfileId
+          : (() => {
+              throw new IntakeNotFoundError();
+            })());
       const application = await this.loadOwnedApplication(
         transaction,
         familyProfileId,
         applicationId,
       );
       if (application === null) throw new IntakeNotFoundError();
+      if (input.submissionMode === "ASSISTED") {
+        if (
+          verifiedAssistanceSession === undefined ||
+          application.tenantId !== verifiedAssistanceSession.tenantId ||
+          application.origin !== "ASSISTED" ||
+          application.assistanceSessionId !== verifiedAssistanceSession.id ||
+          application.familyProfileId !==
+            verifiedAssistanceSession.familyProfileId
+        ) {
+          throw new IntakeNotFoundError();
+        }
+      }
+      const profileSnapshot = await transaction.familyProfile.findUnique({
+        where: { id: application.familyProfileId },
+      });
+      if (profileSnapshot === null) throw new IntakeNotFoundError();
       if (
-        input.assistanceSessionId !== undefined &&
-        application.assistanceSessionId !== input.assistanceSessionId
+        verifiedAssistanceSession !== undefined &&
+        profileSnapshot.userId !==
+          verifiedAssistanceSession.adultResponsibleUserId
       ) {
         throw new IntakeNotFoundError();
       }
@@ -1838,10 +1894,13 @@ export class FormService {
           tenantId: applicantContext.tenantId,
         },
       );
-      const profileSnapshot = await transaction.familyProfile.findUnique({
-        where: { id: application.familyProfileId },
-      });
-      if (profileSnapshot === null) throw new IntakeNotFoundError();
+      const submittedBy =
+        verifiedAssistanceSession?.operatorUserId ??
+        (input.submissionMode === "SELF_SERVICE"
+          ? input.submittedBy
+          : (() => {
+              throw new IntakeNotFoundError();
+            })());
       const payload = {
         applicationId,
         familyProfile: { displayName: profileSnapshot.displayName },
@@ -1887,9 +1946,10 @@ export class FormService {
         schemaVersion: 2,
         ...(input.submissionMode === "ASSISTED"
           ? {
-              adultResponsibleUserId: input.adultResponsibleUserId,
-              assistanceSessionId: input.assistanceSessionId,
-              operatorUserId: input.operatorUserId,
+              adultResponsibleUserId:
+                verifiedAssistanceSession!.adultResponsibleUserId,
+              assistanceSessionId: verifiedAssistanceSession!.id,
+              operatorUserId: verifiedAssistanceSession!.operatorUserId,
             }
           : {}),
         submissionMode: input.submissionMode,
@@ -1899,7 +1959,7 @@ export class FormService {
           id: application.student.id,
         },
         submittedAt: now.toISOString(),
-        submittedBy: input.submittedBy,
+        submittedBy,
         tenantId: applicantContext.tenantId,
       };
       const snapshot = await transaction.applicationSnapshot.create({
@@ -1909,7 +1969,7 @@ export class FormService {
           payload: asJson(payload),
           schemaVersion: 2,
           submittedAt: now,
-          submittedBy: input.submittedBy,
+          submittedBy,
           tenantId: applicantContext.tenantId,
         },
       });
@@ -1932,7 +1992,9 @@ export class FormService {
       if (input.submissionMode === "ASSISTED") {
         await recordAudit(transaction, applicantContext, {
           action: "ASSISTED_SUBMISSION_CONFIRMED",
-          metadata: { assistanceSessionId: input.assistanceSessionId! },
+          metadata: {
+            assistanceSessionId: verifiedAssistanceSession!.id,
+          },
           resourceId: applicationId,
           resourceType: "Application",
         });

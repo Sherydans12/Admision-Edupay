@@ -313,22 +313,11 @@ export class AssistanceService {
     now = new Date(),
   ) {
     assertAssist(context);
-    const session = await withTenantTransaction(this.prisma, (transaction) =>
-      this.requireSessionApplication(
-        transaction,
-        context,
-        assistanceSessionId,
-        applicationId,
-      ),
-    );
     return this.forms.submitAssistedApplication(
       context,
       {
-        adultResponsibleUserId: session.adultResponsibleUserId,
         applicationId,
         assistanceSessionId,
-        familyProfileId: session.familyProfileId,
-        operatorUserId: session.operatorUserId,
       },
       now,
     );

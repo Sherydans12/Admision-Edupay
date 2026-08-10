@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A+B COMPLETE / E5-C COMPLETE_WITH_DEFERRED_Q106 — READY FOR E5-D REVIEW` |
+| Estado | `IN PROGRESS / E5-A+B+C COMPLETE — READY FOR E5-D REVIEW` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
