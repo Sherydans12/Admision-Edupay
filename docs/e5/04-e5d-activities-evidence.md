@@ -1,129 +1,152 @@
 # E5-D — Evidencia de actividades y agenda
 
-Estado de esta entrega: `E5-D COMPLETE` con evidencia local, CI remoto `validate` en verde y revisión humana pendiente. E5 permanece `IN PROGRESS / E5-A+B+C+D COMPLETE — READY FOR E5-E REVIEW`.
+Estado de la ronda: `E5-D COMPLETE`. E5 queda en `IN PROGRESS / E5-A+B+C+D
+COMPLETE — READY FOR E5-E REVIEW`; E5-E no se inicia y G5 permanece `NO
+APROBADA`.
 
 ## Alcance y trazabilidad
 
-Esta entrega implementa únicamente BL-008 y BL-009, con AC-017..021 y E2E-005..008. Las superficies relacionadas son SCR-FAM-012/013, SCR-STAFF-009/010 y SCR-ADM-005.
+Esta ronda mantiene el alcance de BL-008 y BL-009, con AC-017..AC-021 y
+E2E-005..E2E-008. Sólo endurece autorización, proyección, concurrencia,
+integridad histórica, RLS y evidencia del slice E5-D.
 
-Se mantienen fuera de alcance E5-E, G5, EduPay, proveedores de pago, correo/SMS/WhatsApp, datos reales, integraciones externas, Q-106, C-013 y Q-301..Q-309. Admisión y EduPay siguen desacoplados.
+Quedan fuera E5-E, G5, EduPay, proveedores de pago, correo/SMS/WhatsApp,
+datos reales, integraciones externas, Q-106, C-013 y Q-301..Q-309. Admisión y
+EduPay siguen desacoplados.
 
-Fuentes utilizadas: especificación funcional E1, modelo lógico E2, inventario y flujos E3, backlog aprobado y `AGENTS.md`. La cifra histórica de E5-C se corrigió de 215 a 216 archivos tracked en `docs/e5/03-e5c-documents-assisted-evidence.md`.
+## Hechos, decisiones y supuestos
 
-## Decisiones y supuestos
-
-### Confirmado
+### Hechos confirmados
 
 - La modalidad MVP es `IN_PERSON`.
-- La familia puede solicitar reprogramación solo con `{ reason }`; no elige slot ni fecha.
-- El staff define fecha, hora, duración, ubicación y evaluador efectivo.
+- La familia solicita reprogramación con el body exacto `{ reason: string }`.
+- La familia no envía slot, fecha, hora, assignedUser ni free slot.
 - Los resultados canónicos son `FAVORABLE`, `NO_FAVORABLE` e `INCONCLUSO`.
-- Una cita obsoleta debe producir conflicto controlado y no sobrescribir historial.
+- El actor efectivo debe coincidir con `assignedUserId` para ejecutar
+  `activity.perform`.
 
-### Decidido para E5-D
+### Decisiones de esta ronda
 
-- La configuración se versiona por tenant y scope de proceso/oferta/curso/año; una versión publicada se pinnea en la postulación.
-- Los defaults configurables son `maxNormalReschedules = 2` y `lateToleranceMinutes = 15`; la duración es obligatoria y explícita.
-- La primera inasistencia no cierra ni rechaza; la segunda inasistencia injustificada deja `manualClosureEligible = true`.
-- El cierre exige permiso, motivo, auditoría y ausencia de cita `PROGRAMADA`; no cambia por sí solo la postulación ni la decisión.
-- Attempts y results son append-only; una corrección se modela como nueva versión histórica.
+- `activity.result.read` se evalúa de forma independiente de `activity.repeat`,
+  `activity.close`, `activity.schedule`, `activity.read` y
+  `activity.perform`.
+- La evidencia sensible exige permiso, tenant, propósito, scope derivado,
+  `highly_restricted` y sensibilidad válida: `restricted.read` para contexto
+  tenant o categoría `highly_restricted` para una elevación de soporte válida.
+- Los scopes de actividad se derivan de la aplicación persistida: `application`,
+  `offering`, `process` y `campus`; no se aceptan scopes del request.
+- Un executor asignable debe ser `PlatformUser ACTIVE` y tener `Membership
+  ACTIVE` vigente en el tenant. La compatibilidad de `activity.perform` se
+  valida en el boundary de ejecución mediante el actor efectivo.
+- `expectedAppointmentId` es obligatorio para repeat y para la ruta familiar
+  de solicitud de reprogramación.
 
 ### Supuestos temporales
 
-- Los fixtures y pruebas usan UUID, nombres y correos sintéticos.
-- Las fechas se envían como ISO-8601 con offset y se almacenan conceptualmente en UTC; no se fija una zona horaria institucional.
-- La ausencia de un permission key específico para lectura de actividades se resuelve con `activity.read`; los datos sensibles requieren además `restricted.read` o `highly_restricted.read` según corresponda.
+- Fixtures usan UUID, nombres y correos sintéticos.
+- Las fechas se transportan con ISO-8601 y se almacenan conceptualmente en UTC.
+- No existe una operación UI/API de corrección de `ActivityResult` en E5-D. El
+  schema conserva estructura append-only preparada para versionado; la
+  corrección operativa de un resultado no forma parte de E5-D.
 
-## Modelo y estados
+## Cambios implementados
 
-La migration 9 agrega siete tablas tenant-owned:
+### Proyección y autorización
 
-1. `activity_definitions` — identidad estable y `kind`.
-2. `activity_definition_versions` — configuración immutable después de publicar.
-3. `application_activities` — snapshot pinneado por postulación.
-4. `activity_appointments` — historial append-only de citas.
-5. `activity_reschedule_requests` — solicitud familiar y su fulfillment.
-6. `activity_attempts` — ejecución, resultado operativo, motivo y no-show.
-7. `activity_results` — resultado privado versionado.
+- `repeat` y `closeActivityAfterNoShows` ya no fuerzan
+  `mapStaffActivity(result, true)`.
+- Todas las mutaciones devuelven evidencia redactada cuando el actor sólo está
+  autorizado para la operación operacional.
+- `recordOutcome` tampoco expone evidencia por ser el executor asignado.
+- `authorizeActivityResource` cubre list/get, schedule, reprogram, outcome,
+  repeat, close y result read con scopes server-side completos.
+- Support elevation usa exclusivamente scopes y categorías de su elevación
+  verificada; scope incorrecto deniega y scope correcto sin
+  `highly_restricted` redacta.
 
-Enums nuevos: `ActivityDefinitionKind`, `ActivityDefinitionVersionLifecycle`, `ActivityModality`, `ApplicationActivityStatus`, `ActivityAppointmentStatus`, `ActivityRescheduleRequestStatus`, `ActivityAttemptOutcome` y `ActivityResultValue`.
+### Citas familiares y fencing
 
-Estados de actividad: `PENDIENTE`, `PROGRAMADA`, `REALIZADA`, `REPROGRAMADA`, `INASISTENCIA`, `EXENTA`, `NO_COMPLETADA`, `CERRADA`. Citas y attempts conservan secuencia, previous appointment/attempt y actor efectivo.
+La ruta es:
 
-## Pinning y configuración
+`POST /family/tenants/:tenantId/applications/:applicationId/activities/:activityId/appointments/:expectedAppointmentId/reschedule-requests`
 
-Al enviar una postulación, el mismo transaction boundary selecciona la versión `PUBLISHED` aplicable al tenant y scope, ordena por especificidad y versión, crea `application_activities` y fija `activities_pinned_at`. Reintentar el envío no duplica activities.
+La comparación de la cita actual ocurre bajo lock de `ApplicationActivity`.
+Una cita stale devuelve `409 ACTIVITY_APPOINTMENT_CHANGED` y no crea
+`ActivityRescheduleRequest`. La ruta anterior insegura no se conserva.
 
-Los cambios posteriores de configuración no alteran el snapshot ya pinneado. Admin puede crear y editar `DRAFT`, publicar y archivar con permisos separados. Las versiones publicadas/archivadas no admiten mutación ni eliminación desde el rol de aplicación.
+Repeat exige `expectedAppointmentId` en tipo, schema y servicio; la comparación
+es siempre bajo el mismo lock.
 
-## Agenda, reprogramación y concurrencia
+### Executors
 
-- `schedule` crea la primera cita únicamente si no existe otra vigente.
-- `reprogram` marca la cita anterior `REPROGRAMADA`, crea una nueva `PROGRAMADA` y conserva el historial.
-- `expectedAppointmentId` se valida dentro de una transacción con lock de `application_activities`; un valor stale devuelve `409 ACTIVITY_APPOINTMENT_CHANGED`.
-- Se controla doble registro de outcome validando que la cita siga `PROGRAMADA`.
-- `ActivityRescheduleRequest` no recibe fecha, hora ni slot desde familia; el fulfillment es staff-side.
-- Se impide no-show antes de `scheduled_start_at + lateToleranceMinutes` con `409 ACTIVITY_NO_SHOW_TOO_EARLY`.
+Schedule, reprogram y repeat resuelven el executor contra datos persistidos y
+rechazan usuario inexistente, usuario de otro tenant, membership suspendida o
+revocada y ventanas fuera de vigencia. La migration 10 agrega la FK
+`activity_appointments.assigned_user_id -> platform_users.id`.
 
-## Inasistencia, attempts, results y repeat
+### Migration 10 y sellos de historia
 
-La primera inasistencia crea un attempt y deja la actividad abierta. La segunda inasistencia injustificada habilita cierre manual, pero no ejecuta auto-close. El cierre manual exige `activity.close`, motivo no vacío, actor efectivo y auditoría; nunca deja una cita actual `PROGRAMADA`.
+`20260810190000_e5d_activity_boundary_hardening` es forward-only y no modifica
+migrations 1..9. Incluye:
 
-Una actividad diagnóstica `NO_COMPLETADA` registra `INCONCLUSO` y puede repetirse con `activity.repeat`, creando una nueva cita y manteniendo el vínculo histórico. Results, comments, evaluator y attempts no forman parte de la proyección familiar.
+- FK de `previous_appointment_id` en
+  `(tenant_id, application_activity_id, previous_appointment_id)` hacia la
+  misma actividad.
+- FK de `previous_result_id` en
+  `(tenant_id, application_activity_id, attempt_id, previous_result_id)` hacia
+  el mismo attempt.
+- Unique compatible para historia de resultados por attempt.
+- Checks anti-self para appointment y result.
 
-## Autorización, scopes y sensibilidad
+Las siete tablas E5-D mantienen RLS y `FORCE ROW LEVEL SECURITY`, grants
+separados y triggers append-only existentes.
 
-Se agregaron `activity.definition.manage`, `activity.definition.publish`, `activity.read`, `activity.schedule`, `activity.perform`, `activity.result.read`, `activity.repeat` y `activity.close`.
+## Pruebas dirigidas
 
-Toda operación exige tenant, propósito, rol y permiso. El executor boundary usa `assignedUserId`/actor efectivo; el cliente no puede elevarlo por body. Los scopes de aplicación se validan con el mismo patrón de los dominios anteriores. Sin permiso de sensibilidad, el endpoint staff omite attempts/results; una familia nunca recibe evaluator, comment, score, result ni detalles internos.
+- Actividades de dominio: `5/5`.
+- Hardening E5-D: `9/9`.
+- HTTP real de actividades: `6/6`, incluyendo repeat/close redactados,
+  repeat sin token obligatorio y stale/current familiar.
+- RLS de actividades: `3/3`, incluyendo reutilización de conexión pooled
+  tenant A → sin contexto → tenant B.
+- Concurrencia real PostgreSQL: `5` pruebas con 20 operaciones concurrentes
+  para schedule, reprogram, repeat, outcome y close vs schedule/reprogram.
+- Sellos DB PostgreSQL: `5` escenarios cubiertos en la prueba de historia:
+  cross-activity appointment rechazado, same-activity aceptado, cross-attempt
+  result rechazado, same-attempt aceptado y self-reference rechazado.
+- Suite completa: `19 archivos, 270/270 tests PASS` en la ejecución más reciente
+  con `pnpm test -- --hookTimeout=60000`. El margen explícito sólo evita que la
+  preparación sintética de una suite paralela expire el hook de 10 segundos;
+  no omite ni modifica aserciones.
+- RLS global: `22/22 PASS`.
 
-## RLS, integridad y auditoría
+## Validación reproducible
 
-Las siete tablas tienen `tenant_id NOT NULL`, foreign keys simples y compuestas same-tenant, RLS y `FORCE ROW LEVEL SECURITY`. Hay triggers para inmovilidad de versiones publicadas/archivadas, append-only de attempts/results y consistencia de la cita current. La migration conserva owner/grants separados para `admission_app` y `admission_migrator`.
-
-Las mutaciones relevantes auditan actor, effective actor, tenant, propósito, recurso y motivo. No se registran secretos ni datos personales reales.
-
-## HTTP y UI
-
-Se agregaron endpoints family, staff y admin en `ActivityController`, validación Zod strict, CSRF para mutations y `GlobalErrorFilter` con conflictos `409` explícitos.
-
-La UI incorpora:
-
-- Familia: listado seguro, próximo paso, historial visible sin slot selection, y solicitud de reprogramación con motivo.
-- Staff: agenda operativa, schedule/reprogram/no-show/not-completed y acceso condicionado a resultados.
-- Admin: definición, versionado DRAFT y configuración explícita de duración/defaults.
-
-Los formularios usan labels, títulos, botones con texto y mensajes de estado visibles. No se incorporó un proveedor externo ni se realizó auditoría automatizada de lector de pantalla; queda como revisión manual de la compuerta de diseño.
-
-## Migration y validaciones
-
-Migration forward única: `20260810180000_e5d_activities`, sin modificar migrations 1..8.
-
-Resultados observados:
-
-- `pnpm db:reset` + `pnpm db:migrate`: 9 migrations aplicadas correctamente.
-- `pnpm e5d:migration:smoke`: `FRESH_0_TO_9=PASS`, `INCREMENTAL_8_TO_9=PASS`, `E5D_DB_SEALS=PASS`.
-- `pnpm e5c:migration:smoke`: base E5-C 0→7 y hardening 7→8 pasan; E5-D queda como migration 9.
-- `pnpm exec vitest run packages/database/src/activities.integration.spec.ts`: 5/5.
-- `pnpm exec vitest run packages/database/src/activities.rls.integration.spec.ts`: 2/2.
-- `pnpm exec vitest run apps/api/src/activity.http.integration.spec.ts`: 5/5.
-- `pnpm test`: 18 archivos, 259/259 tests, PASS (444.47 s).
-- `pnpm test:rls`: 22/22 en base limpia.
-- `pnpm e5c:documents:smoke`: 1/1.
+- `pnpm install --frozen-lockfile`: PASS.
+- `pnpm db:generate`: PASS.
+- `pnpm db:migrate`: PASS, 10 migrations aplicadas localmente.
+- `pnpm e5d:migration:smoke`: `FRESH_0_TO_10=PASS`,
+  `INCREMENTAL_9_TO_10=PASS`, `E5D_DB_SEALS=PASS`.
+- `pnpm e5c:documents:smoke`: `1/1 PASS`.
+- `pnpm e4:deploy:smoke`: PASS; API live/ready, web 200, PostgreSQL healthy,
+  migrator, worker persistente y SIGTERM limpio.
 - `pnpm format:check`: PASS.
 - `pnpm lint`: PASS.
-- `pnpm build`: PASS después de agregar la suite HTTP.
-- `pnpm security:secrets`: PASS, 216 archivos tracked inspeccionados.
+- `pnpm typecheck`: PASS.
+- `pnpm build`: PASS.
+- `pnpm security:secrets`: PASS; `229` archivos tracked inspeccionados en el
+  HEAD final de esta ronda.
 - `pnpm security:deps`: sin vulnerabilidades conocidas de severidad alta.
 - `docker compose config`: PASS.
 - `git diff --check`: PASS.
 
-Pendientes de validación final:
+## Datos, riesgos y compuerta
 
-- `pnpm test` completo: dos ejecuciones superaron cinco minutos sin reporte final; no se declara PASS.
-- `pnpm e4:deploy:smoke`: PASS; API live/ready, web 200, PostgreSQL healthy, migrator exit 0, worker persistente y SIGTERM limpio.
-- Revisión CI remota después del push.
+Todos los fixtures, logs de prueba y artefactos de esta ronda son sintéticos.
+No se usaron datos reales, proveedores productivos ni integración EduPay.
 
-## Riesgos y siguientes compuertas
-
-El riesgo actual es operativo: dos gates heredados no concluyeron en el entorno local por timeout. El siguiente paso humano es revisar esos timeouts/CI y decidir si E5-D puede pasar a `COMPLETE`. E5-E permanece `NOT_STARTED`; G5 permanece `NO APROBADA`; Q-106 permanece diferida; C-013 queda pendiente de validación legal; Q-301..Q-309 permanecen pendientes de integración futura.
+El mínimo obligatorio de executor es membership tenant activa; una validación
+adicional de RoleAssignment específica por actividad queda documentada como
+refuerzo posterior, sin ampliar esta ronda. La próxima acción humana es revisar
+la evidencia y decidir el inicio de E5-E. Q-106 permanece diferida, C-013 en
+`LEGAL_VALIDATION_PENDING` y Q-301..Q-309 en `FUTURE_INTEGRATION_PENDING`.

@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A+B+C COMPLETE — E5-D SECURITY_CONCURRENCY_HARDENING_IN_PROGRESS` |
+| Estado | `IN PROGRESS / E5-A+B+C+D COMPLETE — READY FOR E5-E REVIEW` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
@@ -113,7 +113,7 @@ exactos y no declara una política definitiva de verificación familiar.
 
 ### E5-D — Actividades
 
-**Estado:** `SECURITY_CONCURRENCY_HARDENING_IN_PROGRESS`.
+**Estado:** `COMPLETE`.
 
 Cobertura principal: `BL-008` y `BL-009`: agenda, reprogramación, asistencia/no-show, intentos y resultado interno separado del estado operacional.
 
