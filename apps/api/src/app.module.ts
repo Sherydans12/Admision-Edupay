@@ -18,6 +18,8 @@ import { RequestContextService } from "./request-context.service.js";
 import { DocumentController } from "./document.controller.js";
 import { ApiDocumentService } from "./document.service.js";
 import { ApiAssistanceService } from "./assistance.service.js";
+import { ActivityController } from "./activity.controller.js";
+import { ApiActivityService } from "./activity.service.js";
 
 const prismaProvider = {
   provide: PrismaClient,
@@ -40,6 +42,7 @@ const sessionProvider = {
     IntakeController,
     FormController,
     DocumentController,
+    ActivityController,
   ],
   providers: [
     prismaProvider,
@@ -48,6 +51,7 @@ const sessionProvider = {
     ApiFormService,
     ApiDocumentService,
     ApiAssistanceService,
+    ApiActivityService,
     HealthService,
     RequestContextService,
   ],

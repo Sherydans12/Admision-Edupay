@@ -6,6 +6,7 @@ import {
   HttpStatus,
 } from "@nestjs/common";
 import {
+  ActivityConflictError,
   ForbiddenError,
   IntakeConflictError,
   IntakeDuplicateError,
@@ -25,7 +26,14 @@ export interface PublicErrorResponse {
     | "NOT_FOUND"
     | "VALIDATION";
   message: "Request failed";
-  code?: "DOCUMENT_PROCESSING_IN_PROGRESS" | "DOCUMENT_VERSION_CHANGED";
+  code?:
+    | "DOCUMENT_PROCESSING_IN_PROGRESS"
+    | "DOCUMENT_VERSION_CHANGED"
+    | "ACTIVITY_APPOINTMENT_CHANGED"
+    | "ACTIVITY_ALREADY_SCHEDULED"
+    | "ACTIVITY_NO_SHOW_TOO_EARLY"
+    | "ACTIVITY_CLOSED"
+    | "NORMAL_RESCHEDULE_LIMIT_REQUIRES_REVIEW";
 }
 
 @Catch()
@@ -47,7 +55,9 @@ export class GlobalErrorFilter implements ExceptionFilter {
       message: "Request failed",
       ...(exception instanceof IntakeConflictError
         ? { code: exception.code }
-        : {}),
+        : exception instanceof ActivityConflictError
+          ? { code: exception.code }
+          : {}),
     });
   }
 }
@@ -56,6 +66,7 @@ function exceptionStatus(exception: unknown): number {
   if (exception instanceof HttpException) return exception.getStatus();
   if (exception instanceof ForbiddenError) return HttpStatus.FORBIDDEN;
   if (exception instanceof IntakeConflictError) return HttpStatus.CONFLICT;
+  if (exception instanceof ActivityConflictError) return HttpStatus.CONFLICT;
   if (exception instanceof IntakeDuplicateError) return HttpStatus.CONFLICT;
   if (exception instanceof IntakeNotFoundError) return HttpStatus.NOT_FOUND;
   if (exception instanceof IntakeValidationError) return HttpStatus.BAD_REQUEST;

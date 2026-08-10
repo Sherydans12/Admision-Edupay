@@ -34,6 +34,7 @@ function readCookie(request: RequestLike, name: string): string | undefined {
 }
 
 const FAMILY_CAPABILITIES = [
+  PERMISSIONS.ACTIVITY_READ,
   PERMISSIONS.APPLICATION_CREATE,
   PERMISSIONS.APPLICATION_READ,
   PERMISSIONS.APPLICATION_SUBMIT,

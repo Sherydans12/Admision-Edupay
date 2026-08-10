@@ -741,9 +741,39 @@ h3 {
 .document-admin,
 .staff-workspace,
 .assistance-workspace,
-.assisted-flow {
+.assisted-flow,
+.activity-workspace {
   display: grid;
   gap: 1rem;
+}
+.activity-list {
+  display: grid;
+  gap: 0.8rem;
+}
+.activity-card {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: white;
+}
+.activity-card-heading,
+.activity-action-row {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+.activity-card-heading h3 {
+  margin-bottom: 0.1rem;
+}
+.activity-actions {
+  display: grid;
+  gap: 0.65rem;
+}
+.activity-action-row .field {
+  flex: 1;
 }
 .document-list {
   display: grid;
@@ -987,8 +1017,10 @@ h3 {
   .document-meta,
   .document-upload,
   .control-group,
-  .scope-grid {
+  .scope-grid,
+  .activity-action-row {
     grid-template-columns: 1fr;
+    flex-direction: column;
   }
 }
 @media (prefers-reduced-motion: reduce) {

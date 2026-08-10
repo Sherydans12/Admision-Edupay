@@ -7,6 +7,11 @@ import {
   AssistedApplicationWorkspace,
   StaffDocumentWorkspace,
 } from "./document-workflows";
+import {
+  AdminActivityWorkspace,
+  FamilyActivityWorkspace,
+  StaffActivityWorkspace,
+} from "./activity-workflows";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
@@ -14,7 +19,7 @@ const FALLBACK_TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 type Mode = "family" | "admin" | "staff";
 type FamilySection =
-  "home" | "students" | "offerings" | "applications" | "form";
+  "home" | "students" | "offerings" | "applications" | "activities" | "form";
 type AdminSection =
   | "forms"
   | "documents"
@@ -22,8 +27,9 @@ type AdminSection =
   | "academicYear"
   | "courseLevel"
   | "process"
-  | "offering";
-type StaffSection = "review" | "assistance";
+  | "offering"
+  | "activities";
+type StaffSection = "review" | "assistance" | "activities";
 
 interface Offering {
   academicYear: string;
@@ -394,6 +400,10 @@ export default function Home() {
               setActiveApplicationId(applicationId);
               setFamilySection("form");
             }}
+            onOpenActivities={(applicationId) => {
+              setActiveApplicationId(applicationId);
+              setFamilySection("activities");
+            }}
             onSectionChange={setFamilySection}
             onStartApplication={startApplication}
             offerings={offerings}
@@ -431,6 +441,7 @@ function FamilyView(props: {
     acknowledgedNoGuarantee: boolean,
   ) => void;
   onOpenApplication: (applicationId: string) => void;
+  onOpenActivities: (applicationId: string) => void;
   onRefresh: () => Promise<void>;
   onSectionChange: (section: FamilySection) => void;
   onStartApplication: (offeringId: string) => void;
@@ -446,7 +457,13 @@ function FamilyView(props: {
       <aside className="side-nav" aria-label="Navegación familiar">
         <p className="nav-label">Mi espacio familiar</p>
         {(
-          ["home", "students", "offerings", "applications"] as FamilySection[]
+          [
+            "home",
+            "students",
+            "offerings",
+            "applications",
+            "activities",
+          ] as FamilySection[]
         ).map((section) => (
           <button
             className={
@@ -463,7 +480,9 @@ function FamilyView(props: {
                 ? "Estudiantes"
                 : section === "offerings"
                   ? "Ofertas"
-                  : "Postulaciones"}
+                  : section === "applications"
+                    ? "Postulaciones"
+                    : "Actividades"}
           </button>
         ))}
         <div className="side-note">
@@ -480,6 +499,19 @@ function FamilyView(props: {
         {familySection === "offerings" ? <OfferingsSection {...props} /> : null}
         {familySection === "applications" ? (
           <ApplicationsSection {...props} />
+        ) : null}
+        {familySection === "activities" ? (
+          <FamilyActivityWorkspace
+            apiBase={API_BASE}
+            applicationId={
+              props.activeApplicationId ||
+              props.applications.find(
+                (application) => application.status === "SUBMITTED",
+              )?.id ||
+              ""
+            }
+            tenantId={props.tenantId}
+          />
         ) : null}
         {familySection === "form" && props.activeApplicationId ? (
           <FamilyApplicationFlow
@@ -703,6 +735,7 @@ function ApplicationsSection({
   applications,
   onDraftSave,
   onOpenApplication,
+  onOpenActivities,
 }: {
   applications: Application[];
   onDraftSave: (
@@ -710,6 +743,7 @@ function ApplicationsSection({
     acknowledgedNoGuarantee: boolean,
   ) => void;
   onOpenApplication: (applicationId: string) => void;
+  onOpenActivities: (applicationId: string) => void;
 }) {
   return (
     <>
@@ -768,6 +802,15 @@ function ApplicationsSection({
                   </label>
                 </div>
               ) : null}
+              {application.status === "SUBMITTED" ? (
+                <button
+                  className="button button-secondary"
+                  onClick={() => onOpenActivities(application.id)}
+                  type="button"
+                >
+                  Ver actividades y citas
+                </button>
+              ) : null}
               {application.status === "DRAFT" && !application.formVersionId ? (
                 <span className="muted">
                   Borrador histórico legible; no admite envío versionado.
@@ -797,6 +840,7 @@ function AdminView({
   const sections: { key: AdminSection; label: string }[] = [
     { key: "forms", label: "Formularios" },
     { key: "documents", label: "Documentos" },
+    { key: "activities", label: "Actividades" },
     { key: "campus", label: "Sede" },
     { key: "academicYear", label: "Año" },
     { key: "courseLevel", label: "Curso" },
@@ -847,6 +891,8 @@ function AdminView({
           />
         ) : adminSection === "documents" ? (
           <AdminDocumentRequirements apiBase={API_BASE} tenantId={tenantId} />
+        ) : adminSection === "activities" ? (
+          <AdminActivityWorkspace apiBase={API_BASE} tenantId={tenantId} />
         ) : (
           <AdminForm
             adminSection={adminSection}
@@ -871,6 +917,7 @@ function StaffView({
   const sections: { key: StaffSection; label: string }[] = [
     { key: "review", label: "Revisión documental" },
     { key: "assistance", label: "Postulación asistida" },
+    { key: "activities", label: "Agenda y actividades" },
   ];
   return (
     <div className="content-grid">
@@ -911,11 +958,13 @@ function StaffView({
         </div>
         {staffSection === "review" ? (
           <StaffDocumentWorkspace apiBase={API_BASE} tenantId={tenantId} />
-        ) : (
+        ) : staffSection === "assistance" ? (
           <AssistedApplicationWorkspace
             apiBase={API_BASE}
             tenantId={tenantId}
           />
+        ) : (
+          <StaffActivityWorkspace apiBase={API_BASE} tenantId={tenantId} />
         )}
       </section>
     </div>
