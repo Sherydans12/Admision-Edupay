@@ -18,6 +18,9 @@ const hardMax = Number(
   process.env.DOCUMENT_UPLOAD_HARD_MAX_BYTES ?? 10 * 1024 * 1024,
 );
 const pollMs = Number(process.env.DOCUMENT_WORKER_POLL_MS ?? 1_000);
+const outboxLeaseMs = Number(process.env.OUTBOX_LEASE_MS ?? 60_000);
+const maxAttempts = Number(process.env.DOCUMENT_JOB_MAX_ATTEMPTS ?? 5);
+const baseBackoffMs = Number(process.env.DOCUMENT_JOB_BASE_BACKOFF_MS ?? 1_000);
 const prisma = createAppPrismaClient();
 const documents = new DocumentService(
   prisma,
@@ -26,7 +29,11 @@ const documents = new DocumentService(
   hardMax,
   new DevelopmentBusinessCalendar(),
 );
-const worker = new DocumentWorker(prisma, documents, pollMs);
+const worker = new DocumentWorker(prisma, documents, pollMs, {
+  baseBackoffMs,
+  maxAttempts,
+  outboxLeaseMs,
+});
 
 markWorkerReady();
 console.info(JSON.stringify(getWorkerDescriptor()));

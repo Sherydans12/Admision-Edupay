@@ -65,7 +65,26 @@ function fakeDocuments(
         technicalStatus: "READY_FOR_REVIEW",
       };
     },
-  } as DocumentService;
+  } as unknown as DocumentService;
+}
+
+function failingDocuments(): DocumentService {
+  return {
+    async processDocument() {
+      throw new Error("SYNTHETIC_TRANSIENT_HANDLER_FAILURE");
+    },
+  } as unknown as DocumentService;
+}
+
+async function firstMessage(tenantId: string) {
+  const tenantContext = context(tenantId);
+  return runWithTenantContext(tenantContext, () =>
+    withTenantTransaction(prisma, (transaction) =>
+      transaction.outboxMessage.findFirstOrThrow({
+        orderBy: { createdAt: "asc" },
+      }),
+    ),
+  );
 }
 
 beforeEach(async () => {
@@ -145,5 +164,161 @@ describe.sequential("E5-C tenant-scoped document worker", () => {
     const running = worker.run();
     setTimeout(() => worker.stop(), 60);
     await expect(running).resolves.toBeUndefined();
+  });
+
+  it("E5C-LEASE-01: PROCESSING is not reclaimed before lease expiry", async () => {
+    await enqueue(TENANT_A);
+    const tenantContext = context(TENANT_A);
+    const outbox = new OutboxService(prisma, { leaseMs: 1_000 });
+    const claimedAt = new Date(Date.now() + 10_000);
+    const first = await runWithTenantContext(tenantContext, () =>
+      outbox.claimNext(claimedAt, [DOCUMENT_PROCESS_TOPIC]),
+    );
+    expect(first?.status).toBe("PROCESSING");
+    await expect(
+      runWithTenantContext(tenantContext, () =>
+        outbox.claimNext(new Date(claimedAt.getTime() + 999), [
+          DOCUMENT_PROCESS_TOPIC,
+        ]),
+      ),
+    ).resolves.toBeUndefined();
+  });
+
+  it("E5C-LEASE-02: PROCESSING is reclaimed after lease expiry", async () => {
+    await enqueue(TENANT_A);
+    const tenantContext = context(TENANT_A);
+    const outbox = new OutboxService(prisma, { leaseMs: 1_000 });
+    const claimedAt = new Date(Date.now() + 10_000);
+    await runWithTenantContext(tenantContext, () =>
+      outbox.claimNext(claimedAt, [DOCUMENT_PROCESS_TOPIC]),
+    );
+    const reclaimed = await runWithTenantContext(tenantContext, () =>
+      outbox.claimNext(new Date(claimedAt.getTime() + 1_001), [
+        DOCUMENT_PROCESS_TOPIC,
+      ]),
+    );
+    expect(reclaimed).toMatchObject({ attempts: 2, status: "PROCESSING" });
+  });
+
+  it("E5C-LEASE-03: a second worker recovers a claim after a simulated crash", async () => {
+    await enqueue(TENANT_A);
+    const tenantContext = context(TENANT_A);
+    const outbox = new OutboxService(prisma, { leaseMs: 1_000 });
+    const firstClaimAt = new Date(Date.now() + 10_000);
+    const crashedClaim = await runWithTenantContext(tenantContext, () =>
+      outbox.claimNext(firstClaimAt, [DOCUMENT_PROCESS_TOPIC]),
+    );
+    expect(crashedClaim?.status).toBe("PROCESSING");
+    const recovered = await runWithTenantContext(tenantContext, () =>
+      outbox.claimNext(new Date(firstClaimAt.getTime() + 1_001), [
+        DOCUMENT_PROCESS_TOPIC,
+      ]),
+    );
+    expect(recovered?.id).toBe(crashedClaim?.id);
+    expect(recovered?.attempts).toBe(2);
+  });
+
+  it("E5C-LEASE-04: transient failure requeues PENDING with future availableAt", async () => {
+    await enqueue(TENANT_A);
+    let now = new Date(Date.now() + 10_000);
+    const worker = new DocumentWorker(prisma, failingDocuments(), 50, {
+      baseBackoffMs: 500,
+      maxAttempts: 3,
+      now: () => now,
+      outboxLeaseMs: 1_000,
+    });
+    await expect(worker.pollOnce()).resolves.toBe(true);
+    const message = await firstMessage(TENANT_A);
+    expect(message).toMatchObject({
+      attempts: 1,
+      claimedAt: null,
+      lastErrorCode: "DOCUMENT_PROCESSING_FAILED",
+      status: "PENDING",
+    });
+    expect(message.availableAt.getTime()).toBe(now.getTime() + 500);
+    now = new Date(now.getTime() + 1);
+  });
+
+  it("E5C-LEASE-05: backoff prevents an immediate retry", async () => {
+    await enqueue(TENANT_A);
+    const now = new Date(Date.now() + 10_000);
+    const worker = new DocumentWorker(prisma, failingDocuments(), 50, {
+      baseBackoffMs: 500,
+      maxAttempts: 3,
+      now: () => now,
+      outboxLeaseMs: 1_000,
+    });
+    await expect(worker.pollOnce()).resolves.toBe(true);
+    await expect(worker.pollOnce()).resolves.toBe(false);
+    expect(await firstMessage(TENANT_A)).toMatchObject({
+      attempts: 1,
+      status: "PENDING",
+    });
+  });
+
+  it("E5C-LEASE-06: max attempts terminates the job as FAILED", async () => {
+    await enqueue(TENANT_A);
+    const tenantContext = context(TENANT_A);
+    await runWithTenantContext(tenantContext, () =>
+      withTenantTransaction(prisma, (transaction) =>
+        transaction.outboxMessage.updateMany({ data: { attempts: 2 } }),
+      ),
+    );
+    const now = new Date(Date.now() + 10_000);
+    const worker = new DocumentWorker(prisma, failingDocuments(), 50, {
+      baseBackoffMs: 500,
+      maxAttempts: 3,
+      now: () => now,
+      outboxLeaseMs: 1_000,
+    });
+    await expect(worker.pollOnce()).resolves.toBe(true);
+    expect(await firstMessage(TENANT_A)).toMatchObject({
+      attempts: 3,
+      lastErrorCode: "DOCUMENT_PROCESSING_FAILED",
+      status: "FAILED",
+    });
+  });
+
+  it("E5C-LEASE-07: invalid payload fails permanently without a retry loop", async () => {
+    const tenantContext = context(TENANT_A);
+    await runWithTenantContext(tenantContext, () =>
+      new OutboxService(prisma).enqueue({
+        idempotencyKey: `invalid:${randomUUID()}`,
+        payload: { syntheticInvalid: true },
+        topic: DOCUMENT_PROCESS_TOPIC,
+      }),
+    );
+    const now = new Date(Date.now() + 10_000);
+    const worker = new DocumentWorker(prisma, fakeDocuments([]), 50, {
+      baseBackoffMs: 500,
+      maxAttempts: 3,
+      now: () => now,
+      outboxLeaseMs: 1_000,
+    });
+    await expect(worker.pollOnce()).resolves.toBe(true);
+    expect(await firstMessage(TENANT_A)).toMatchObject({
+      attempts: 1,
+      lastErrorCode: "INVALID_DOCUMENT_JOB_PAYLOAD",
+      status: "FAILED",
+    });
+    await expect(worker.pollOnce()).resolves.toBe(false);
+  });
+
+  it("E5C-LEASE-08: terminal scanner outcome is a successful SENT job", async () => {
+    await enqueue(TENANT_A);
+    const terminalDocuments = {
+      async processDocument(
+        _workerContext: TenantExecutionContext,
+        versionId: string,
+      ) {
+        return {
+          documentVersionId: versionId,
+          technicalStatus: "BLOCKED_INFECTED",
+        };
+      },
+    } as unknown as DocumentService;
+    const worker = new DocumentWorker(prisma, terminalDocuments, 50);
+    await expect(worker.pollOnce()).resolves.toBe(true);
+    expect(await firstMessage(TENANT_A)).toMatchObject({ status: "SENT" });
   });
 });

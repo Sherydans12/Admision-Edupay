@@ -14,7 +14,9 @@ import { spawn } from "node:child_process";
 
 const root = process.cwd();
 const migrationRoot = resolve(root, "packages/database/prisma/migrations");
-const e5cMigration = "20260810120000_e5c_documents_assisted";
+const e5cBaseMigration = "20260810120000_e5c_documents_assisted";
+const e5cHardeningMigration =
+  "20260810150000_e5c_review_job_assistance_hardening";
 const databaseName = `admission_e5c_${randomUUID().replaceAll("-", "")}`;
 const temporaryRoot = await mkdtemp(join(tmpdir(), "admission-e5c-migration-"));
 const temporaryPrisma = join(temporaryRoot, "prisma");
@@ -106,10 +108,15 @@ try {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
-  const e5cIndex = migrations.indexOf(e5cMigration);
-  if (e5cIndex !== migrations.length - 1 || e5cIndex < 1) {
+  const e5cBaseIndex = migrations.indexOf(e5cBaseMigration);
+  const hardeningIndex = migrations.indexOf(e5cHardeningMigration);
+  if (
+    e5cBaseIndex !== migrations.length - 2 ||
+    hardeningIndex !== migrations.length - 1 ||
+    hardeningIndex !== 7
+  ) {
     throw new Error(
-      "E5-C migration must be the single forward migration after the approved base",
+      "E5-C hardening must be migration 8 immediately after the approved E5-C base",
     );
   }
 
@@ -118,7 +125,7 @@ try {
     resolve(root, "packages/database/prisma/schema.prisma"),
     join(temporaryPrisma, "schema.prisma"),
   );
-  for (const migration of migrations.slice(0, e5cIndex)) {
+  for (const migration of migrations.slice(0, hardeningIndex)) {
     await cp(
       join(migrationRoot, migration),
       join(temporaryPrisma, "migrations", migration),
@@ -158,10 +165,10 @@ try {
     );
 
   await deploy();
-  console.log(`APPROVED_BASE_MIGRATIONS=PASS (${e5cIndex})`);
+  console.log(`E5C_SEVEN_MIGRATION_BASE=PASS (${hardeningIndex})`);
   await cp(
-    join(migrationRoot, e5cMigration),
-    join(temporaryPrisma, "migrations", e5cMigration),
+    join(migrationRoot, e5cHardeningMigration),
+    join(temporaryPrisma, "migrations", e5cHardeningMigration),
     { recursive: true },
   );
   await deploy();
@@ -169,16 +176,23 @@ try {
   const verification = await dockerPsql(
     containerId,
     databaseName,
-    "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('document_requirements','document_requirement_versions','document_submissions','document_versions','document_reviews','assistance_sessions');",
+    `SELECT
+      (to_regclass('public.document_versions_submission_id_key') IS NOT NULL)::int
+      + count(*)
+    FROM pg_constraint
+    WHERE conname IN (
+      'document_reviews_version_fkey',
+      'document_versions_replaces_fkey',
+      'document_versions_replaces_not_self_check'
+    )
+      AND convalidated;`,
   );
-  if (verification.stdout.trim() !== "6") {
+  if (verification.stdout.trim() !== "4") {
     throw new Error(
-      "E5-C tables were not created by the incremental migration",
+      "E5-C composite FKs, replacement check and supporting unique index were not verified",
     );
   }
-  console.log(
-    "E5C_INCREMENTAL_MIGRATION=PASS (6->7, six E5-C tables verified)",
-  );
+  console.log("E5C_INCREMENTAL_MIGRATION=PASS (7->8, four DB seals verified)");
 } finally {
   await rm(temporaryRoot, { force: true, recursive: true });
   await rm(temporaryConfig, { force: true });

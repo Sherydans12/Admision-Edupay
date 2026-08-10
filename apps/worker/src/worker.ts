@@ -15,6 +15,16 @@ export interface WorkerDescriptor {
   status: "ready";
 }
 
+export const DEFAULT_DOCUMENT_JOB_MAX_ATTEMPTS = 5;
+export const DEFAULT_DOCUMENT_JOB_BASE_BACKOFF_MS = 1_000;
+
+export interface DocumentWorkerOptions {
+  baseBackoffMs?: number;
+  maxAttempts?: number;
+  now?: () => Date;
+  outboxLeaseMs?: number;
+}
+
 export function getWorkerDescriptor(): WorkerDescriptor {
   return {
     environment: "synthetic-development",
@@ -48,14 +58,30 @@ function parseDocumentPayload(value: unknown): {
 export class DocumentWorker {
   private stopping = false;
   private readonly logger = new StructuredLogger("admission-worker");
+  private readonly baseBackoffMs: number;
+  private readonly maxAttempts: number;
+  private readonly now: () => Date;
+  private readonly outboxLeaseMs: number | undefined;
 
   constructor(
     private readonly prisma: PrismaClient,
     private readonly documents: DocumentService,
     private readonly pollIntervalMs = 1_000,
+    options: DocumentWorkerOptions = {},
   ) {
     if (!Number.isInteger(pollIntervalMs) || pollIntervalMs < 50) {
       throw new TypeError("Worker polling interval must be at least 50ms");
+    }
+    this.baseBackoffMs =
+      options.baseBackoffMs ?? DEFAULT_DOCUMENT_JOB_BASE_BACKOFF_MS;
+    this.maxAttempts = options.maxAttempts ?? DEFAULT_DOCUMENT_JOB_MAX_ATTEMPTS;
+    this.now = options.now ?? (() => new Date());
+    this.outboxLeaseMs = options.outboxLeaseMs;
+    if (!Number.isSafeInteger(this.baseBackoffMs) || this.baseBackoffMs < 1) {
+      throw new TypeError("Document job base backoff must be positive");
+    }
+    if (!Number.isSafeInteger(this.maxAttempts) || this.maxAttempts < 1) {
+      throw new TypeError("Document job max attempts must be positive");
     }
   }
 
@@ -93,11 +119,18 @@ export class DocumentWorker {
       tenantId,
     };
     return runWithTenantContext(baseContext, async () => {
-      const outbox = new OutboxService(this.prisma);
-      const message = await outbox.claimNext(new Date(), [
+      const outbox = new OutboxService(this.prisma, {
+        ...(this.outboxLeaseMs === undefined
+          ? {}
+          : { leaseMs: this.outboxLeaseMs }),
+      });
+      const message = await outbox.claimNext(this.now(), [
         DOCUMENT_PROCESS_TOPIC,
       ]);
       if (message === undefined) return false;
+      if (message.claimedAt === null) {
+        throw new Error("CLAIMED_DOCUMENT_JOB_WITHOUT_LEASE");
+      }
       try {
         const payload = parseDocumentPayload(message.payload);
         const context = {
@@ -107,18 +140,33 @@ export class DocumentWorker {
         await runWithTenantContext(context, () =>
           this.documents.processDocument(context, payload.documentVersionId),
         );
-        await outbox.markSent(message.id);
+        await outbox.markSent(message.id, message.claimedAt);
         this.logger.info("DOCUMENT_JOB_PROCESSED", "SUCCESS", {
           documentVersionId: payload.documentVersionId,
           stateTransition: "TERMINAL",
         });
       } catch (error) {
-        const safeErrorCode =
+        const permanent =
           error instanceof Error &&
-          error.message === "INVALID_DOCUMENT_JOB_PAYLOAD"
-            ? "INVALID_DOCUMENT_JOB_PAYLOAD"
-            : "DOCUMENT_PROCESSING_FAILED";
-        await outbox.markFailed(message.id, safeErrorCode);
+          error.message === "INVALID_DOCUMENT_JOB_PAYLOAD";
+        const safeErrorCode = permanent
+          ? "INVALID_DOCUMENT_JOB_PAYLOAD"
+          : "DOCUMENT_PROCESSING_FAILED";
+        if (permanent || message.attempts >= this.maxAttempts) {
+          await outbox.markFailed(message.id, message.claimedAt, safeErrorCode);
+        } else {
+          const exponent = Math.max(0, message.attempts - 1);
+          const backoffMs = Math.min(
+            this.baseBackoffMs * 2 ** exponent,
+            24 * 60 * 60 * 1_000,
+          );
+          await outbox.requeueAfterFailure(
+            message.id,
+            message.claimedAt,
+            safeErrorCode,
+            new Date(this.now().getTime() + backoffMs),
+          );
+        }
         this.logger.error("DOCUMENT_JOB_FAILED", safeErrorCode, {
           jobId: message.id,
         });
