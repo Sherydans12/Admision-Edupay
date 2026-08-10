@@ -8,6 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  DocumentReadinessSummary,
+  FamilyDocumentWorkspace,
+  type DocumentReadiness,
+} from "./document-workflows";
 
 type AnswerValue = boolean | string;
 type FormFieldType =
@@ -152,6 +157,13 @@ export function FamilyApplicationFlow({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [documentReadiness, setDocumentReadiness] = useState<DocumentReadiness>(
+    {
+      blocked: 0,
+      ready: false,
+      totalApplicable: 0,
+    },
+  );
   const errorRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const basePath = `/family/tenants/${tenantId}/applications/${applicationId}`;
@@ -197,7 +209,8 @@ export function FamilyApplicationFlow({
       })) ?? [],
     [answers, data],
   );
-  const isReview = step >= applicableSections.length;
+  const isDocuments = step === applicableSections.length;
+  const isReview = step > applicableSections.length;
   const section = applicableSections[step];
   const progress =
     applicableSections.length === 0
@@ -205,13 +218,13 @@ export function FamilyApplicationFlow({
       : Math.min(
           100,
           Math.round(
-            ((isReview ? applicableSections.length : step) /
-              applicableSections.length) *
+            ((isReview ? applicableSections.length + 1 : step) /
+              (applicableSections.length + 1)) *
               100,
           ),
         );
 
-  async function persist(goToReview = false) {
+  async function persist(goToDocuments = false) {
     if (!data) return false;
     setError("");
     try {
@@ -228,16 +241,8 @@ export function FamilyApplicationFlow({
           answers: payload,
         });
       setMessage("Borrador guardado.");
-      if (goToReview) {
-        const result = await request<Review>(apiBase, `${basePath}/review`);
-        setReview(result);
+      if (goToDocuments) {
         setStep(applicableSections.length);
-        if (result.missingRequired.length > 0) {
-          setError(
-            `Faltan ${result.missingRequired.length} campos obligatorios.`,
-          );
-          window.setTimeout(() => errorRef.current?.focus(), 0);
-        }
       }
       return true;
     } catch {
@@ -246,6 +251,23 @@ export function FamilyApplicationFlow({
       );
       window.setTimeout(() => errorRef.current?.focus(), 0);
       return false;
+    }
+  }
+
+  async function openReview() {
+    setError("");
+    try {
+      const result = await request<Review>(apiBase, `${basePath}/review`);
+      setReview(result);
+      setStep(applicableSections.length + 1);
+      if (result.missingRequired.length > 0) {
+        setError(
+          `Faltan ${result.missingRequired.length} campos obligatorios.`,
+        );
+        window.setTimeout(() => errorRef.current?.focus(), 0);
+      }
+    } catch {
+      setError("No fue posible preparar la revisión final.");
     }
   }
 
@@ -296,12 +318,16 @@ export function FamilyApplicationFlow({
           <h2>
             {isReview
               ? "Revisa antes de enviar"
-              : (section?.title ?? "Formulario de postulación")}
+              : isDocuments
+                ? "Documentos de la postulación"
+                : (section?.title ?? "Formulario de postulación")}
           </h2>
           <p className="muted">
             {isReview
               ? "Confirma que la información sea correcta."
-              : section?.description}
+              : isDocuments
+                ? "Carga y revisa los documentos aplicables antes de enviar."
+                : section?.description}
           </p>
         </div>
         <span className="badge">Versión {data?.form.versionNumber ?? "—"}</span>
@@ -311,7 +337,9 @@ export function FamilyApplicationFlow({
           <span>
             {isReview
               ? "Revisión"
-              : `Sección ${Math.min(step + 1, applicableSections.length)} de ${applicableSections.length}`}
+              : isDocuments
+                ? "Documentos"
+                : `Sección ${Math.min(step + 1, applicableSections.length)} de ${applicableSections.length}`}
           </span>
           <strong>{progress}%</strong>
         </div>
@@ -335,7 +363,7 @@ export function FamilyApplicationFlow({
       {!data && !error ? (
         <p className="empty-state">Cargando contenido versionado…</p>
       ) : null}
-      {data && !isReview && section ? (
+      {data && !isReview && !isDocuments && section ? (
         <form
           className="dynamic-form"
           onSubmit={(event) => event.preventDefault()}
@@ -396,6 +424,16 @@ export function FamilyApplicationFlow({
           </button>
         </form>
       ) : null}
+      {data && isDocuments ? (
+        <FamilyDocumentWorkspace
+          apiBase={apiBase}
+          applicationId={applicationId}
+          onBack={() => setStep(Math.max(0, applicableSections.length - 1))}
+          onContinue={() => void openReview()}
+          onReadinessChange={setDocumentReadiness}
+          tenantId={tenantId}
+        />
+      ) : null}
       {data && isReview ? (
         <div className="review-stack">
           {review?.missingRequired.length ? (
@@ -423,22 +461,25 @@ export function FamilyApplicationFlow({
               </dl>
             </section>
           ))}
+          <DocumentReadinessSummary state={documentReadiness} />
           <p className="warning-copy">
             {review?.warning ?? "Postular no garantiza vacante."}
           </p>
           <div className="flow-actions">
             <button
               className="button button-secondary"
-              onClick={() =>
-                setStep(Math.max(0, applicableSections.length - 1))
-              }
+              onClick={() => setStep(applicableSections.length)}
               type="button"
             >
-              Editar respuestas
+              Volver a documentos
             </button>
             <button
               className="button button-primary"
-              disabled={!review || review.missingRequired.length > 0}
+              disabled={
+                !review ||
+                review.missingRequired.length > 0 ||
+                !documentReadiness.ready
+              }
               onClick={() => dialogRef.current?.showModal()}
               type="button"
             >

@@ -2,16 +2,28 @@
 
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { AdminFormBuilder, FamilyApplicationFlow } from "./form-workflows";
+import {
+  AdminDocumentRequirements,
+  AssistedApplicationWorkspace,
+  StaffDocumentWorkspace,
+} from "./document-workflows";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
 const FALLBACK_TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
-type Mode = "family" | "admin";
+type Mode = "family" | "admin" | "staff";
 type FamilySection =
   "home" | "students" | "offerings" | "applications" | "form";
 type AdminSection =
-  "forms" | "campus" | "academicYear" | "courseLevel" | "process" | "offering";
+  | "forms"
+  | "documents"
+  | "campus"
+  | "academicYear"
+  | "courseLevel"
+  | "process"
+  | "offering";
+type StaffSection = "review" | "assistance";
 
 interface Offering {
   academicYear: string;
@@ -74,6 +86,7 @@ export default function Home() {
   );
   const [familySection, setFamilySection] = useState<FamilySection>("home");
   const [adminSection, setAdminSection] = useState<AdminSection>("forms");
+  const [staffSection, setStaffSection] = useState<StaffSection>("review");
   const [students, setStudents] = useState<Student[]>([]);
   const [offerings, setOfferings] = useState<Offering[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
@@ -138,7 +151,8 @@ export default function Home() {
   useEffect(() => {
     const handle = window.setTimeout(() => {
       if (mode === "family") void loadFamily();
-      else void loadAdmin();
+      else if (mode === "admin") void loadAdmin();
+      else setNotice("Espacio operativo listo para un identificador exacto.");
     }, 0);
     return () => window.clearTimeout(handle);
   }, [loadAdmin, loadFamily, mode]);
@@ -281,7 +295,7 @@ export default function Home() {
       </a>
       <header className="topbar">
         <div>
-          <p className="eyebrow">Admisión · E5-B / Formulario versionado</p>
+          <p className="eyebrow">Admisión · E5-C / Documentos y asistencia</p>
           <p className="brand">Recorrido funcional sintético</p>
         </div>
         <div className="topbar-actions">
@@ -319,6 +333,14 @@ export default function Home() {
           >
             Administración
           </button>
+          <button
+            className={
+              mode === "staff" ? "button button-primary" : "button button-quiet"
+            }
+            onClick={() => setMode("staff")}
+          >
+            Atención
+          </button>
         </div>
       </header>
 
@@ -331,12 +353,16 @@ export default function Home() {
             <h1 id="page-title">
               {mode === "family"
                 ? "Tu camino de postulación"
-                : "Configuración del proceso"}
+                : mode === "admin"
+                  ? "Configuración del proceso"
+                  : "Atención institucional"}
             </h1>
             <p className="lede">
               {mode === "family"
-                ? "Completa un formulario dinámico, guarda avances y revisa antes de enviar."
-                : "Configura procesos y publica formularios versionados sin hardcodear una institución piloto."}
+                ? "Completa el formulario, adjunta documentos y revisa antes de enviar."
+                : mode === "admin"
+                  ? "Configura procesos, formularios y requisitos versionados sin hardcodear una institución piloto."
+                  : "Revisa documentos o acompaña una postulación presencial con autorización trazable."}
             </p>
           </div>
           <div className="status-panel" aria-live="polite">
@@ -375,12 +401,18 @@ export default function Home() {
             setSelectedStudentId={setSelectedStudentId}
             students={students}
           />
-        ) : (
+        ) : mode === "admin" ? (
           <AdminView
             adminSection={adminSection}
             configuration={configuration}
             onSectionChange={setAdminSection}
             onSubmit={saveAdminResource}
+            tenantId={tenantId}
+          />
+        ) : (
+          <StaffView
+            onSectionChange={setStaffSection}
+            staffSection={staffSection}
             tenantId={tenantId}
           />
         )}
@@ -764,6 +796,7 @@ function AdminView({
 }) {
   const sections: { key: AdminSection; label: string }[] = [
     { key: "forms", label: "Formularios" },
+    { key: "documents", label: "Documentos" },
     { key: "campus", label: "Sede" },
     { key: "academicYear", label: "Año" },
     { key: "courseLevel", label: "Curso" },
@@ -812,6 +845,8 @@ function AdminView({
             offerings={configuration?.offerings ?? []}
             tenantId={tenantId}
           />
+        ) : adminSection === "documents" ? (
+          <AdminDocumentRequirements apiBase={API_BASE} tenantId={tenantId} />
         ) : (
           <AdminForm
             adminSection={adminSection}
@@ -824,12 +859,75 @@ function AdminView({
   );
 }
 
+function StaffView({
+  onSectionChange,
+  staffSection,
+  tenantId,
+}: {
+  onSectionChange: (section: StaffSection) => void;
+  staffSection: StaffSection;
+  tenantId: string;
+}) {
+  const sections: { key: StaffSection; label: string }[] = [
+    { key: "review", label: "Revisión documental" },
+    { key: "assistance", label: "Postulación asistida" },
+  ];
+  return (
+    <div className="content-grid">
+      <aside className="side-nav" aria-label="Navegación de atención">
+        <p className="nav-label">Atención institucional</p>
+        {sections.map((section) => (
+          <button
+            className={
+              staffSection === section.key
+                ? "nav-item nav-item-active"
+                : "nav-item"
+            }
+            key={section.key}
+            onClick={() => onSectionChange(section.key)}
+          >
+            {section.label}
+          </button>
+        ))}
+        <div className="side-note">
+          <strong>Acceso mínimo</strong>
+          <span>
+            Se exige tenant, rol, propósito e identificador exacto. No hay
+            búsqueda global de familias.
+          </span>
+        </div>
+      </aside>
+      <section className="workspace">
+        <div className="section-heading">
+          <div>
+            <h2>
+              {sections.find((section) => section.key === staffSection)?.label}
+            </h2>
+            <p className="muted">
+              Las decisiones y acciones quedan vinculadas al operador efectivo.
+            </p>
+          </div>
+          <span className="badge badge-synthetic">Auditado</span>
+        </div>
+        {staffSection === "review" ? (
+          <StaffDocumentWorkspace apiBase={API_BASE} tenantId={tenantId} />
+        ) : (
+          <AssistedApplicationWorkspace
+            apiBase={API_BASE}
+            tenantId={tenantId}
+          />
+        )}
+      </section>
+    </div>
+  );
+}
+
 function AdminForm({
   adminSection,
   configuration,
   onSubmit,
 }: {
-  adminSection: Exclude<AdminSection, "forms">;
+  adminSection: Exclude<AdminSection, "forms" | "documents">;
   configuration: Configuration | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
