@@ -99,6 +99,73 @@ enum AuditEventScope {
   PLATFORM_GLOBAL
 }
 
+enum ApplicationOrigin {
+  SELF_SERVICE
+  ASSISTED
+}
+
+enum DocumentRequirementLifecycle {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum DocumentValidityRule {
+  NONE
+  LATEST_AVAILABLE
+  MAX_AGE_DAYS
+}
+
+enum DocumentFunctionalStatus {
+  PENDIENTE
+  CARGADO
+  EN_REVISION
+  ACEPTADO
+  OBSERVADO
+  EXENTO
+}
+
+enum DocumentTechnicalStatus {
+  UPLOAD_PENDING
+  QUARANTINED
+  PROCESSING
+  READY_FOR_REVIEW
+  BLOCKED_INVALID
+  BLOCKED_INFECTED
+  BLOCKED_UNSCANNABLE
+  BLOCKED_SCAN_ERROR
+  UPLOAD_FAILED
+}
+
+enum DocumentScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  UNSCANNABLE
+  ERROR
+}
+
+enum DocumentOrigin {
+  SELF_SERVICE
+  ASSISTED
+  PHYSICAL_DOCUMENT
+}
+
+enum DocumentReviewVerdict {
+  ACCEPTED
+  OBSERVED
+  EXEMPTED
+}
+
+enum AssistanceSessionStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum AssistanceAuthorizationMethod {
+  IN_PERSON_CONFIRMED
+}
+
 /// Identidad global de control-plane; no representa onboarding funcional.
 model PlatformUser {
   id                String             @id @default(uuid()) @db.Uuid
@@ -155,6 +222,12 @@ model Tenant {
   formFields         FormField[]
   applicationAnswers ApplicationDraftAnswer[]
   applicationSnapshots ApplicationSnapshot[]
+  documentRequirements DocumentRequirement[]
+  documentRequirementVersions DocumentRequirementVersion[]
+  documentSubmissions DocumentSubmission[]
+  documentVersions DocumentVersion[]
+  documentReviews DocumentReview[]
+  assistanceSessions AssistanceSession[]
   auditEvents        AuditEvent[]
 
   @@map("tenants")
@@ -265,6 +338,7 @@ model FamilyProfile {
   user         PlatformUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
   students     Student[]
   applications Application[]
+  assistanceSessions AssistanceSession[]
 
   @@map("family_profiles")
 }
@@ -315,6 +389,7 @@ model AcademicYear {
   processes    AdmissionProcess[]
   offerings    AdmissionOffering[]
   applications Application[]
+  documentRequirementVersions DocumentRequirementVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, code])
@@ -332,6 +407,7 @@ model CourseLevel {
   updatedAt DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   offerings AdmissionOffering[]
+  documentRequirementVersions DocumentRequirementVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, code])
@@ -354,6 +430,7 @@ model AdmissionProcess {
   academicYear   AcademicYear           @relation(fields: [tenantId, academicYearId], references: [tenantId, id], onDelete: Restrict)
   offerings      AdmissionOffering[]
   applications   Application[]
+  documentRequirementVersions DocumentRequirementVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, academicYearId])
@@ -384,6 +461,7 @@ model AdmissionOffering {
   courseLevel          CourseLevel             @relation(fields: [tenantId, courseLevelId], references: [tenantId, id], onDelete: Restrict)
   formVersion          FormVersion?            @relation(fields: [tenantId, formVersionId], references: [tenantId, id], onDelete: Restrict)
   applications         Application[]
+  documentRequirementVersions DocumentRequirementVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, processId, academicYearId])
@@ -405,6 +483,9 @@ model Application {
   status          ApplicationStatus @default(DRAFT)
   draftData       Json              @map("draft_data")
   submittedAt     DateTime?         @map("submitted_at") @db.Timestamptz(3)
+  origin          ApplicationOrigin @default(SELF_SERVICE)
+  assistanceSessionId String?       @map("assistance_session_id") @db.Uuid
+  documentRequirementsPinnedAt DateTime? @map("document_requirements_pinned_at") @db.Timestamptz(3)
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -416,12 +497,193 @@ model Application {
   formVersion     FormVersion?       @relation(fields: [tenantId, formVersionId], references: [tenantId, id], onDelete: Restrict)
   draftAnswers    ApplicationDraftAnswer[]
   snapshot        ApplicationSnapshot?
+  documentSubmissions DocumentSubmission[]
+  assistanceSession AssistanceSession? @relation("ApplicationAssistance", fields: [tenantId, assistanceSessionId], references: [tenantId, id], onDelete: Restrict)
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, formVersionId])
+  @@unique([tenantId, assistanceSessionId])
   @@index([tenantId, familyProfileId, status, updatedAt])
   @@index([tenantId, studentId, status])
   @@map("applications")
+}
+
+/// Stable tenant-owned identity for a configurable document requirement.
+model DocumentRequirement {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  code      String   @db.VarChar(80)
+  name      String   @db.VarChar(160)
+  purpose   String   @db.VarChar(160)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions  DocumentRequirementVersion[]
+  submissions DocumentSubmission[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@index([tenantId, name])
+  @@map("document_requirements")
+}
+
+/// Versioned requirement configuration; published and archived rows are immutable.
+model DocumentRequirementVersion {
+  id              String                       @id @default(uuid()) @db.Uuid
+  tenantId        String                       @map("tenant_id") @db.Uuid
+  documentRequirementId String                 @map("document_requirement_id") @db.Uuid
+  versionNumber   Int                          @map("version_number")
+  lifecycle       DocumentRequirementLifecycle @default(DRAFT)
+  required        Boolean                      @default(false)
+  instruction     String?                      @db.VarChar(1000)
+  sensitivity     String                       @db.VarChar(40)
+  scopeAcademicYearId String?                  @map("scope_academic_year_id") @db.Uuid
+  scopeProcessId  String?                      @map("scope_process_id") @db.Uuid
+  scopeCourseLevelId String?                   @map("scope_course_level_id") @db.Uuid
+  scopeOfferingId String?                      @map("scope_offering_id") @db.Uuid
+  conditionFormVersionId String?               @map("condition_form_version_id") @db.Uuid
+  conditionFieldId String?                     @map("condition_field_id") @db.Uuid
+  conditionOperator FormConditionOperator?     @map("condition_operator")
+  conditionValue  Json?                        @map("condition_value")
+  allowsEquivalent Boolean                     @default(false) @map("allows_equivalent")
+  equivalentOptions Json?                      @map("equivalent_options")
+  validityRule    DocumentValidityRule         @default(NONE) @map("validity_rule")
+  maxAgeDays      Int?                         @map("max_age_days")
+  allowedFileTypes Json                        @map("allowed_file_types")
+  maxFileSizeBytes BigInt                      @map("max_file_size_bytes")
+  correctionWindowBusinessDays Int             @map("correction_window_business_days")
+  createdAt       DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  publishedAt     DateTime?                    @map("published_at") @db.Timestamptz(3)
+  archivedAt      DateTime?                    @map("archived_at") @db.Timestamptz(3)
+  tenant          Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  requirement     DocumentRequirement          @relation(fields: [tenantId, documentRequirementId], references: [tenantId, id], onDelete: Restrict)
+  scopeAcademicYear AcademicYear?              @relation(fields: [tenantId, scopeAcademicYearId], references: [tenantId, id], onDelete: Restrict)
+  scopeProcess    AdmissionProcess?            @relation(fields: [tenantId, scopeProcessId], references: [tenantId, id], onDelete: Restrict)
+  scopeCourseLevel CourseLevel?                @relation(fields: [tenantId, scopeCourseLevelId], references: [tenantId, id], onDelete: Restrict)
+  scopeOffering   AdmissionOffering?           @relation(fields: [tenantId, scopeOfferingId], references: [tenantId, id], onDelete: Restrict)
+  conditionFormVersion FormVersion?            @relation("DocumentRequirementConditionForm", fields: [tenantId, conditionFormVersionId], references: [tenantId, id], onDelete: Restrict, map: "doc_req_versions_condition_form_fkey")
+  conditionField  FormField?                   @relation("DocumentRequirementConditionField", fields: [tenantId, conditionFormVersionId, conditionFieldId], references: [tenantId, formVersionId, id], onDelete: Restrict, map: "doc_req_versions_condition_field_fkey")
+  submissions     DocumentSubmission[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, documentRequirementId, id], map: "doc_req_versions_tenant_requirement_id_key")
+  @@unique([tenantId, documentRequirementId, versionNumber], map: "doc_req_versions_tenant_requirement_number_key")
+  @@index([tenantId, lifecycle, scopeOfferingId])
+  @@index([tenantId, lifecycle, scopeProcessId, scopeCourseLevelId])
+  @@map("document_requirement_versions")
+}
+
+/// Stable application-to-requirement binding and current functional state.
+model DocumentSubmission {
+  id              String                   @id @default(uuid()) @db.Uuid
+  tenantId        String                   @map("tenant_id") @db.Uuid
+  applicationId   String                   @map("application_id") @db.Uuid
+  documentRequirementId String             @map("document_requirement_id") @db.Uuid
+  requirementVersionId String              @map("requirement_version_id") @db.Uuid
+  status          DocumentFunctionalStatus @default(PENDIENTE)
+  currentDocumentVersionId String?         @map("current_document_version_id") @db.Uuid
+  correctionDueAt DateTime?                @map("correction_due_at") @db.Timestamptz(3)
+  createdAt       DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant          Tenant                   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application     Application              @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+  requirement     DocumentRequirement      @relation(fields: [tenantId, documentRequirementId], references: [tenantId, id], onDelete: Restrict)
+  requirementVersion DocumentRequirementVersion @relation(fields: [tenantId, documentRequirementId, requirementVersionId], references: [tenantId, documentRequirementId, id], onDelete: Restrict)
+  currentDocumentVersion DocumentVersion?  @relation("CurrentDocumentVersion", fields: [tenantId, currentDocumentVersionId], references: [tenantId, id], onDelete: Restrict)
+  versions        DocumentVersion[]        @relation("SubmissionVersions")
+  reviews         DocumentReview[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, applicationId, documentRequirementId])
+  @@unique([tenantId, currentDocumentVersionId])
+  @@index([tenantId, applicationId, status])
+  @@map("document_submissions")
+}
+
+/// Immutable bytes metadata for one upload attempt; bytes remain in object storage.
+model DocumentVersion {
+  id              String                  @id @default(uuid()) @db.Uuid
+  tenantId        String                  @map("tenant_id") @db.Uuid
+  documentSubmissionId String             @map("document_submission_id") @db.Uuid
+  versionNumber   Int                     @map("version_number")
+  displayNameSanitized String             @map("display_name_sanitized") @db.VarChar(180)
+  declaredMime    String                  @map("declared_mime") @db.VarChar(80)
+  detectedMime    String?                 @map("detected_mime") @db.VarChar(80)
+  sizeBytes       BigInt                  @map("size_bytes")
+  sha256          String?                 @db.Char(64)
+  quarantineObjectKey String              @map("quarantine_object_key") @db.VarChar(160)
+  approvedObjectKey String?               @map("approved_object_key") @db.VarChar(160)
+  technicalStatus DocumentTechnicalStatus @map("technical_status")
+  scanStatus      DocumentScanStatus      @default(PENDING) @map("scan_status")
+  scanProvider    String?                 @map("scan_provider") @db.VarChar(80)
+  scanEngineVersion String?               @map("scan_engine_version") @db.VarChar(80)
+  scanSignatureVersion String?            @map("scan_signature_version") @db.VarChar(120)
+  origin          DocumentOrigin
+  uploadedBy      String                  @map("uploaded_by") @db.Uuid
+  documentIssuedOn DateTime?              @map("document_issued_on") @db.Date
+  equivalentOptionCode String?            @map("equivalent_option_code") @db.VarChar(80)
+  replacesVersionId String?               @map("replaces_version_id") @db.Uuid
+  replacedAt      DateTime?               @map("replaced_at") @db.Timestamptz(3)
+  safeErrorCode   String?                 @map("safe_error_code") @db.VarChar(80)
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+  readyAt         DateTime?               @map("ready_at") @db.Timestamptz(3)
+  tenant          Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submission      DocumentSubmission      @relation("SubmissionVersions", fields: [tenantId, documentSubmissionId], references: [tenantId, id], onDelete: Restrict)
+  currentForSubmission DocumentSubmission? @relation("CurrentDocumentVersion")
+  replacesVersion DocumentVersion?        @relation("DocumentReplacement", fields: [tenantId, replacesVersionId], references: [tenantId, id], onDelete: Restrict)
+  replacementVersions DocumentVersion[]   @relation("DocumentReplacement")
+  reviews         DocumentReview[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, documentSubmissionId, versionNumber])
+  @@index([tenantId, documentSubmissionId, technicalStatus])
+  @@map("document_versions")
+}
+
+/// Append-only human review evidence for an exact document version or exemption.
+model DocumentReview {
+  id              String                @id @default(uuid()) @db.Uuid
+  tenantId        String                @map("tenant_id") @db.Uuid
+  documentSubmissionId String           @map("document_submission_id") @db.Uuid
+  documentVersionId String?             @map("document_version_id") @db.Uuid
+  verdict         DocumentReviewVerdict
+  reason          String?               @db.VarChar(1000)
+  correctionDueAt DateTime?             @map("correction_due_at") @db.Timestamptz(3)
+  actorId         String                @map("actor_id") @db.Uuid
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant          Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submission      DocumentSubmission    @relation(fields: [tenantId, documentSubmissionId], references: [tenantId, id], onDelete: Restrict)
+  documentVersion DocumentVersion?      @relation(fields: [tenantId, documentVersionId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, documentSubmissionId, createdAt])
+  @@map("document_reviews")
+}
+
+/// Narrow operational evidence for assisted application work; never a family impersonation session.
+model AssistanceSession {
+  id              String                      @id @default(uuid()) @db.Uuid
+  tenantId        String                      @map("tenant_id") @db.Uuid
+  operatorUserId  String                      @map("operator_user_id") @db.Uuid
+  operatorRoleSnapshot String                 @map("operator_role_snapshot") @db.VarChar(120)
+  familyProfileId String                      @map("family_profile_id") @db.Uuid
+  adultResponsibleUserId String               @map("adult_responsible_user_id") @db.Uuid
+  adultPresentConfirmed Boolean               @map("adult_present_confirmed")
+  authorizationConfirmed Boolean              @map("authorization_confirmed")
+  authorizationMethod AssistanceAuthorizationMethod @map("authorization_method")
+  authorizationRecordedAt DateTime?           @map("authorization_recorded_at") @db.Timestamptz(3)
+  startedAt       DateTime                    @map("started_at") @db.Timestamptz(3)
+  endedAt         DateTime?                   @map("ended_at") @db.Timestamptz(3)
+  status          AssistanceSessionStatus     @default(ACTIVE)
+  correlationId   String                      @map("correlation_id") @db.VarChar(120)
+  createdAt       DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant          Tenant                      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  familyProfile   FamilyProfile               @relation(fields: [familyProfileId], references: [id], onDelete: Restrict)
+  application     Application?                @relation("ApplicationAssistance")
+
+  @@unique([tenantId, id])
+  @@index([tenantId, operatorUserId, status])
+  @@map("assistance_sessions")
 }
 
 /// Stable tenant-owned identity for an admission form; not a general CMS.
@@ -458,6 +720,7 @@ model FormVersion {
   applications     Application[]
   draftAnswers     ApplicationDraftAnswer[]
   snapshots        ApplicationSnapshot[]
+  documentRequirementConditions DocumentRequirementVersion[] @relation("DocumentRequirementConditionForm")
 
   @@unique([tenantId, id])
   @@unique([tenantId, formDefinitionId, versionNumber])
@@ -510,6 +773,7 @@ model FormField {
   conditionField    FormField?              @relation("FormFieldCondition", fields: [tenantId, formVersionId, conditionFieldId], references: [tenantId, formVersionId, id], onDelete: Restrict)
   conditionDependents FormField[]           @relation("FormFieldCondition")
   draftAnswers      ApplicationDraftAnswer[]
+  documentRequirementConditions DocumentRequirementVersion[] @relation("DocumentRequirementConditionField")
 
   @@unique([tenantId, formVersionId, id])
   @@unique([tenantId, formVersionId, key])

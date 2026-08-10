@@ -261,10 +261,14 @@ describe.sequential("ADR-0003 PostgreSQL/Prisma tenant RLS PoC", () => {
 
 type E5BRlsRows = {
   answerId: string;
+  applicationId: string;
   definitionId: string;
   fieldId: string;
+  offeringId: string;
+  profileId: string;
   sectionId: string;
   snapshotId: string;
+  userId: string;
   versionId: string;
 };
 
@@ -425,10 +429,14 @@ async function seedE5BRlsTenant(
       });
       return {
         answerId: answer.id,
+        applicationId: application.id,
         definitionId: definition.id,
         fieldId: field.id,
+        offeringId: offering.id,
+        profileId,
         sectionId: section.id,
         snapshotId: snapshot.id,
+        userId,
         versionId: version.id,
       };
     }),
@@ -527,6 +535,260 @@ describe.sequential("E5-B tenant-owned form and snapshot RLS", () => {
       appPrisma.formDefinition.findMany(),
     );
     expect(visible).toEqual([]);
+  });
+});
+
+type E5CRlsRows = {
+  assistanceId: string;
+  requirementId: string;
+  requirementVersionId: string;
+  reviewId: string;
+  submissionId: string;
+  versionId: string;
+};
+
+async function seedE5CRlsRows(
+  context: ReturnType<typeof syntheticAuthenticatedRequestContext>,
+  base: E5BRlsRows,
+  suffix: string,
+): Promise<E5CRlsRows> {
+  return runWithTenantContext(context, () =>
+    withTenantTransaction(appPrisma, async (transaction) => {
+      const requirement = await transaction.documentRequirement.create({
+        data: {
+          code: `RLS-DOC-${suffix}`,
+          name: `Documento RLS ${suffix}`,
+          purpose: "Validar aislamiento E5-C",
+          tenantId: context.tenantId,
+        },
+      });
+      const requirementVersion =
+        await transaction.documentRequirementVersion.create({
+          data: {
+            allowedFileTypes: ["PDF"],
+            allowsEquivalent: false,
+            correctionWindowBusinessDays: 3,
+            documentRequirementId: requirement.id,
+            lifecycle: "PUBLISHED",
+            maxFileSizeBytes: 1024,
+            publishedAt: new Date(),
+            required: true,
+            sensitivity: "restricted",
+            tenantId: context.tenantId,
+            validityRule: "NONE",
+            versionNumber: 1,
+          },
+        });
+      await transaction.application.update({
+        data: { documentRequirementsPinnedAt: new Date() },
+        where: { id: base.applicationId },
+      });
+      const submission = await transaction.documentSubmission.create({
+        data: {
+          applicationId: base.applicationId,
+          documentRequirementId: requirement.id,
+          requirementVersionId: requirementVersion.id,
+          tenantId: context.tenantId,
+        },
+      });
+      const version = await transaction.documentVersion.create({
+        data: {
+          approvedObjectKey: randomUUID(),
+          declaredMime: "application/pdf",
+          detectedMime: "application/pdf",
+          displayNameSanitized: "synthetic.pdf",
+          documentSubmissionId: submission.id,
+          origin: "SELF_SERVICE",
+          quarantineObjectKey: randomUUID(),
+          readyAt: new Date(),
+          scanProvider: "synthetic-test",
+          scanStatus: "CLEAN",
+          sha256: "a".repeat(64),
+          sizeBytes: 32,
+          technicalStatus: "READY_FOR_REVIEW",
+          tenantId: context.tenantId,
+          uploadedBy: base.userId,
+          versionNumber: 1,
+        },
+      });
+      await transaction.documentSubmission.update({
+        data: { currentDocumentVersionId: version.id, status: "ACEPTADO" },
+        where: { id: submission.id },
+      });
+      const review = await transaction.documentReview.create({
+        data: {
+          actorId: base.userId,
+          documentSubmissionId: submission.id,
+          documentVersionId: version.id,
+          tenantId: context.tenantId,
+          verdict: "ACCEPTED",
+        },
+      });
+      const assistance = await transaction.assistanceSession.create({
+        data: {
+          adultPresentConfirmed: true,
+          adultResponsibleUserId: base.userId,
+          authorizationConfirmed: true,
+          authorizationMethod: "IN_PERSON_CONFIRMED",
+          authorizationRecordedAt: new Date(),
+          correlationId: `synthetic-e5c-rls-${suffix}`,
+          familyProfileId: base.profileId,
+          operatorRoleSnapshot: "application.assist",
+          operatorUserId: base.userId,
+          startedAt: new Date(),
+          tenantId: context.tenantId,
+        },
+      });
+      return {
+        assistanceId: assistance.id,
+        requirementId: requirement.id,
+        requirementVersionId: requirementVersion.id,
+        reviewId: review.id,
+        submissionId: submission.id,
+        versionId: version.id,
+      };
+    }),
+  );
+}
+
+describe.sequential("E5-C tenant-owned document and assistance RLS", () => {
+  let baseA: E5BRlsRows;
+  let baseB: E5BRlsRows;
+  let rowsA: E5CRlsRows;
+  let rowsB: E5CRlsRows;
+
+  beforeEach(async () => {
+    await clearE5BRlsRows();
+    baseA = await seedE5BRlsTenant(
+      syntheticAuthenticatedRequestContext("A"),
+      "A",
+    );
+    baseB = await seedE5BRlsTenant(
+      syntheticAuthenticatedRequestContext("B"),
+      "B",
+    );
+    rowsA = await seedE5CRlsRows(
+      syntheticAuthenticatedRequestContext("A"),
+      baseA,
+      "A",
+    );
+    rowsB = await seedE5CRlsRows(
+      syntheticAuthenticatedRequestContext("B"),
+      baseB,
+      "B",
+    );
+  });
+
+  it("E5C-TEN-01: requirements and exact versions are isolated", async () => {
+    const visible = await runWithTenantContext(
+      syntheticAuthenticatedRequestContext("A"),
+      () =>
+        withTenantTransaction(appPrisma, async (transaction) => ({
+          requirements: await transaction.documentRequirement.findMany(),
+          versions: await transaction.documentRequirementVersion.findMany(),
+        })),
+    );
+    expect(visible.requirements.map((row) => row.id)).toEqual([
+      rowsA.requirementId,
+    ]);
+    expect(visible.versions.map((row) => row.id)).toEqual([
+      rowsA.requirementVersionId,
+    ]);
+  });
+
+  it("E5C-TEN-02: submissions are isolated", async () => {
+    const visible = await runWithTenantContext(
+      syntheticAuthenticatedRequestContext("A"),
+      () =>
+        withTenantTransaction(appPrisma, (transaction) =>
+          transaction.documentSubmission.findMany(),
+        ),
+    );
+    expect(visible.map((row) => row.id)).toEqual([rowsA.submissionId]);
+    expect(visible.some((row) => row.id === rowsB.submissionId)).toBe(false);
+  });
+
+  it("E5C-TEN-03: document versions are isolated", async () => {
+    const visible = await runWithTenantContext(
+      syntheticAuthenticatedRequestContext("A"),
+      () =>
+        withTenantTransaction(appPrisma, (transaction) =>
+          transaction.documentVersion.findMany(),
+        ),
+    );
+    expect(visible.map((row) => row.id)).toEqual([rowsA.versionId]);
+  });
+
+  it("E5C-TEN-04: reviews are isolated", async () => {
+    const visible = await runWithTenantContext(
+      syntheticAuthenticatedRequestContext("A"),
+      () =>
+        withTenantTransaction(appPrisma, (transaction) =>
+          transaction.documentReview.findMany(),
+        ),
+    );
+    expect(visible.map((row) => row.id)).toEqual([rowsA.reviewId]);
+  });
+
+  it("E5C-TEN-05: assistance sessions are isolated", async () => {
+    const visible = await runWithTenantContext(
+      syntheticAuthenticatedRequestContext("A"),
+      () =>
+        withTenantTransaction(appPrisma, (transaction) =>
+          transaction.assistanceSession.findMany(),
+        ),
+    );
+    expect(visible.map((row) => row.id)).toEqual([rowsA.assistanceId]);
+  });
+
+  it("E5C-TEN-06: absence of tenant context denies every E5-C table", async () => {
+    await expect(appPrisma.documentRequirement.findMany()).resolves.toEqual([]);
+    await expect(
+      appPrisma.documentRequirementVersion.findMany(),
+    ).resolves.toEqual([]);
+    await expect(appPrisma.documentSubmission.findMany()).resolves.toEqual([]);
+    await expect(appPrisma.documentVersion.findMany()).resolves.toEqual([]);
+    await expect(appPrisma.documentReview.findMany()).resolves.toEqual([]);
+    await expect(appPrisma.assistanceSession.findMany()).resolves.toEqual([]);
+  });
+
+  it("E5C-TEN-07: a platform-like context without elevation cannot see tenant documents", async () => {
+    const visible = await runWithFamilyContext(
+      {
+        actorId: randomUUID(),
+        contextOrigin: "synthetic_test",
+        correlationId: `synthetic-platform-${randomUUID()}`,
+        familyCapabilities: [],
+        purpose: "platform.metrics",
+        source: "trusted_job",
+      },
+      () => appPrisma.documentRequirement.findMany(),
+    );
+    expect(visible).toEqual([]);
+  });
+
+  it("E5C-TEN-08: same-tenant composite FK rejects cross-tenant scope", async () => {
+    await expect(
+      runWithTenantContext(syntheticAuthenticatedRequestContext("A"), () =>
+        withTenantTransaction(appPrisma, (transaction) =>
+          transaction.documentRequirementVersion.create({
+            data: {
+              allowedFileTypes: ["PDF"],
+              allowsEquivalent: false,
+              correctionWindowBusinessDays: 3,
+              documentRequirementId: rowsA.requirementId,
+              maxFileSizeBytes: 1024,
+              required: false,
+              scopeOfferingId: baseB.offeringId,
+              sensitivity: "restricted",
+              tenantId: SYNTHETIC_TENANTS.A,
+              validityRule: "NONE",
+              versionNumber: 2,
+            },
+          }),
+        ),
+      ),
+    ).rejects.toThrow();
   });
 });
 

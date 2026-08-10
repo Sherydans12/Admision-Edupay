@@ -2,6 +2,12 @@ import { randomUUID } from "node:crypto";
 
 import type { Prisma, PrismaClient } from "./generated/prisma/client.js";
 import { authorizeOrThrow } from "./authorization.js";
+import {
+  IntakeDuplicateError,
+  IntakeNotFoundError,
+  IntakeValidationError,
+} from "./domain-errors.js";
+import { pinDocumentRequirements } from "./documents.js";
 import { PERMISSIONS } from "./permission-catalog.js";
 import type {
   FamilyExecutionContext,
@@ -140,26 +146,11 @@ export interface ApplicationDto {
   updatedAt: string;
 }
 
-export class IntakeNotFoundError extends Error {
-  constructor() {
-    super("Intake resource not found");
-    this.name = "IntakeNotFoundError";
-  }
-}
-
-export class IntakeDuplicateError extends Error {
-  constructor() {
-    super("An active draft already exists for this student and offering");
-    this.name = "IntakeDuplicateError";
-  }
-}
-
-export class IntakeValidationError extends Error {
-  constructor(message = "Invalid intake input") {
-    super(message);
-    this.name = "IntakeValidationError";
-  }
-}
+export {
+  IntakeDuplicateError,
+  IntakeNotFoundError,
+  IntakeValidationError,
+} from "./domain-errors.js";
 
 export interface AdmissionOfferingValidityCandidate {
   academicYear: { status: "DRAFT" | "OPEN" | "CLOSED" };
@@ -1037,6 +1028,19 @@ export class IntakeService {
               },
               include: applicationProjection,
             });
+            await pinDocumentRequirements(
+              transaction,
+              {
+                academicYearId: offering.academicYearId,
+                applicationId: application.id,
+                courseLevelId: offering.courseLevelId,
+                formVersionId: offering.formVersionId,
+                offeringId: offering.id,
+                processId: offering.processId,
+                tenantId: offering.tenantId,
+              },
+              now,
+            );
             await recordAudit(
               transaction,
               applicantContext as TenantExecutionContext,

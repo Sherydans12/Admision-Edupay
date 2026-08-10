@@ -1,5 +1,6 @@
 import { Prisma, type PrismaClient } from "./generated/prisma/client.js";
 import { authorizeOrThrow } from "./authorization.js";
+import { evaluateDocumentSubmissionReadiness } from "./documents.js";
 import {
   isAdmissionOfferingCurrent,
   IntakeDuplicateError,
@@ -1296,6 +1297,19 @@ export class FormService {
         throw new IntakeValidationError(
           "Offering and published form version are required",
         );
+      const incompatibleRequirements =
+        await transaction.documentRequirementVersion.count({
+          where: {
+            conditionFormVersionId: { not: versionId },
+            lifecycle: "PUBLISHED",
+            scopeOfferingId: offeringId,
+          },
+        });
+      if (incompatibleRequirements > 0) {
+        throw new IntakeValidationError(
+          "Published document requirements are incompatible with this form version",
+        );
+      }
       await transaction.admissionOffering.update({
         data: { formVersionId: versionId },
         where: { id: offeringId },
@@ -1375,6 +1389,46 @@ export class FormService {
     });
   }
 
+  async getAssistedForm(
+    context: TenantExecutionContext,
+    familyProfileId: string,
+    assistanceSessionId: string,
+    applicationId: string,
+  ): Promise<FamilyFormDto> {
+    authorizeOrThrow(context, {
+      permission: PERMISSIONS.APPLICATION_ASSIST,
+      purpose: context.purpose,
+      resourceTenantId: context.tenantId,
+    });
+    return withTenantTransaction(this.prisma, async (transaction) => {
+      const application = await this.loadOwnedApplication(
+        transaction,
+        familyProfileId,
+        applicationId,
+      );
+      if (
+        application === null ||
+        application.status !== "DRAFT" ||
+        application.assistanceSessionId !== assistanceSessionId
+      ) {
+        throw new IntakeNotFoundError();
+      }
+      if (application.formVersion === null) {
+        throw new IntakeValidationError(
+          "Assisted draft has no form version and cannot continue",
+        );
+      }
+      return {
+        answers: application.draftAnswers.map((answer) => ({
+          fieldId: answer.fieldId,
+          value: answer.value as AnswerValue,
+        })),
+        applicationId,
+        form: mapVersion(application.formVersion),
+      };
+    });
+  }
+
   async saveAnswers(
     familyContext: FamilyExecutionContext,
     applicantContext: TenantExecutionContext,
@@ -1389,14 +1443,61 @@ export class FormService {
     if (fieldIds.size !== input.length)
       throw new IntakeValidationError("Duplicate field answer in request");
     const profile = await this.ownedFamilyProfile(familyContext);
+    return this.saveAnswersCore(
+      applicantContext,
+      profile.id,
+      applicationId,
+      input,
+    );
+  }
+
+  async saveAssistedAnswers(
+    context: TenantExecutionContext,
+    familyProfileId: string,
+    assistanceSessionId: string,
+    applicationId: string,
+    input: Array<{ fieldId: string; value: unknown }>,
+  ): Promise<FamilyFormDto> {
+    authorizeOrThrow(context, {
+      permission: PERMISSIONS.APPLICATION_ASSIST,
+      purpose: context.purpose,
+      resourceTenantId: context.tenantId,
+    });
+    if (input.length === 0 || input.length > MAX_ANSWERS_PER_PATCH)
+      throw new IntakeValidationError("Invalid answer patch size");
+    const fieldIds = new Set(input.map((answer) => answer.fieldId));
+    if (fieldIds.size !== input.length)
+      throw new IntakeValidationError("Duplicate field answer in request");
+    return this.saveAnswersCore(
+      context,
+      familyProfileId,
+      applicationId,
+      input,
+      assistanceSessionId,
+    );
+  }
+
+  private saveAnswersCore(
+    applicantContext: TenantExecutionContext,
+    familyProfileId: string,
+    applicationId: string,
+    input: Array<{ fieldId: string; value: unknown }>,
+    assistanceSessionId?: string,
+  ): Promise<FamilyFormDto> {
     return withTenantTransaction(this.prisma, async (transaction) => {
       const application = await this.loadOwnedApplication(
         transaction,
-        profile.id,
+        familyProfileId,
         applicationId,
       );
       if (application === null || application.status !== "DRAFT")
         throw new IntakeNotFoundError();
+      if (
+        assistanceSessionId !== undefined &&
+        application.assistanceSessionId !== assistanceSessionId
+      ) {
+        throw new IntakeNotFoundError();
+      }
       if (
         application.formVersion === null ||
         application.formVersionId === null
@@ -1456,11 +1557,15 @@ export class FormService {
         });
       }
       await recordAudit(transaction, applicantContext, {
-        action: "APPLICATION_DRAFT_ANSWERS_SAVED",
+        action:
+          assistanceSessionId === undefined
+            ? "APPLICATION_DRAFT_ANSWERS_SAVED"
+            : "ASSISTED_FORM_ANSWERS_SAVED",
         metadata: {
           clearedCount: normalized.filter((answer) => answer.value === null)
             .length,
           fieldCount: normalized.length,
+          ...(assistanceSessionId === undefined ? {} : { assistanceSessionId }),
         },
         resourceId: applicationId,
         resourceType: "Application",
@@ -1574,6 +1679,73 @@ export class FormService {
     assertFamilyPermission(familyContext, PERMISSIONS.APPLICATION_SUBMIT);
     assertApplicantPermission(applicantContext, PERMISSIONS.APPLICATION_SUBMIT);
     const profile = await this.ownedFamilyProfile(familyContext);
+    return this.submitApplicationCore(
+      {
+        applicantContext,
+        applicationId,
+        familyProfileId: profile.id,
+        submissionMode: "SELF_SERVICE",
+        submittedBy: familyContext.effectiveActorId ?? familyContext.actorId,
+      },
+      now,
+    );
+  }
+
+  async submitAssistedApplication(
+    context: TenantExecutionContext,
+    input: {
+      adultResponsibleUserId: string;
+      applicationId: string;
+      assistanceSessionId: string;
+      familyProfileId: string;
+      operatorUserId: string;
+    },
+    now = new Date(),
+  ): Promise<{
+    applicationId: string;
+    snapshotId: string;
+    status: "SUBMITTED";
+    submittedAt: string;
+  }> {
+    authorizeOrThrow(context, {
+      permission: PERMISSIONS.APPLICATION_ASSIST,
+      purpose: context.purpose,
+      resourceTenantId: context.tenantId,
+    });
+    return this.submitApplicationCore(
+      {
+        adultResponsibleUserId: input.adultResponsibleUserId,
+        applicantContext: context,
+        applicationId: input.applicationId,
+        assistanceSessionId: input.assistanceSessionId,
+        familyProfileId: input.familyProfileId,
+        operatorUserId: input.operatorUserId,
+        submissionMode: "ASSISTED",
+        submittedBy: input.operatorUserId,
+      },
+      now,
+    );
+  }
+
+  private submitApplicationCore(
+    input: {
+      adultResponsibleUserId?: string;
+      applicantContext: TenantExecutionContext;
+      applicationId: string;
+      assistanceSessionId?: string;
+      familyProfileId: string;
+      operatorUserId?: string;
+      submissionMode: "ASSISTED" | "SELF_SERVICE";
+      submittedBy: string;
+    },
+    now: Date,
+  ): Promise<{
+    applicationId: string;
+    snapshotId: string;
+    status: "SUBMITTED";
+    submittedAt: string;
+  }> {
+    const { applicantContext, applicationId, familyProfileId } = input;
     return withTenantTransaction(this.prisma, async (transaction) => {
       const locked = await transaction.$queryRaw<Array<{ id: string }>>`
         SELECT "id" FROM "applications"
@@ -1583,10 +1755,16 @@ export class FormService {
       if (locked.length !== 1) throw new IntakeNotFoundError();
       const application = await this.loadOwnedApplication(
         transaction,
-        profile.id,
+        familyProfileId,
         applicationId,
       );
       if (application === null) throw new IntakeNotFoundError();
+      if (
+        input.assistanceSessionId !== undefined &&
+        application.assistanceSessionId !== input.assistanceSessionId
+      ) {
+        throw new IntakeNotFoundError();
+      }
       if (application.status === "SUBMITTED") {
         const snapshot = await transaction.applicationSnapshot.findUnique({
           where: { applicationId },
@@ -1651,6 +1829,15 @@ export class FormService {
           "Required applicable answers are missing",
         );
       const applicability = calculateApplicability(form, answerMap);
+      const documentReadiness = await evaluateDocumentSubmissionReadiness(
+        transaction,
+        {
+          applicationId,
+          formVersionId: application.formVersionId,
+          now,
+          tenantId: applicantContext.tenantId,
+        },
+      );
       const profileSnapshot = await transaction.familyProfile.findUnique({
         where: { id: application.familyProfileId },
       });
@@ -1696,14 +1883,23 @@ export class FormService {
           },
           title: application.offering.title,
         },
-        schemaVersion: 1,
+        documents: documentReadiness.evidence,
+        schemaVersion: 2,
+        ...(input.submissionMode === "ASSISTED"
+          ? {
+              adultResponsibleUserId: input.adultResponsibleUserId,
+              assistanceSessionId: input.assistanceSessionId,
+              operatorUserId: input.operatorUserId,
+            }
+          : {}),
+        submissionMode: input.submissionMode,
         student: {
           familyName: application.student.familyName,
           givenName: application.student.givenName,
           id: application.student.id,
         },
         submittedAt: now.toISOString(),
-        submittedBy: familyContext.effectiveActorId ?? familyContext.actorId,
+        submittedBy: input.submittedBy,
         tenantId: applicantContext.tenantId,
       };
       const snapshot = await transaction.applicationSnapshot.create({
@@ -1711,9 +1907,9 @@ export class FormService {
           applicationId,
           formVersionId: application.formVersionId,
           payload: asJson(payload),
-          schemaVersion: 1,
+          schemaVersion: 2,
           submittedAt: now,
-          submittedBy: familyContext.effectiveActorId ?? familyContext.actorId,
+          submittedBy: input.submittedBy,
           tenantId: applicantContext.tenantId,
         },
       });
@@ -1733,6 +1929,14 @@ export class FormService {
         resourceId: applicationId,
         resourceType: "Application",
       });
+      if (input.submissionMode === "ASSISTED") {
+        await recordAudit(transaction, applicantContext, {
+          action: "ASSISTED_SUBMISSION_CONFIRMED",
+          metadata: { assistanceSessionId: input.assistanceSessionId! },
+          resourceId: applicationId,
+          resourceType: "Application",
+        });
+      }
       return {
         applicationId,
         snapshotId: snapshot.id,

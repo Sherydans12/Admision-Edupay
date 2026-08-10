@@ -66,6 +66,37 @@ export {
 } from "./session-cookie.js";
 export { InMemoryCsrfService } from "./csrf.js";
 export { OutboxService, type EnqueueOutboxInput } from "./outbox.js";
+export { listActiveTenantIdsForTrustedWorker } from "./outbox.js";
+export {
+  DEFAULT_DOCUMENT_UPLOAD_HARD_MAX_BYTES,
+  DevelopmentBusinessCalendar,
+  DOCUMENT_FILE_TYPES,
+  DOCUMENT_MIME_BY_TYPE,
+  DOCUMENT_PROCESS_TOPIC,
+  DocumentService,
+  evaluateDocumentSubmissionReadiness,
+  pinDocumentRequirements,
+  type BusinessCalendar,
+  type DocumentFileType,
+  type DocumentRequirementVersionInput,
+  type EquivalentOptionInput,
+  type UploadDocumentInput,
+} from "./documents.js";
+export { AssistanceService } from "./assistance.js";
+export {
+  assertOpaqueObjectKey,
+  createOpaqueObjectKey,
+  InMemoryObjectStorage,
+  LocalDevelopmentObjectStorage,
+  NoopEmailSender,
+  NoopMalwareScanner,
+  SyntheticDevelopmentMalwareScanner,
+  type MalwareScanner,
+  type MalwareScanResult,
+  type MalwareScanStatus,
+  type ObjectStorage,
+  type ObjectStorageArea,
+} from "./operational-adapters.js";
 export {
   PERMISSIONS,
   SENSITIVITIES,

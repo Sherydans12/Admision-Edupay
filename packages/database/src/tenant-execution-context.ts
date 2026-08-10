@@ -6,6 +6,7 @@ export type TenantContextOrigin =
   | "membership"
   | "public_admission"
   | "support_elevation"
+  | "trusted_job"
   | "synthetic_test";
 
 export type FamilyContextOrigin = "family_profile" | "synthetic_test";
