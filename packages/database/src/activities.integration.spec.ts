@@ -141,6 +141,15 @@ async function seed(): Promise<void> {
         },
       });
       applicationId = application.id;
+      await transaction.membership.create({
+        data: {
+          id: randomUUID(),
+          startsAt: new Date(Date.now() - 60_000),
+          status: "ACTIVE",
+          tenantId,
+          userId: staffUserId,
+        },
+      });
     });
   });
 }

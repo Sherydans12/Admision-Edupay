@@ -31,6 +31,7 @@ type ActivityHttpFixture = {
   activityBId: string;
   applicationAId: string;
   applicationBId: string;
+  appointmentId: string;
   familyToken: string;
   noPermissionToken: string;
   staffToken: string;
@@ -169,7 +170,7 @@ async function seedFixture(): Promise<void> {
            ${offeringId}, ${JSON.stringify({ acknowledgedNoGuarantee: true, currentStep: "REVIEW" })}::jsonb)`;
       await transaction.$executeRaw`
         INSERT INTO activity_definitions (id, tenant_id, code, name, kind)
-        VALUES (${definitionId}, ${tenantId}, ${"E5D-HTTP-GUARDIAN"}, ${"Entrevista E5-D HTTP"}, 'GUARDIAN_INTERVIEW')`;
+        VALUES (${definitionId}, ${tenantId}, ${"E5D-HTTP-DIAGNOSTIC"}, ${"Evaluación E5-D HTTP"}, 'DIAGNOSTIC_EVALUATION')`;
       await transaction.$executeRaw`
         INSERT INTO activity_definition_versions
           (id, tenant_id, activity_definition_id, version_number, lifecycle, required,
@@ -204,7 +205,7 @@ async function seedFixture(): Promise<void> {
           (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
         VALUES
           (${staffRoleId}, ${tenantId}, ${staffMembershipId}, ${"SYNTHETIC_E5D_STAFF"},
-           ARRAY[${PERMISSIONS.ACTIVITY_READ}, ${PERMISSIONS.ACTIVITY_SCHEDULE}, ${PERMISSIONS.ACTIVITY_PERFORM}]::text[],
+           ARRAY[${PERMISSIONS.ACTIVITY_READ}, ${PERMISSIONS.ACTIVITY_SCHEDULE}, ${PERMISSIONS.ACTIVITY_PERFORM}, ${PERMISSIONS.ACTIVITY_REPEAT}, ${PERMISSIONS.ACTIVITY_CLOSE}]::text[],
            ARRAY['*']::text[], 'ACTIVE', CURRENT_TIMESTAMP),
           (${noPermissionRoleId}, ${tenantId}, ${noPermissionMembershipId}, ${"SYNTHETIC_E5D_NO_ACTIVITY"},
            ARRAY[${PERMISSIONS.APPLICATION_READ}]::text[], ARRAY['*']::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
@@ -221,6 +222,7 @@ async function seedFixture(): Promise<void> {
     activityBId,
     applicationAId,
     applicationBId,
+    appointmentId,
     familyToken: familySession.token,
     noPermissionToken: noPermissionSession.token,
     staffToken: staffSession.token,
@@ -309,7 +311,7 @@ describe.sequential("E5-D real Nest HTTP boundary", () => {
     expect(deniedStaff.status).toBe(403);
 
     const noCsrf = await mutation(
-      `/family/tenants/${fixture.tenantId}/applications/${fixture.applicationAId}/activities/${fixture.activityAId}/reschedule-requests`,
+      `/family/tenants/${fixture.tenantId}/applications/${fixture.applicationAId}/activities/${fixture.activityAId}/appointments/${fixture.appointmentId}/reschedule-requests`,
       fixture.familyToken,
       undefined,
       { reason: "Solicitud sintética" },
@@ -326,7 +328,7 @@ describe.sequential("E5-D real Nest HTTP boundary", () => {
     expect(forgedOwnership.status).toBe(404);
 
     const extraFields = await mutation(
-      `/family/tenants/${fixture.tenantId}/applications/${fixture.applicationAId}/activities/${fixture.activityAId}/reschedule-requests`,
+      `/family/tenants/${fixture.tenantId}/applications/${fixture.applicationAId}/activities/${fixture.activityAId}/appointments/${fixture.appointmentId}/reschedule-requests`,
       fixture.familyToken,
       familyCsrf,
       { reason: "Solicitud sintética", slot: "2026-08-11T15:00:00-04:00" },
@@ -418,5 +420,134 @@ describe.sequential("E5-D real Nest HTTP boundary", () => {
     expect(earlyNoShow.status).toBe(409);
     const earlyNoShowBody = (await earlyNoShow.json()) as { code: string };
     expect(earlyNoShowBody.code).toBe("ACTIVITY_NO_SHOW_TOO_EARLY");
+
+    const familyCsrf = await csrf(fixture.familyToken);
+    const staleFamilyRequest = await mutation(
+      `/family/tenants/${fixture.tenantId}/applications/${fixture.applicationAId}/activities/${fixture.activityAId}/appointments/${oldAppointmentId}/reschedule-requests`,
+      fixture.familyToken,
+      familyCsrf,
+      { reason: "Solicitud stale sintética" },
+    );
+    expect(staleFamilyRequest.status).toBe(409);
+    const staleFamilyBody = (await staleFamilyRequest.json()) as {
+      code: string;
+    };
+    expect(staleFamilyBody.code).toBe("ACTIVITY_APPOINTMENT_CHANGED");
+
+    const currentAppointmentId = current.appointment.id;
+    const currentFamilyRequest = await mutation(
+      `/family/tenants/${fixture.tenantId}/applications/${fixture.applicationAId}/activities/${fixture.activityAId}/appointments/${currentAppointmentId}/reschedule-requests`,
+      fixture.familyToken,
+      familyCsrf,
+      { reason: "Solicitud current sintética" },
+    );
+    expect(currentFamilyRequest.status).toBe(201);
+  });
+
+  it("E5D-HTTP-06: repeat and close return redacted evidence without result.read", async () => {
+    const staffCsrf = await csrf(fixture.staffToken);
+    const current = (await (
+      await request(
+        `/staff/tenants/${fixture.tenantId}/activities/${fixture.activityAId}`,
+        { token: fixture.staffToken },
+      )
+    ).json()) as { appointment: { id: string } };
+    const notCompleted = await mutation(
+      `/staff/tenants/${fixture.tenantId}/activities/${fixture.activityAId}/record-not-completed`,
+      fixture.staffToken,
+      staffCsrf,
+      {
+        expectedAppointmentId: current.appointment.id,
+        reason: "No completada sintética",
+      },
+    );
+    expect(notCompleted.status).toBe(201);
+    const notCompletedBody = (await notCompleted.json()) as {
+      attempts: unknown[];
+    };
+    expect(notCompletedBody.attempts).toEqual([]);
+
+    const missingRepeatToken = await mutation(
+      `/staff/tenants/${fixture.tenantId}/activities/${fixture.activityAId}/repeat`,
+      fixture.staffToken,
+      staffCsrf,
+      {
+        assignedUserId: fixture.staffUserId,
+        location: "Sala repeat HTTP",
+        newScheduledStartAt: "2026-08-15T15:00:00-04:00",
+        reason: "Repeat sin token sintético",
+      },
+    );
+    expect(missingRepeatToken.status).toBe(400);
+
+    const repeated = await mutation(
+      `/staff/tenants/${fixture.tenantId}/activities/${fixture.activityAId}/repeat`,
+      fixture.staffToken,
+      staffCsrf,
+      {
+        assignedUserId: fixture.staffUserId,
+        expectedAppointmentId: current.appointment.id,
+        location: "Sala repeat HTTP",
+        newScheduledStartAt: "2026-08-15T15:00:00-04:00",
+        reason: "Repetición HTTP sintética",
+      },
+    );
+    expect(repeated.status).toBe(201);
+    const repeatedBody = (await repeated.json()) as {
+      appointment: { id: string };
+      attempts: unknown[];
+      results: unknown[];
+    };
+    expect(repeatedBody.attempts).toEqual([]);
+    expect(repeatedBody.results).toEqual([]);
+
+    const firstNoShow = await mutation(
+      `/staff/tenants/${fixture.tenantId}/activities/${fixture.activityAId}/record-no-show`,
+      fixture.staffToken,
+      staffCsrf,
+      {
+        expectedAppointmentId: repeatedBody.appointment.id,
+        noShowJustified: false,
+        occurredAt: "2026-08-16T15:00:00-04:00",
+      },
+    );
+    expect(firstNoShow.status).toBe(201);
+    const secondAppointment = (await (
+      await mutation(
+        `/staff/tenants/${fixture.tenantId}/activities/${fixture.activityAId}/reprogram`,
+        fixture.staffToken,
+        staffCsrf,
+        {
+          assignedUserId: fixture.staffUserId,
+          expectedAppointmentId: repeatedBody.appointment.id,
+          location: "Sala close HTTP",
+          newScheduledStartAt: "2026-08-17T15:00:00-04:00",
+        },
+      )
+    ).json()) as { appointment: { id: string } };
+    const secondNoShow = await mutation(
+      `/staff/tenants/${fixture.tenantId}/activities/${fixture.activityAId}/record-no-show`,
+      fixture.staffToken,
+      staffCsrf,
+      {
+        expectedAppointmentId: secondAppointment.appointment.id,
+        noShowJustified: false,
+        occurredAt: "2026-08-18T15:00:00-04:00",
+      },
+    );
+    expect(secondNoShow.status).toBe(201);
+    const closed = await mutation(
+      `/staff/tenants/${fixture.tenantId}/activities/${fixture.activityAId}/close`,
+      fixture.staffToken,
+      staffCsrf,
+      { reason: "Cierre HTTP sintético" },
+    );
+    expect(closed.status).toBe(201);
+    const closedBody = (await closed.json()) as {
+      attempts: unknown[];
+      results: unknown[];
+    };
+    expect(closedBody.attempts).toEqual([]);
+    expect(closedBody.results).toEqual([]);
   });
 });

@@ -167,13 +167,18 @@ export function FamilyActivityWorkspace({
     event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
+    const activity = activities.find((item) => item.activityId === activityId);
+    if (activity?.appointment === null || activity?.appointment === undefined) {
+      setError("La cita ya no está disponible; vuelve a cargar la actividad.");
+      return;
+    }
     const reason = String(
       new FormData(event.currentTarget).get("reason") ?? "",
     );
     try {
       await mutate(
         apiBase,
-        `/family/tenants/${tenantId}/applications/${applicationId}/activities/${activityId}/reschedule-requests`,
+        `/family/tenants/${tenantId}/applications/${applicationId}/activities/${activityId}/appointments/${activity.appointment.id}/reschedule-requests`,
         { reason },
       );
       event.currentTarget.reset();

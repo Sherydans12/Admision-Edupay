@@ -228,6 +228,28 @@ describe.sequential("E5-D tenant RLS", () => {
     expect(crossTenantVisible).toEqual([]);
   });
 
+  it("E5D-RLS-06: pooled connections reset tenant context between A, no-context and B", async () => {
+    await expect(
+      runWithTenantContext(context(tenantA, actorA), () =>
+        withTenantTransaction(prisma, (transaction) =>
+          transaction.activityResult.count(),
+        ),
+      ),
+    ).resolves.toBe(1);
+    await expect(prisma.activityResult.count()).resolves.toBe(0);
+    const tenantBRows = await runWithTenantContext(
+      context(tenantB, actorB),
+      () =>
+        withTenantTransaction(prisma, async (transaction) => ({
+          own: await transaction.activityResult.count(),
+          foreign: await transaction.activityResult.count({
+            where: { tenantId: tenantA },
+          }),
+        })),
+    );
+    expect(tenantBRows).toEqual({ foreign: 0, own: 1 });
+  });
+
   afterAll(async () => {
     await pool.query("DELETE FROM tenants WHERE id = ANY($1::uuid[])", [
       [tenantA, tenantB],

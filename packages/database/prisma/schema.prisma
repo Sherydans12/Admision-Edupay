@@ -229,6 +229,7 @@ model PlatformUser {
   supportElevations SupportElevation[]
   familyProfile     FamilyProfile?
   activityRescheduleRequests ActivityRescheduleRequest[]
+  activityAppointments ActivityAppointment[]
 
   @@map("platform_users")
 }
@@ -674,8 +675,9 @@ model ActivityAppointment {
   previousAppointmentId String?                   @map("previous_appointment_id") @db.Uuid
   tenant                Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   activity              ApplicationActivity      @relation(fields: [tenantId, applicationActivityId], references: [tenantId, id], onDelete: Restrict)
+  assignedUser          PlatformUser             @relation(fields: [assignedUserId], references: [id], onDelete: Restrict)
   currentForActivity    ApplicationActivity?     @relation("CurrentActivityAppointment")
-  previousAppointment   ActivityAppointment?     @relation("AppointmentHistory", fields: [tenantId, previousAppointmentId], references: [tenantId, id], onDelete: Restrict)
+  previousAppointment   ActivityAppointment?     @relation("AppointmentHistory", fields: [tenantId, applicationActivityId, previousAppointmentId], references: [tenantId, applicationActivityId, id], onDelete: Restrict)
   nextAppointments      ActivityAppointment[]    @relation("AppointmentHistory")
   rescheduleRequests    ActivityRescheduleRequest[]
   fulfilledRequests     ActivityRescheduleRequest[] @relation("FulfilledAppointment")
@@ -752,13 +754,14 @@ model ActivityResult {
   createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
   tenant                Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   activity              ApplicationActivity @relation(fields: [tenantId, applicationActivityId], references: [tenantId, id], onDelete: Restrict)
-  attempt               ActivityAttempt    @relation(fields: [tenantId, applicationActivityId, attemptId], references: [tenantId, applicationActivityId, id], onDelete: Restrict)
-  previousResult        ActivityResult?    @relation("ResultHistory", fields: [tenantId, applicationActivityId, previousResultId], references: [tenantId, applicationActivityId, id], onDelete: Restrict)
+  attempt               ActivityAttempt    @relation(fields: [tenantId, applicationActivityId, attemptId], references: [tenantId, applicationActivityId, id], onDelete: Restrict, map: "activity_results_attempt_fkey")
+  previousResult        ActivityResult?    @relation("ResultHistory", fields: [tenantId, applicationActivityId, attemptId, previousResultId], references: [tenantId, applicationActivityId, attemptId, id], onDelete: Restrict, map: "activity_results_previous_same_attempt_fkey")
   nextResults           ActivityResult[]   @relation("ResultHistory")
 
   @@unique([tenantId, id])
   @@unique([tenantId, applicationActivityId, attemptId, versionNumber])
   @@unique([tenantId, applicationActivityId, id], map: "activity_results_activity_id_key")
+  @@unique([tenantId, applicationActivityId, attemptId, id], map: "activity_results_attempt_id_key")
   @@index([tenantId, applicationActivityId, attemptId])
   @@map("activity_results")
 }

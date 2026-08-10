@@ -68,7 +68,7 @@ export const notCompletedSchema = z.object({ ...outcomeBase }).strict();
 export const repeatSchema = z
   .object({
     assignedUserId: uuid,
-    expectedAppointmentId: uuid.optional(),
+    expectedAppointmentId: uuid,
     location: text(240),
     newScheduledStartAt: dateTime,
     reason: text(1000),

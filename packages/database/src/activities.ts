@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from "./generated/prisma/client.js";
-import { authorize, authorizeOrThrow } from "./authorization.js";
+import { authorizeOrThrow, ForbiddenError } from "./authorization.js";
 import {
   ActivityConflictError,
   IntakeNotFoundError,
@@ -75,7 +75,7 @@ export interface RecordOutcomeInput {
 
 export interface RepeatActivityInput {
   assignedUserId: string;
-  expectedAppointmentId?: string | undefined;
+  expectedAppointmentId: string;
   location: string;
   newScheduledStartAt: Date;
   reason: string;
@@ -170,6 +170,15 @@ export interface StaffActivityDto extends FamilyActivityDto {
 
 type ActivityWithRelations = Prisma.ApplicationActivityGetPayload<{
   include: {
+    application: {
+      select: {
+        id: true;
+        tenantId: true;
+        offeringId: true;
+        processId: true;
+        offering: { select: { campusId: true } };
+      };
+    };
     definition: true;
     definitionVersion: true;
     appointments: { orderBy: { sequence: "asc" } };
@@ -236,8 +245,23 @@ function validateConfiguration(input: ActivityVersionInput): void {
   }
 }
 
-function applicationScope(applicationId: string): string {
-  return `application:${applicationId}`;
+type ActivityResourceApplication = {
+  id: string;
+  tenantId: string;
+  offeringId: string;
+  processId: string;
+  offering: { campusId: string };
+};
+
+function activityResourceScopes(
+  application: ActivityResourceApplication,
+): readonly string[] {
+  return [
+    `application:${application.id}`,
+    `offering:${application.offeringId}`,
+    `process:${application.processId}`,
+    `campus:${application.offering.campusId}`,
+  ];
 }
 
 function assertActivityPermission(
@@ -252,9 +276,89 @@ function assertActivityPermission(
     resourceTenantId: context.tenantId,
     ...(applicationId === undefined
       ? {}
-      : { scope: applicationScope(applicationId) }),
+      : { scope: `application:${applicationId}` }),
     ...(sensitivity === undefined ? {} : { sensitivity }),
   });
+}
+
+/** Resource scopes are derived from the persisted application graph only. */
+function authorizeActivityResource(
+  context: TenantExecutionContext,
+  application: ActivityResourceApplication,
+  permission: PermissionKey,
+  sensitivity?: "restricted" | "highly_restricted",
+): void {
+  authorizeOrThrow(context, {
+    permission,
+    purpose: context.purpose,
+    resourceTenantId: application.tenantId,
+    ...(sensitivity === undefined ? {} : { sensitivity }),
+  });
+  const effectiveScopes =
+    context.contextOrigin === "support_elevation"
+      ? context.supportElevation?.scopes
+      : context.scopes;
+  if (
+    effectiveScopes?.includes("*") !== true &&
+    !activityResourceScopes(application).some((scope) =>
+      effectiveScopes?.includes(scope),
+    )
+  ) {
+    throw new ForbiddenError();
+  }
+}
+
+function canViewActivitySensitiveEvidence(
+  context: TenantExecutionContext,
+  application: ActivityResourceApplication,
+): boolean {
+  const sensitivityValid =
+    context.contextOrigin === "support_elevation"
+      ? context.supportElevation?.categories.includes(
+          SENSITIVITIES.HIGHLY_RESTRICTED,
+        ) === true
+      : context.capabilities?.includes(PERMISSIONS.RESTRICTED_READ) === true;
+  if (!sensitivityValid) return false;
+  try {
+    authorizeActivityResource(
+      context,
+      application,
+      PERMISSIONS.ACTIVITY_RESULT_READ,
+      SENSITIVITIES.HIGHLY_RESTRICTED,
+    );
+    return true;
+  } catch (error) {
+    if (error instanceof ForbiddenError) return false;
+    throw error;
+  }
+}
+
+async function assertAssignedExecutor(
+  transaction: Prisma.TransactionClient,
+  tenantId: string,
+  assignedUserId: string,
+  now = new Date(),
+): Promise<void> {
+  const executor = await transaction.platformUser.findFirst({
+    where: {
+      id: assignedUserId,
+      status: "ACTIVE",
+      memberships: {
+        some: {
+          OR: [{ endsAt: null }, { endsAt: { gt: now } }],
+          startsAt: { lte: now },
+          status: "ACTIVE",
+          tenantId,
+        },
+      },
+    },
+    select: { id: true },
+  });
+  if (executor === null) {
+    throw new IntakeValidationError(
+      "Assigned executor must be an active platform user with an active tenant membership",
+    );
+  }
 }
 
 function assertFamilyActivityPermission(context: FamilyExecutionContext): void {
@@ -499,6 +603,15 @@ function mapStaffActivity(
 }
 
 const activityInclude = {
+  application: {
+    select: {
+      id: true,
+      tenantId: true,
+      offeringId: true,
+      processId: true,
+      offering: { select: { campusId: true } },
+    },
+  },
   definition: true,
   definitionVersion: true,
   appointments: { orderBy: { sequence: "asc" as const } },
@@ -809,6 +922,7 @@ export class ActivityService {
     applicantContext: TenantExecutionContext,
     applicationId: string,
     activityId: string,
+    expectedAppointmentId: string,
     reason: string,
   ): Promise<{ id: string; status: "PENDING" }> {
     assertFamilyActivityPermission(familyContext);
@@ -836,6 +950,8 @@ export class ActivityService {
       if (activity === null) throw new IntakeNotFoundError();
       if (activity.currentAppointment === null)
         throw new IntakeValidationError("Activity has no current appointment");
+      if (activity.currentAppointment.id !== expectedAppointmentId)
+        throw new ActivityConflictError("ACTIVITY_APPOINTMENT_CHANGED");
       const request = await transaction.activityRescheduleRequest.create({
         data: {
           appointmentId: activity.currentAppointment.id,
@@ -859,27 +975,33 @@ export class ActivityService {
     context: TenantExecutionContext,
     applicationId: string,
   ): Promise<StaffActivityDto[]> {
-    assertActivityPermission(
-      context,
-      PERMISSIONS.ACTIVITY_READ,
-      applicationId,
-      SENSITIVITIES.RESTRICTED,
-    );
     return withTenantTransaction(this.prisma, async (transaction) => {
+      const application = await transaction.application.findFirst({
+        where: { id: applicationId },
+        select: {
+          id: true,
+          tenantId: true,
+          offeringId: true,
+          processId: true,
+          offering: { select: { campusId: true } },
+        },
+      });
+      if (application === null) throw new IntakeNotFoundError();
+      authorizeActivityResource(
+        context,
+        application,
+        PERMISSIONS.ACTIVITY_READ,
+        SENSITIVITIES.RESTRICTED,
+      );
       const activities = await transaction.applicationActivity.findMany({
         where: { applicationId },
         include: activityInclude,
         orderBy: { createdAt: "asc" },
       });
-      const canViewResults =
-        activities.length > 0 &&
-        authorize(context, {
-          permission: PERMISSIONS.ACTIVITY_RESULT_READ,
-          purpose: context.purpose,
-          resourceTenantId: context.tenantId,
-          scope: applicationScope(applicationId),
-          sensitivity: SENSITIVITIES.HIGHLY_RESTRICTED,
-        }).decision === "ALLOW";
+      const canViewResults = canViewActivitySensitiveEvidence(
+        context,
+        application,
+      );
       return activities.map((activity) =>
         mapStaffActivity(activity, canViewResults),
       );
@@ -896,20 +1018,16 @@ export class ActivityService {
         include: activityInclude,
       });
       if (activity === null) throw new IntakeNotFoundError();
-      assertActivityPermission(
+      authorizeActivityResource(
         context,
+        activity.application,
         PERMISSIONS.ACTIVITY_READ,
-        activity.applicationId,
         SENSITIVITIES.RESTRICTED,
       );
-      const canViewResults =
-        authorize(context, {
-          permission: PERMISSIONS.ACTIVITY_RESULT_READ,
-          purpose: context.purpose,
-          resourceTenantId: context.tenantId,
-          scope: applicationScope(activity.applicationId),
-          sensitivity: SENSITIVITIES.HIGHLY_RESTRICTED,
-        }).decision === "ALLOW";
+      const canViewResults = canViewActivitySensitiveEvidence(
+        context,
+        activity.application,
+      );
       return mapStaffActivity(activity, canViewResults);
     });
   }
@@ -964,16 +1082,31 @@ export class ActivityService {
       if (lock.length !== 1) throw new IntakeNotFoundError();
       const activity = await transaction.applicationActivity.findFirst({
         where: { id: activityId },
-        include: { definitionVersion: true, currentAppointment: true },
+        include: {
+          application: {
+            select: {
+              id: true,
+              tenantId: true,
+              offeringId: true,
+              processId: true,
+              offering: { select: { campusId: true } },
+            },
+          },
+          definitionVersion: true,
+          currentAppointment: true,
+        },
       });
       if (activity === null) throw new IntakeNotFoundError();
-      assertActivityPermission(
+      authorizeActivityResource(
         context,
-        reprogram
-          ? PERMISSIONS.ACTIVITY_SCHEDULE
-          : PERMISSIONS.ACTIVITY_SCHEDULE,
-        activity.applicationId,
+        activity.application,
+        PERMISSIONS.ACTIVITY_SCHEDULE,
         SENSITIVITIES.RESTRICTED,
+      );
+      await assertAssignedExecutor(
+        transaction,
+        context.tenantId,
+        input.assignedUserId,
       );
       if (activity.status === "CERRADA")
         throw new ActivityConflictError("ACTIVITY_CLOSED");
@@ -1084,14 +1217,10 @@ export class ActivityService {
         where: { id: activity.id },
         include: activityInclude,
       });
-      const canViewResults =
-        authorize(context, {
-          permission: PERMISSIONS.ACTIVITY_RESULT_READ,
-          purpose: context.purpose,
-          resourceTenantId: context.tenantId,
-          scope: applicationScope(activity.applicationId),
-          sensitivity: SENSITIVITIES.HIGHLY_RESTRICTED,
-        }).decision === "ALLOW";
+      const canViewResults = canViewActivitySensitiveEvidence(
+        context,
+        result.application,
+      );
       return mapStaffActivity(result, canViewResults);
     });
   }
@@ -1138,16 +1267,25 @@ export class ActivityService {
       const activity = await transaction.applicationActivity.findFirst({
         where: { id: activityId },
         include: {
+          application: {
+            select: {
+              id: true,
+              tenantId: true,
+              offeringId: true,
+              processId: true,
+              offering: { select: { campusId: true } },
+            },
+          },
           definitionVersion: true,
           currentAppointment: true,
           attempts: { orderBy: { sequence: "desc" } },
         },
       });
       if (activity === null) throw new IntakeNotFoundError();
-      assertActivityPermission(
+      authorizeActivityResource(
         context,
+        activity.application,
         PERMISSIONS.ACTIVITY_PERFORM,
-        activity.applicationId,
         SENSITIVITIES.HIGHLY_RESTRICTED,
       );
       if (activity.status === "CERRADA")
@@ -1235,16 +1373,10 @@ export class ActivityService {
         where: { id: activity.id },
         include: activityInclude,
       });
-      const canViewResults =
-        authorize(context, {
-          permission: PERMISSIONS.ACTIVITY_RESULT_READ,
-          purpose: context.purpose,
-          resourceTenantId: context.tenantId,
-          scope: applicationScope(activity.applicationId),
-          sensitivity: SENSITIVITIES.HIGHLY_RESTRICTED,
-        }).decision === "ALLOW" ||
-        appointment.assignedUserId ===
-          (context.effectiveActorId ?? context.actorId);
+      const canViewResults = canViewActivitySensitiveEvidence(
+        context,
+        result.application,
+      );
       return mapStaffActivity(result, canViewResults);
     });
   }
@@ -1270,6 +1402,15 @@ export class ActivityService {
       const activity = await transaction.applicationActivity.findFirst({
         where: { id: activityId },
         include: {
+          application: {
+            select: {
+              id: true,
+              tenantId: true,
+              offeringId: true,
+              processId: true,
+              offering: { select: { campusId: true } },
+            },
+          },
           definition: true,
           currentAppointment: true,
           attempts: { orderBy: { sequence: "desc" } },
@@ -1277,11 +1418,16 @@ export class ActivityService {
         },
       });
       if (activity === null) throw new IntakeNotFoundError();
-      assertActivityPermission(
+      authorizeActivityResource(
         context,
+        activity.application,
         PERMISSIONS.ACTIVITY_REPEAT,
-        activity.applicationId,
         SENSITIVITIES.RESTRICTED,
+      );
+      await assertAssignedExecutor(
+        transaction,
+        context.tenantId,
+        input.assignedUserId,
       );
       if (activity.status === "CERRADA")
         throw new ActivityConflictError("ACTIVITY_CLOSED");
@@ -1298,9 +1444,8 @@ export class ActivityService {
           "Only a not-completed attempt can be repeated",
         );
       if (
-        input.expectedAppointmentId !== undefined &&
-        (activity.currentAppointment === null ||
-          input.expectedAppointmentId !== activity.currentAppointment.id)
+        activity.currentAppointment === null ||
+        input.expectedAppointmentId !== activity.currentAppointment.id
       )
         throw new ActivityConflictError("ACTIVITY_APPOINTMENT_CHANGED");
       const previousAppointment = activity.currentAppointment;
@@ -1337,7 +1482,10 @@ export class ActivityService {
         where: { id: activity.id },
         include: activityInclude,
       });
-      return mapStaffActivity(result, true);
+      return mapStaffActivity(
+        result,
+        canViewActivitySensitiveEvidence(context, result.application),
+      );
     });
   }
 
@@ -1360,13 +1508,25 @@ export class ActivityService {
       if (lock.length !== 1) throw new IntakeNotFoundError();
       const activity = await transaction.applicationActivity.findFirst({
         where: { id: activityId },
-        include: { currentAppointment: true, attempts: true },
+        include: {
+          application: {
+            select: {
+              id: true,
+              tenantId: true,
+              offeringId: true,
+              processId: true,
+              offering: { select: { campusId: true } },
+            },
+          },
+          currentAppointment: true,
+          attempts: true,
+        },
       });
       if (activity === null) throw new IntakeNotFoundError();
-      assertActivityPermission(
+      authorizeActivityResource(
         context,
+        activity.application,
         PERMISSIONS.ACTIVITY_CLOSE,
-        activity.applicationId,
         SENSITIVITIES.RESTRICTED,
       );
       if (activity.currentAppointment?.status === "PROGRAMADA")
@@ -1399,7 +1559,10 @@ export class ActivityService {
         where: { id: activity.id },
         include: activityInclude,
       });
-      return mapStaffActivity(result, true);
+      return mapStaffActivity(
+        result,
+        canViewActivitySensitiveEvidence(context, result.application),
+      );
     });
   }
 }

@@ -94,13 +94,14 @@ export class ActivityController {
   }
 
   @Post(
-    "family/tenants/:tenantId/applications/:applicationId/activities/:activityId/reschedule-requests",
+    "family/tenants/:tenantId/applications/:applicationId/activities/:activityId/appointments/:expectedAppointmentId/reschedule-requests",
   )
   async requestReschedule(
     @Req() request: RequestLike,
     @Param("tenantId") tenantId: string,
     @Param("applicationId") applicationId: string,
     @Param("activityId") activityId: string,
+    @Param("expectedAppointmentId") expectedAppointmentId: string,
     @Body() body: unknown,
   ) {
     await this.contexts.assertMutationSafe(request);
@@ -123,6 +124,7 @@ export class ActivityController {
           applicant,
           parseUuid(applicationId),
           parseUuid(activityId),
+          parseUuid(expectedAppointmentId),
           input.reason,
         ),
       ),

@@ -18,9 +18,9 @@ const allMigrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
   .sort();
-const expectedMigration = "20260810180000_e5d_activities";
-if (allMigrations.length !== 9 || allMigrations.at(-1) !== expectedMigration) {
-  throw new Error(`Expected 9 migrations ending in ${expectedMigration}`);
+const expectedMigration = "20260810190000_e5d_activity_boundary_hardening";
+if (allMigrations.length !== 10 || allMigrations.at(-1) !== expectedMigration) {
+  throw new Error(`Expected 10 migrations ending in ${expectedMigration}`);
 }
 
 function run(command, args, options = {}) {
@@ -136,7 +136,7 @@ const databases = [];
 try {
   for (const [label, migrations] of [
     ["fresh", allMigrations],
-    ["incremental", allMigrations.slice(0, 8)],
+    ["incremental", allMigrations.slice(0, 9)],
   ]) {
     const database = `admission_e5d_${label}_${randomUUID().replaceAll("-", "")}`;
     databases.push(database);
@@ -176,10 +176,10 @@ try {
         "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;",
       )
     ).stdout.trim();
-    if (count !== "9")
+    if (count !== "10")
       throw new Error(`${label} migration proof applied ${count} migrations`);
     console.log(
-      `${label === "fresh" ? "FRESH_0_TO_9" : "INCREMENTAL_8_TO_9"}=PASS`,
+      `${label === "fresh" ? "FRESH_0_TO_10" : "INCREMENTAL_9_TO_10"}=PASS`,
     );
     if (label === "incremental") {
       const verification = (
@@ -190,10 +190,11 @@ try {
         (SELECT count(*) FROM information_schema.tables WHERE table_name IN ('activity_definitions','activity_definition_versions','application_activities','activity_appointments','activity_reschedule_requests','activity_attempts','activity_results')),
         (SELECT count(*) FROM pg_type WHERE typname IN ('ActivityDefinitionKind','ActivityDefinitionVersionLifecycle','ActivityModality','ApplicationActivityStatus','ActivityAppointmentStatus','ActivityRescheduleRequestStatus','ActivityAttemptOutcome','ActivityResultValue')),
         (SELECT count(*) FROM pg_class WHERE relname IN ('activity_definitions','activity_definition_versions','application_activities','activity_appointments','activity_reschedule_requests','activity_attempts','activity_results') AND relrowsecurity AND relforcerowsecurity),
-        (SELECT count(*) FROM pg_trigger WHERE tgname IN ('activity_definition_versions_history_immutable','application_activities_current_appointment_guard','activity_attempts_append_only','activity_results_append_only'));`,
+        (SELECT count(*) FROM pg_trigger WHERE tgname IN ('activity_definition_versions_history_immutable','application_activities_current_appointment_guard','activity_attempts_append_only','activity_results_append_only')),
+        (SELECT count(*) FROM pg_constraint WHERE conname IN ('activity_appointments_assigned_user_fkey','activity_appointments_previous_same_activity_fkey','activity_appointments_previous_not_self_check','activity_results_previous_same_attempt_fkey','activity_results_previous_not_self_check'));`,
         )
       ).stdout.trim();
-      if (verification !== "7|8|7|4")
+      if (verification !== "7|8|7|4|5")
         throw new Error(`E5-D DB seals mismatch: ${verification}`);
       console.log(
         "E5D_DB_SEALS=PASS (tables, enums, RLS/FORCE, triggers, composite FKs)",
