@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A+B COMPLETE — READY FOR E5-C REVIEW` |
+| Estado | `IN PROGRESS / E5-A+B COMPLETE / E5-C COMPLETE_WITH_DEFERRED_Q106 — READY FOR E5-D REVIEW` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
@@ -98,11 +98,22 @@ fuera de E5-B.
 
 ### E5-C — Documentos y postulación asistida
 
-**Estado:** `NOT_STARTED`.
+**Estado:** `COMPLETE_WITH_DEFERRED_Q106`.
 
 Cobertura principal: `BL-006` y `BL-007`, incluyendo privacidad, versiones, observación/corrección, equivalencia/exención y asistencia institucional sin expediente paralelo.
 
+El incremento implementa catálogo y requisitos versionados, fijación exacta por
+postulación, carga privada, cuarentena y procesamiento asíncrono fail-closed,
+revisión/observación/exención, reemplazo con historia, readiness transaccional,
+snapshot v2 y postulación asistida sin suplantación ni expediente paralelo. La
+evidencia, pruebas y límites se documentan en
+[`03-e5c-documents-assisted-evidence.md`](03-e5c-documents-assisted-evidence.md).
+`Q-106` permanece diferida: la resolución operativa se limita a identificadores
+exactos y no declara una política definitiva de verificación familiar.
+
 ### E5-D — Actividades
+
+**Estado:** `NOT_STARTED`.
 
 Cobertura principal: `BL-008` y `BL-009`: agenda, reprogramación, asistencia/no-show, intentos y resultado interno separado del estado operacional.
 

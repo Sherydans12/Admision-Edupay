@@ -16,6 +16,8 @@
     "db:reset": "docker compose down --volumes --remove-orphans && docker compose up -d postgres",
     "e4:deploy:smoke": "node scripts/e4-deploy-smoke.mjs",
     "e4:recovery:smoke": "node scripts/e4-recovery-smoke.mjs",
+    "e5c:documents:smoke": "node scripts/e5c-documents-smoke.mjs",
+    "e5c:migration:smoke": "node scripts/e5c-migration-smoke.mjs",
     "db:up": "docker compose up -d postgres",
     "dev:api": "pnpm --filter @admission/api dev",
     "dev:web": "pnpm --filter @admission/web dev",
