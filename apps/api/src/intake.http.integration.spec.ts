@@ -6,7 +6,9 @@ import {
   InMemoryAuditSink,
   InMemorySecurityEventSink,
   PERMISSIONS,
+  runWithTenantContext,
   SessionService,
+  type TenantExecutionContext,
 } from "@admission/database";
 import { type INestApplication } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
@@ -15,6 +17,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import { configureAdmissionApp } from "./app-bootstrap.js";
 import { AppModule } from "./app.module.js";
+import { ApiDocumentService } from "./document.service.js";
 
 const prisma = createAppPrismaClient();
 const migrationPool = new Pool({
@@ -25,11 +28,13 @@ const cookieName = buildSessionCookieOptions({ environment: "local" }).name;
 
 type HttpFixture = {
   adminAllowedToken: string;
+  adminAllowedUserId: string;
   adminDeniedToken: string;
   adminManageToken: string;
   applicationBId: string;
   formFieldAId: string;
   formVersionAId: string;
+  familyProfileAId: string;
   familyAToken: string;
   familyBToken: string;
   offeringAId: string;
@@ -83,6 +88,8 @@ async function seedFixture(): Promise<void> {
   const roleAssignment = randomUUID();
   const manageMembership = randomUUID();
   const manageRoleAssignment = randomUUID();
+  const tenantBMembership = randomUUID();
+  const tenantBRoleAssignment = randomUUID();
   const applicationB = randomUUID();
 
   const client = await migrationPool.connect();
@@ -207,11 +214,22 @@ async function seedFixture(): Promise<void> {
     await transaction.$executeRaw`
       INSERT INTO role_assignments
         (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
-       VALUES (${roleAssignment}, ${tenantA}, ${membership}, ${"SYNTHETIC_E5A_ADMIN"}, ARRAY[${PERMISSIONS.ADMISSION_CONFIG_READ}, ${PERMISSIONS.ADMISSION_CONFIG_MANAGE}, ${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}, ${PERMISSIONS.FORM_PUBLISH}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
+       VALUES (${roleAssignment}, ${tenantA}, ${membership}, ${"SYNTHETIC_E5C_ADMIN"}, ARRAY[${PERMISSIONS.ADMISSION_CONFIG_READ}, ${PERMISSIONS.ADMISSION_CONFIG_MANAGE}, ${PERMISSIONS.APPLICATION_ASSIST}, ${PERMISSIONS.DOCUMENT_EXEMPT}, ${PERMISSIONS.DOCUMENT_READ}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_MANAGE}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_PUBLISH}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_READ}, ${PERMISSIONS.DOCUMENT_REVIEW}, ${PERMISSIONS.DOCUMENT_UPLOAD}, ${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}, ${PERMISSIONS.FORM_PUBLISH}, ${PERMISSIONS.RESTRICTED_READ}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
     await transaction.$executeRaw`
       INSERT INTO role_assignments
         (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
-      VALUES (${manageRoleAssignment}, ${tenantA}, ${manageMembership}, ${"SYNTHETIC_E5B_FORM_MANAGER"}, ARRAY[${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
+      VALUES (${manageRoleAssignment}, ${tenantA}, ${manageMembership}, ${"SYNTHETIC_E5C_SECRETARY"}, ARRAY[${PERMISSIONS.DOCUMENT_READ}, ${PERMISSIONS.DOCUMENT_UPLOAD}, ${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}, ${PERMISSIONS.RESTRICTED_READ}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
+  });
+
+  await prisma.$transaction(async (transaction) => {
+    await transaction.$executeRaw`SELECT set_config('admission.tenant_id', ${tenantB}, true)`;
+    await transaction.$executeRaw`
+      INSERT INTO memberships (id, tenant_id, user_id, status, starts_at)
+      VALUES (${tenantBMembership}, ${tenantB}, ${adminAllowed}, 'ACTIVE', CURRENT_TIMESTAMP)`;
+    await transaction.$executeRaw`
+      INSERT INTO role_assignments
+        (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
+      VALUES (${tenantBRoleAssignment}, ${tenantB}, ${tenantBMembership}, ${"SYNTHETIC_E5C_TENANT_B_READER"}, ARRAY[${PERMISSIONS.DOCUMENT_READ}, ${PERMISSIONS.RESTRICTED_READ}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
   });
 
   const [
@@ -229,11 +247,13 @@ async function seedFixture(): Promise<void> {
   ]);
   fixture = {
     adminAllowedToken: adminAllowedSession.token,
+    adminAllowedUserId: adminAllowed,
     adminDeniedToken: adminDeniedSession.token,
     adminManageToken: adminManageSession.token,
     applicationBId: applicationB,
     familyAToken: familySession.token,
     familyBToken: familyBSession.token,
+    familyProfileAId: profileA,
     formFieldAId: formFieldA,
     formVersionAId: formVersionA,
     offeringAId: offeringA,
@@ -277,6 +297,138 @@ async function mutation(
   if (!headers.has("Origin")) headers.set("Origin", "http://localhost:3000");
   if (csrfToken !== undefined) headers.set("X-CSRF-Token", csrfToken);
   return request(path, { ...init, headers, token });
+}
+
+async function multipartMutation(
+  path: string,
+  token: string,
+  csrfToken: string | undefined,
+  form: FormData,
+): Promise<Response> {
+  const headers = new Headers({ Origin: "http://localhost:3000" });
+  if (csrfToken !== undefined) headers.set("X-CSRF-Token", csrfToken);
+  return request(path, { body: form, headers, method: "POST", token });
+}
+
+async function createDocumentApplication(maxFileSizeBytes = 10 * 1024 * 1024) {
+  const adminCsrf = await csrf(fixture.adminAllowedToken);
+  const requirementResponse = await mutation(
+    `/admin/tenants/${fixture.tenantAId}/document-requirements`,
+    fixture.adminAllowedToken,
+    adminCsrf,
+    {
+      body: JSON.stringify({
+        code: `HTTP-DOC-${randomUUID()}`,
+        name: "Documento HTTP sintético",
+        purpose: "Validar frontera HTTP E5-C",
+      }),
+      method: "POST",
+    },
+  );
+  expect(requirementResponse.status).toBe(201);
+  const requirement = (await requirementResponse.json()) as { id: string };
+  const versionResponse = await mutation(
+    `/admin/tenants/${fixture.tenantAId}/document-requirements/${requirement.id}/versions`,
+    fixture.adminAllowedToken,
+    adminCsrf,
+    {
+      body: JSON.stringify({
+        allowedFileTypes: ["PDF"],
+        allowsEquivalent: false,
+        correctionWindowBusinessDays: 3,
+        maxFileSizeBytes,
+        required: true,
+        sensitivity: "restricted",
+        validityRule: "NONE",
+      }),
+      method: "POST",
+    },
+  );
+  expect(versionResponse.status).toBe(201);
+  const version = (await versionResponse.json()) as { id: string };
+  const published = await mutation(
+    `/admin/tenants/${fixture.tenantAId}/document-requirement-versions/${version.id}/publish`,
+    fixture.adminAllowedToken,
+    adminCsrf,
+    { method: "POST" },
+  );
+  expect(published.status).toBe(201);
+
+  const familyCsrf = await csrf(fixture.familyAToken);
+  const applicationResponse = await mutation(
+    `/family/tenants/${fixture.tenantAId}/applications`,
+    fixture.familyAToken,
+    familyCsrf,
+    {
+      body: JSON.stringify({
+        offeringId: fixture.offeringAId,
+        studentId: fixture.studentAId,
+      }),
+      method: "POST",
+    },
+  );
+  expect(applicationResponse.status).toBe(201);
+  const application = (await applicationResponse.json()) as { id: string };
+  const documentsResponse = await request(
+    `/family/tenants/${fixture.tenantAId}/applications/${application.id}/documents`,
+    { token: fixture.familyAToken },
+  );
+  expect(documentsResponse.status).toBe(200);
+  const projection = (await documentsResponse.json()) as {
+    items: Array<{ id: string }>;
+  };
+  return {
+    applicationId: application.id,
+    familyCsrf,
+    submissionId: projection.items[0]!.id,
+  };
+}
+
+async function uploadHttpDocument(
+  setup: Awaited<ReturnType<typeof createDocumentApplication>>,
+  bytes: Uint8Array,
+  csrfToken: string | null = setup.familyCsrf,
+) {
+  const form = new FormData();
+  const copy = new Uint8Array(new ArrayBuffer(bytes.byteLength));
+  copy.set(bytes);
+  form.set(
+    "file",
+    new Blob([copy], { type: "application/pdf" }),
+    "synthetic.pdf",
+  );
+  return multipartMutation(
+    `/family/tenants/${fixture.tenantAId}/applications/${setup.applicationId}/document-submissions/${setup.submissionId}/upload`,
+    fixture.familyAToken,
+    csrfToken ?? undefined,
+    form,
+  );
+}
+
+async function makeHttpDocumentReady(
+  setup: Awaited<ReturnType<typeof createDocumentApplication>>,
+  bytes = new TextEncoder().encode("%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF"),
+) {
+  const uploadResponse = await uploadHttpDocument(setup, bytes);
+  expect(uploadResponse.status).toBe(201);
+  const uploaded = (await uploadResponse.json()) as {
+    documentVersionId: string;
+  };
+  const workerContext: TenantExecutionContext = {
+    actorId: "00000000-0000-4000-8000-000000000005",
+    capabilities: [],
+    contextOrigin: "trusted_job",
+    correlationId: `synthetic-http-worker-${randomUUID()}`,
+    effectiveActorId: "00000000-0000-4000-8000-000000000005",
+    purpose: "document.processing",
+    source: "trusted_job",
+    tenantId: fixture.tenantAId,
+  };
+  const service = app.get(ApiDocumentService);
+  const processed = await runWithTenantContext(workerContext, () =>
+    service.processDocument(workerContext, uploaded.documentVersionId),
+  );
+  return { ...uploaded, processed };
 }
 
 describe.sequential("E5-A real HTTP boundary", () => {
@@ -774,5 +926,237 @@ describe.sequential("E5-A real HTTP boundary", () => {
       });
     });
     expect(snapshotCount).toBe(1);
+  });
+
+  it("E5C-HTTP-01: family document list requires an opaque session", async () => {
+    const response = await request(
+      `/family/tenants/${fixture.tenantAId}/applications/${randomUUID()}/documents`,
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it("E5C-HTTP-02: family B cannot see family A document bindings", async () => {
+    const setup = await createDocumentApplication();
+    const response = await request(
+      `/family/tenants/${fixture.tenantAId}/applications/${setup.applicationId}/documents`,
+      { token: fixture.familyBToken },
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("E5C-HTTP-03: multipart upload requires CSRF", async () => {
+    const setup = await createDocumentApplication();
+    const response = await uploadHttpDocument(
+      setup,
+      new TextEncoder().encode("%PDF-1.4\n%%EOF"),
+      null,
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("E5C-HTTP-04: multipart hard-cap overflow returns controlled 4xx", async () => {
+    const setup = await createDocumentApplication();
+    const response = await uploadHttpDocument(
+      setup,
+      new Uint8Array(10 * 1024 * 1024 + 1),
+    );
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({
+      error: "VALIDATION",
+      message: "Request failed",
+    });
+  });
+
+  it("E5C-HTTP-05: invalid file reaches a safe technical blocked status", async () => {
+    const setup = await createDocumentApplication();
+    const result = await makeHttpDocumentReady(
+      setup,
+      new TextEncoder().encode("not-a-real-pdf"),
+    );
+    expect(result.processed.technicalStatus).toBe("BLOCKED_INVALID");
+    const projection = await request(
+      `/family/tenants/${fixture.tenantAId}/applications/${setup.applicationId}/documents`,
+      { token: fixture.familyAToken },
+    );
+    const body = (await projection.json()) as {
+      items: Array<{ history: Array<{ technicalStatus: string }> }>;
+    };
+    expect(body.items[0]?.history[0]?.technicalStatus).toBe("BLOCKED_INVALID");
+    expect(JSON.stringify(body)).not.toMatch(/scanner|objectKey|storage/i);
+  });
+
+  it("E5C-HTTP-06: quarantined version download is denied", async () => {
+    const setup = await createDocumentApplication();
+    const uploaded = await uploadHttpDocument(
+      setup,
+      new TextEncoder().encode("%PDF-1.4\n%%EOF"),
+    );
+    const version = (await uploaded.json()) as { documentVersionId: string };
+    const response = await request(
+      `/family/tenants/${fixture.tenantAId}/applications/${setup.applicationId}/document-versions/${version.documentVersionId}/download`,
+      { token: fixture.familyAToken },
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("E5C-HTTP-07: approved own download works with private safe headers", async () => {
+    const setup = await createDocumentApplication();
+    const ready = await makeHttpDocumentReady(setup);
+    const response = await request(
+      `/family/tenants/${fixture.tenantAId}/applications/${setup.applicationId}/document-versions/${ready.documentVersionId}/download`,
+      { token: fixture.familyAToken },
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/pdf");
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("E5C-HTTP-08: tenant staff without review permission cannot accept", async () => {
+    const setup = await createDocumentApplication();
+    await makeHttpDocumentReady(setup);
+    const token = await csrf(fixture.adminManageToken);
+    const response = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/accept`,
+      fixture.adminManageToken,
+      token,
+      { method: "POST" },
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("E5C-HTTP-09: explicitly authorized reviewer accepts READY evidence", async () => {
+    const setup = await createDocumentApplication();
+    await makeHttpDocumentReady(setup);
+    const token = await csrf(fixture.adminAllowedToken);
+    const response = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/accept`,
+      fixture.adminAllowedToken,
+      token,
+      { method: "POST" },
+    );
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ status: "ACEPTADO" });
+  });
+
+  it("E5C-HTTP-10: observe requires a non-empty reason", async () => {
+    const setup = await createDocumentApplication();
+    await makeHttpDocumentReady(setup);
+    const token = await csrf(fixture.adminAllowedToken);
+    const response = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/observe`,
+      fixture.adminAllowedToken,
+      token,
+      { body: JSON.stringify({ reason: "" }), method: "POST" },
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("E5C-HTTP-11: exemption remains a separately authorized action", async () => {
+    const setup = await createDocumentApplication();
+    const deniedToken = await csrf(fixture.adminManageToken);
+    const path = `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/exempt`;
+    const denied = await mutation(path, fixture.adminManageToken, deniedToken, {
+      body: JSON.stringify({ reason: "Synthetic exception" }),
+      method: "POST",
+    });
+    expect(denied.status).toBe(403);
+    const allowedToken = await csrf(fixture.adminAllowedToken);
+    const allowed = await mutation(
+      path,
+      fixture.adminAllowedToken,
+      allowedToken,
+      {
+        body: JSON.stringify({ reason: "Synthetic explicit exception" }),
+        method: "POST",
+      },
+    );
+    expect(allowed.status).toBe(201);
+  });
+
+  it("E5C-HTTP-12: foreign-tenant document version is anti-enumeration 404", async () => {
+    const setup = await createDocumentApplication();
+    const ready = await makeHttpDocumentReady(setup);
+    const response = await request(
+      `/staff/tenants/${fixture.tenantBId}/document-versions/${ready.documentVersionId}/download`,
+      { token: fixture.adminAllowedToken },
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("E5C-HTTP-13: assisted endpoint requires tenant membership and application.assist", async () => {
+    const body = JSON.stringify({
+      adultPresentConfirmed: true,
+      authorizationConfirmed: true,
+      familyProfileId: fixture.familyProfileAId,
+    });
+    const deniedToken = await csrf(fixture.adminManageToken);
+    const denied = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/assistance-sessions`,
+      fixture.adminManageToken,
+      deniedToken,
+      { body, method: "POST" },
+    );
+    expect(denied.status).toBe(403);
+    const allowedToken = await csrf(fixture.adminAllowedToken);
+    const allowed = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/assistance-sessions`,
+      fixture.adminAllowedToken,
+      allowedToken,
+      { body, method: "POST" },
+    );
+    expect(allowed.status).toBe(201);
+  });
+
+  it("E5C-HTTP-14: assisted context keeps staff identity and rejects family-cookie impersonation", async () => {
+    const body = JSON.stringify({
+      adultPresentConfirmed: true,
+      authorizationConfirmed: true,
+      familyProfileId: fixture.familyProfileAId,
+    });
+    const familyToken = await csrf(fixture.familyAToken);
+    const familyAttempt = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/assistance-sessions`,
+      fixture.familyAToken,
+      familyToken,
+      { body, method: "POST" },
+    );
+    expect(familyAttempt.status).toBe(403);
+    const staffToken = await csrf(fixture.adminAllowedToken);
+    const staff = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/assistance-sessions`,
+      fixture.adminAllowedToken,
+      staffToken,
+      { body, method: "POST" },
+    );
+    const session = (await staff.json()) as {
+      id: string;
+      operatorUserId: string;
+    };
+    expect(session).toMatchObject({
+      operatorUserId: fixture.adminAllowedUserId,
+    });
+    const applicationResponse = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/assistance-sessions/${session.id}/applications`,
+      fixture.adminAllowedToken,
+      staffToken,
+      {
+        body: JSON.stringify({
+          offeringId: fixture.offeringAId,
+          studentId: fixture.studentAId,
+        }),
+        method: "POST",
+      },
+    );
+    expect(applicationResponse.status).toBe(201);
+    const application = (await applicationResponse.json()) as { id: string };
+    const workflow = await request(
+      `/staff/tenants/${fixture.tenantAId}/assistance-sessions/${session.id}/applications/${application.id}/workflow`,
+      { token: fixture.adminAllowedToken },
+    );
+    expect(workflow.status).toBe(200);
+    expect(await workflow.json()).toMatchObject({
+      documents: { applicationId: application.id },
+      form: { applicationId: application.id },
+    });
   });
 });

@@ -61,6 +61,7 @@ function classifyStatus(status: number): PublicErrorResponse["error"] {
   if (status === HttpStatus.CONFLICT) return "CONFLICT";
   if (
     status === HttpStatus.BAD_REQUEST ||
+    status === HttpStatus.PAYLOAD_TOO_LARGE ||
     status === HttpStatus.UNPROCESSABLE_ENTITY
   )
     return "VALIDATION";

@@ -98,7 +98,18 @@ importers:
         specifier: 4.3.3
         version: 4.3.3
 
-  apps/worker: {}
+  apps/worker:
+    dependencies:
+      '@admission/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      pg:
+        specifier: 8.23.0
+        version: 8.23.0
+    devDependencies:
+      '@types/pg':
+        specifier: 8.21.0
+        version: 8.21.0
 
   packages/database:
     dependencies:

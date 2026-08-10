@@ -29,6 +29,8 @@ LABEL com.admissionedupay.readiness="DEVELOPMENT READINESS IMAGE"
 ENV NODE_ENV=development
 WORKDIR /app
 
+RUN mkdir -p /app/document-storage && chown node:node /app/document-storage
+
 COPY --from=build /runtime/ ./
 COPY --from=build /repo/apps/api/dist ./dist
 

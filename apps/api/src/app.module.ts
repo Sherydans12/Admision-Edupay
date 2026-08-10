@@ -15,6 +15,9 @@ import { HealthService } from "./health.service.js";
 import { IntakeController } from "./intake.controller.js";
 import { ApiIntakeService } from "./intake.service.js";
 import { RequestContextService } from "./request-context.service.js";
+import { DocumentController } from "./document.controller.js";
+import { ApiDocumentService } from "./document.service.js";
+import { ApiAssistanceService } from "./assistance.service.js";
 
 const prismaProvider = {
   provide: PrismaClient,
@@ -32,12 +35,19 @@ const sessionProvider = {
 };
 
 @Module({
-  controllers: [HealthController, IntakeController, FormController],
+  controllers: [
+    HealthController,
+    IntakeController,
+    FormController,
+    DocumentController,
+  ],
   providers: [
     prismaProvider,
     sessionProvider,
     ApiIntakeService,
     ApiFormService,
+    ApiDocumentService,
+    ApiAssistanceService,
     HealthService,
     RequestContextService,
   ],
