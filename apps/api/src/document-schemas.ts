@@ -64,6 +64,12 @@ export const requirementVersionSchema = z
   })
   .strict();
 
+export const acceptDocumentSchema = z
+  .object({ expectedDocumentVersionId: uuid })
+  .strict();
+export const observeDocumentSchema = z
+  .object({ expectedDocumentVersionId: uuid, reason: text(1000) })
+  .strict();
 export const reviewReasonSchema = z.object({ reason: text(1000) }).strict();
 export const assistanceStartSchema = z
   .object({

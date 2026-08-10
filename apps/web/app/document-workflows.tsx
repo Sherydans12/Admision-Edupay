@@ -854,7 +854,14 @@ export function StaffDocumentWorkspace({
         apiBase,
         `${root}/document-submissions/${item.id}/${action}`,
         "POST",
-        action === "accept" ? undefined : { reason: reason[item.id] ?? "" },
+        action === "exempt"
+          ? { reason: reason[item.id] ?? "" }
+          : {
+              expectedDocumentVersionId: item.currentDocumentVersion?.id,
+              ...(action === "observe"
+                ? { reason: reason[item.id] ?? "" }
+                : {}),
+            },
       );
       await load();
     } catch {

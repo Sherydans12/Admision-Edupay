@@ -10,7 +10,11 @@ import {
   DocumentService,
   type DocumentRequirementVersionInput,
 } from "./documents.js";
-import { IntakeNotFoundError, IntakeValidationError } from "./domain-errors.js";
+import {
+  IntakeConflictError,
+  IntakeNotFoundError,
+  IntakeValidationError,
+} from "./domain-errors.js";
 import { FormService } from "./forms.js";
 import { IntakeService } from "./intake.js";
 import {
@@ -20,6 +24,7 @@ import {
 import { PERMISSIONS } from "./permission-catalog.js";
 import { createAppPrismaClient } from "./prisma-client.js";
 import {
+  createVerifiedSupportElevation,
   runWithFamilyContext,
   runWithTenantContext,
   type FamilyExecutionContext,
@@ -60,6 +65,7 @@ function tenantContext(
   tenantId: string,
   capabilities: readonly string[],
   origin: TenantExecutionContext["contextOrigin"] = "synthetic_test",
+  scopes: readonly string[] = ["*"],
 ): TenantExecutionContext {
   return {
     actorId,
@@ -68,6 +74,7 @@ function tenantContext(
     correlationId: `synthetic-e5c-${randomUUID()}`,
     effectiveActorId: actorId,
     purpose: "e5c.documents.test",
+    scopes,
     source: origin === "trusted_job" ? "trusted_job" : "authenticated_request",
     tenantId,
   };
@@ -785,7 +792,7 @@ describe.sequential("E5-C private upload and processing pipeline", () => {
     expect(downloaded.contentType).toBe("application/pdf");
   });
 
-  it("E5C-FILE-16 and E5C-WRK-05/08: retry is terminal-idempotent and promotes once", async () => {
+  it("E5C-FILE-16, E5C-WRK-05/08 and E5C-LEASE-09: reclaimed clean processing is terminal-idempotent and promotes exactly one current version", async () => {
     await createPublishedRequirement();
     const application = await createDraft();
     const item = await submissionFor(application.id);
@@ -799,6 +806,304 @@ describe.sequential("E5-C private upload and processing pipeline", () => {
       }),
     );
     expect(await storage.exists("approved", row.approvedObjectKey!)).toBe(true);
+    const submission = await inTenant((transaction) =>
+      transaction.documentSubmission.findUniqueOrThrow({
+        where: { id: item.id },
+      }),
+    );
+    expect(submission.currentDocumentVersionId).toBe(
+      uploaded.documentVersionId,
+    );
+  });
+
+  it("stale document workers never flip a durable BLOCKED terminal state to READY", async () => {
+    await createPublishedRequirement();
+    const application = await createDraft();
+    const item = await submissionFor(application.id);
+    const uploaded = await upload(
+      application.id,
+      item.id,
+      new TextEncoder().encode(
+        "%PDF-1.4\nSYNTHETIC_MALWARE_TEST_CONTROL\n%%EOF",
+      ),
+    );
+    await expect(
+      processDocument(uploaded.documentVersionId),
+    ).resolves.toMatchObject({ technicalStatus: "BLOCKED_INFECTED" });
+    documents = new DocumentService(prisma, storage, {
+      async scan() {
+        return { provider: "synthetic-clean-retry", status: "CLEAN" as const };
+      },
+    });
+    await expect(
+      processDocument(uploaded.documentVersionId),
+    ).resolves.toMatchObject({ technicalStatus: "BLOCKED_INFECTED" });
+    const row = await inTenant((transaction) =>
+      transaction.documentVersion.findUniqueOrThrow({
+        where: { id: uploaded.documentVersionId },
+      }),
+    );
+    expect(row.technicalStatus).toBe("BLOCKED_INFECTED");
+    expect(await storage.exists("approved", row.approvedObjectKey!)).toBe(
+      false,
+    );
+  });
+});
+
+describe.sequential("E5-C document resource authorization", () => {
+  async function readyRestrictedDocument() {
+    await createPublishedRequirement();
+    const application = await createDraft();
+    const item = await submissionFor(application.id);
+    const uploaded = await upload(application.id, item.id);
+    await processDocument(uploaded.documentVersionId);
+    return { application, item, uploaded };
+  }
+
+  it("E5C-AUTH-01: document.read without restricted.read omits restricted requirements", async () => {
+    await createPublishedRequirement();
+    const application = await createDraft();
+    const reader = tenantContext(fixture.adminA, fixture.tenantA, [
+      PERMISSIONS.DOCUMENT_READ,
+    ]);
+    const result = await runWithTenantContext(reader, () =>
+      documents.listStaffDocuments(reader, application.id, NOW),
+    );
+    expect(result.items).toEqual([]);
+  });
+
+  it("E5C-AUTH-02: document.read plus restricted.read sees an authorized restricted requirement", async () => {
+    await createPublishedRequirement();
+    const application = await createDraft();
+    const result = await runWithTenantContext(fixture.reviewerA, () =>
+      documents.listStaffDocuments(fixture.reviewerA, application.id, NOW),
+    );
+    expect(result.items).toHaveLength(1);
+  });
+
+  it("E5C-AUTH-03: document.review without sensitivity permission cannot accept", async () => {
+    const { item, uploaded } = await readyRestrictedDocument();
+    const reviewer = tenantContext(fixture.adminA, fixture.tenantA, [
+      PERMISSIONS.DOCUMENT_REVIEW,
+    ]);
+    await expect(
+      runWithTenantContext(reviewer, () =>
+        documents.acceptDocument(reviewer, item.id, uploaded.documentVersionId),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("E5C-AUTH-04: document.review without sensitivity permission cannot observe", async () => {
+    const { item, uploaded } = await readyRestrictedDocument();
+    const reviewer = tenantContext(fixture.adminA, fixture.tenantA, [
+      PERMISSIONS.DOCUMENT_REVIEW,
+    ]);
+    await expect(
+      runWithTenantContext(reviewer, () =>
+        documents.observeDocument(
+          reviewer,
+          item.id,
+          uploaded.documentVersionId,
+          "Synthetic correction",
+          NOW,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("E5C-AUTH-05: document.exempt without sensitivity permission cannot exempt", async () => {
+    await createPublishedRequirement();
+    const application = await createDraft();
+    const item = await submissionFor(application.id);
+    const actor = tenantContext(fixture.adminA, fixture.tenantA, [
+      PERMISSIONS.DOCUMENT_EXEMPT,
+    ]);
+    await expect(
+      runWithTenantContext(actor, () =>
+        documents.exemptDocument(actor, item.id, "Synthetic exception"),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("E5C-AUTH-06: application A scope cannot access application B in the same tenant", async () => {
+    await createPublishedRequirement();
+    const applicationA = await createDraft();
+    const applicationB = await createDraft(fixture.studentA2);
+    const reader = tenantContext(
+      fixture.adminA,
+      fixture.tenantA,
+      [PERMISSIONS.DOCUMENT_READ, PERMISSIONS.RESTRICTED_READ],
+      "synthetic_test",
+      [`application:${applicationA.id}`],
+    );
+    const allowed = await runWithTenantContext(reader, () =>
+      documents.listStaffDocuments(reader, applicationA.id, NOW),
+    );
+    const denied = await runWithTenantContext(reader, () =>
+      documents.listStaffDocuments(reader, applicationB.id, NOW),
+    );
+    expect(allowed.items).toHaveLength(1);
+    expect(denied.items).toEqual([]);
+  });
+
+  it("E5C-AUTH-07: offering A scope cannot access offering B", async () => {
+    await createPublishedRequirement();
+    const offeringB = randomUUID();
+    await inTenant((transaction) =>
+      transaction.admissionOffering.create({
+        data: {
+          academicYearId: fixture.yearA,
+          availabilityCategory: "POSTULATIONS_OPEN",
+          campusId: fixture.campusA,
+          code: `OFFER-B-${randomUUID()}`,
+          courseLevelId: fixture.levelA,
+          formVersionId: fixture.formVersionA,
+          id: offeringB,
+          processId: fixture.processA,
+          status: "PUBLISHED",
+          tenantId: fixture.tenantA,
+          title: "Synthetic same-tenant offering B",
+        },
+      }),
+    );
+    const applicationA = await createDraft();
+    const applicationB = await runWithFamilyContext(fixture.familyA, () =>
+      intake.createApplicationDraft(
+        fixture.familyA,
+        fixture.publicA,
+        { offeringId: offeringB, studentId: fixture.studentA2 },
+        NOW,
+      ),
+    );
+    const reader = tenantContext(
+      fixture.adminA,
+      fixture.tenantA,
+      [PERMISSIONS.DOCUMENT_READ, PERMISSIONS.RESTRICTED_READ],
+      "synthetic_test",
+      [`offering:${fixture.offeringA}`],
+    );
+    expect(
+      (
+        await runWithTenantContext(reader, () =>
+          documents.listStaffDocuments(reader, applicationA.id, NOW),
+        )
+      ).items,
+    ).toHaveLength(1);
+    expect(
+      (
+        await runWithTenantContext(reader, () =>
+          documents.listStaffDocuments(reader, applicationB.id, NOW),
+        )
+      ).items,
+    ).toEqual([]);
+  });
+
+  it("E5C-AUTH-08: application.assist alone is not document read or review", async () => {
+    const { application, item, uploaded } = await readyRestrictedDocument();
+    const assistOnly = tenantContext(fixture.adminA, fixture.tenantA, [
+      PERMISSIONS.APPLICATION_ASSIST,
+    ]);
+    await expect(
+      runWithTenantContext(assistOnly, () =>
+        documents.listStaffDocuments(assistOnly, application.id, NOW),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    await expect(
+      runWithTenantContext(assistOnly, () =>
+        documents.acceptDocument(
+          assistOnly,
+          item.id,
+          uploaded.documentVersionId,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+    expect(
+      authorize(assistOnly, {
+        permission: PERMISSIONS.DOCUMENT_REVIEW,
+        resourceTenantId: fixture.tenantA,
+      }).decision,
+    ).toBe("DENY");
+    const session = await runWithTenantContext(assistOnly, () =>
+      assistance.startSession(
+        assistOnly,
+        {
+          adultPresentConfirmed: true,
+          authorizationConfirmed: true,
+          familyProfileId: fixture.profileA,
+        },
+        NOW,
+      ),
+    );
+    const assistedApplication = await runWithTenantContext(assistOnly, () =>
+      assistance.createAssistedApplicationDraft(
+        assistOnly,
+        session.id,
+        { offeringId: fixture.offeringA, studentId: fixture.studentA2 },
+        NOW,
+      ),
+    );
+    const safeProjection = await runWithTenantContext(assistOnly, () =>
+      documents.listAssistedDocuments(assistOnly, assistedApplication.id, NOW),
+    );
+    expect(safeProjection.items).toHaveLength(1);
+    expect(JSON.stringify(safeProjection)).not.toMatch(
+      /sensitivity|detectedMime|scanProvider|actorId/i,
+    );
+    await expect(
+      runWithTenantContext(assistOnly, () =>
+        documents.uploadStaffDocument(
+          assistOnly,
+          assistedApplication.id,
+          safeProjection.items[0]!.id,
+          {
+            bytes: PDF,
+            declaredMime: "application/pdf",
+            origin: "ASSISTED",
+            originalFilename: "synthetic-assist-only.pdf",
+          },
+        ),
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it("E5C-AUTH-10: support elevation is bounded by its categories and resource scopes", async () => {
+    await createPublishedRequirement();
+    await createPublishedRequirement(
+      versionInput({ sensitivity: "highly_restricted" }),
+    );
+    const applicationA = await createDraft();
+    const applicationB = await createDraft(fixture.studentA2);
+    const elevation = createVerifiedSupportElevation({
+      categories: ["restricted"],
+      expiresAt: new Date(Date.now() + 60_000),
+      id: randomUUID(),
+      purpose: "e5c.documents.test",
+      scopes: [`application:${applicationA.id}`],
+      tenantId: fixture.tenantA,
+    });
+    const support: TenantExecutionContext = {
+      actorId: fixture.adminA,
+      capabilities: [PERMISSIONS.DOCUMENT_READ, PERMISSIONS.RESTRICTED_READ],
+      contextOrigin: "support_elevation",
+      correlationId: `synthetic-support-${randomUUID()}`,
+      effectiveActorId: fixture.adminA,
+      purpose: elevation.purpose,
+      scopes: elevation.scopes,
+      source: "authenticated_request",
+      supportElevation: elevation,
+      tenantId: fixture.tenantA,
+    };
+    const allowed = await runWithTenantContext(support, () =>
+      documents.listStaffDocuments(support, applicationA.id, NOW),
+    );
+    const outsideScope = await runWithTenantContext(support, () =>
+      documents.listStaffDocuments(support, applicationB.id, NOW),
+    );
+    expect(allowed.items).toHaveLength(1);
+    expect(allowed.items[0]?.requirement.version.sensitivity).toBe(
+      "restricted",
+    );
+    expect(outsideScope.items).toEqual([]);
   });
 });
 
@@ -832,12 +1137,21 @@ describe.sequential("E5-C review, replacement and readiness", () => {
     await processDocument(uploaded.documentVersionId);
     await expect(
       runWithTenantContext(fixture.secretaryA, () =>
-        documents.acceptDocument(fixture.secretaryA, item.id),
+        documents.acceptDocument(
+          fixture.secretaryA,
+          item.id,
+          uploaded.documentVersionId,
+        ),
       ),
     ).rejects.toBeInstanceOf(ForbiddenError);
     await expect(
       runWithTenantContext(fixture.secretaryA, () =>
-        documents.observeDocument(fixture.secretaryA, item.id, "Correction"),
+        documents.observeDocument(
+          fixture.secretaryA,
+          item.id,
+          uploaded.documentVersionId,
+          "Correction",
+        ),
       ),
     ).rejects.toBeInstanceOf(ForbiddenError);
     await expect(
@@ -848,16 +1162,23 @@ describe.sequential("E5-C review, replacement and readiness", () => {
   });
 
   it("E5C-REV-05/06/07/08: reviewer accepts or observes with weekday deadline and overdue never auto-rejects", async () => {
-    const { application, item } = await readyDocument();
+    const { application, item, uploaded } = await readyDocument();
     await expect(
       runWithTenantContext(fixture.reviewerA, () =>
-        documents.observeDocument(fixture.reviewerA, item.id, "   ", NOW),
+        documents.observeDocument(
+          fixture.reviewerA,
+          item.id,
+          uploaded.documentVersionId,
+          "   ",
+          NOW,
+        ),
       ),
     ).rejects.toBeInstanceOf(IntakeValidationError);
     const observed = await runWithTenantContext(fixture.reviewerA, () =>
       documents.observeDocument(
         fixture.reviewerA,
         item.id,
+        uploaded.documentVersionId,
         "Please replace synthetic evidence",
         new Date("2026-08-14T15:00:00Z"),
       ),
@@ -883,7 +1204,11 @@ describe.sequential("E5-C review, replacement and readiness", () => {
     await processDocument(replacement.documentVersionId);
     await expect(
       runWithTenantContext(fixture.reviewerA, () =>
-        documents.acceptDocument(fixture.reviewerA, item.id),
+        documents.acceptDocument(
+          fixture.reviewerA,
+          item.id,
+          replacement.documentVersionId,
+        ),
       ),
     ).resolves.toMatchObject({ status: "ACEPTADO" });
   });
@@ -922,7 +1247,13 @@ describe.sequential("E5-C review, replacement and readiness", () => {
   it("E5C-REP-01..06: observed replacement preserves history, blocked V2 and append-only reviews", async () => {
     const { application, item, uploaded: v1 } = await readyDocument();
     await runWithTenantContext(fixture.reviewerA, () =>
-      documents.observeDocument(fixture.reviewerA, item.id, "Replace", NOW),
+      documents.observeDocument(
+        fixture.reviewerA,
+        item.id,
+        v1.documentVersionId,
+        "Replace",
+        NOW,
+      ),
     );
     const v2 = await upload(
       application.id,
@@ -982,7 +1313,13 @@ describe.sequential("E5-C review, replacement and readiness", () => {
     );
     await processDocument(uploaded.documentVersionId);
     await runWithTenantContext(fixture.reviewerA, () =>
-      documents.observeDocument(fixture.reviewerA, item.id, "Correction", NOW),
+      documents.observeDocument(
+        fixture.reviewerA,
+        item.id,
+        uploaded.documentVersionId,
+        "Correction",
+        NOW,
+      ),
     );
     await expect(submit(application.id)).rejects.toBeInstanceOf(
       IntakeValidationError,
@@ -993,11 +1330,15 @@ describe.sequential("E5-C review, replacement and readiness", () => {
     ["E5C-SUB-03", "EN_REVISION"],
     ["E5C-SUB-04", "ACEPTADO"],
   ])("%s: required %s allows submit", async (_id, target) => {
-    const { application, item } = await readyDocument();
+    const { application, item, uploaded } = await readyDocument();
     await saveRequiredAnswer(application.id);
     if (target === "ACEPTADO") {
       await runWithTenantContext(fixture.reviewerA, () =>
-        documents.acceptDocument(fixture.reviewerA, item.id),
+        documents.acceptDocument(
+          fixture.reviewerA,
+          item.id,
+          uploaded.documentVersionId,
+        ),
       );
     }
     await expect(submit(application.id)).resolves.toMatchObject({
@@ -1149,9 +1490,257 @@ describe.sequential("E5-C review, replacement and readiness", () => {
     );
     expect(count).toBe(1);
   });
+
+  it("E5C-CON-01: accept rejects V1 after replacement V2 becomes current", async () => {
+    const { application, item, uploaded: v1 } = await readyDocument();
+    const v2 = await upload(application.id, item.id);
+    await processDocument(v2.documentVersionId);
+    await expect(
+      runWithTenantContext(fixture.reviewerA, () =>
+        documents.acceptDocument(
+          fixture.reviewerA,
+          item.id,
+          v1.documentVersionId,
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "DOCUMENT_VERSION_CHANGED" });
+    const persisted = await inTenant((transaction) =>
+      transaction.documentSubmission.findUniqueOrThrow({
+        include: { reviews: true },
+        where: { id: item.id },
+      }),
+    );
+    expect(persisted.currentDocumentVersionId).toBe(v2.documentVersionId);
+    expect(persisted.status).toBe("EN_REVISION");
+    expect(persisted.reviews).toEqual([]);
+  });
+
+  it("E5C-CON-02: observe rejects V1 after replacement V2 becomes current", async () => {
+    const { application, item, uploaded: v1 } = await readyDocument();
+    const v2 = await upload(application.id, item.id);
+    await processDocument(v2.documentVersionId);
+    await expect(
+      runWithTenantContext(fixture.reviewerA, () =>
+        documents.observeDocument(
+          fixture.reviewerA,
+          item.id,
+          v1.documentVersionId,
+          "Stale synthetic observation",
+          NOW,
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "DOCUMENT_VERSION_CHANGED" });
+    const persisted = await inTenant((transaction) =>
+      transaction.documentSubmission.findUniqueOrThrow({
+        include: { reviews: true },
+        where: { id: item.id },
+      }),
+    );
+    expect(persisted.currentDocumentVersionId).toBe(v2.documentVersionId);
+    expect(persisted.status).toBe("EN_REVISION");
+    expect(persisted.reviews).toEqual([]);
+  });
+
+  it("E5C-CON-03: accept succeeds for the exact current V2 token", async () => {
+    const { application, item } = await readyDocument();
+    const v2 = await upload(application.id, item.id);
+    await processDocument(v2.documentVersionId);
+    await expect(
+      runWithTenantContext(fixture.reviewerA, () =>
+        documents.acceptDocument(
+          fixture.reviewerA,
+          item.id,
+          v2.documentVersionId,
+        ),
+      ),
+    ).resolves.toMatchObject({
+      documentVersionId: v2.documentVersionId,
+      status: "ACEPTADO",
+    });
+  });
+
+  it("E5C-CON-04: exemption conflicts while a replacement is processing", async () => {
+    const { application, item } = await readyDocument();
+    const replacement = await upload(application.id, item.id);
+    await inTenant((transaction) =>
+      transaction.documentVersion.update({
+        data: { technicalStatus: "PROCESSING" },
+        where: { id: replacement.documentVersionId },
+      }),
+    );
+    await expect(
+      runWithTenantContext(fixture.adminContextA, () =>
+        documents.exemptDocument(
+          fixture.adminContextA,
+          item.id,
+          "Synthetic processing conflict",
+        ),
+      ),
+    ).rejects.toMatchObject({ code: "DOCUMENT_PROCESSING_IN_PROGRESS" });
+  });
+
+  it("E5C-CON-05: exemption succeeds when no upload is active", async () => {
+    await createPublishedRequirement();
+    const application = await createDraft();
+    const item = await submissionFor(application.id);
+    await expect(
+      runWithTenantContext(fixture.adminContextA, () =>
+        documents.exemptDocument(
+          fixture.adminContextA,
+          item.id,
+          "Synthetic controlled exception",
+        ),
+      ),
+    ).resolves.toMatchObject({ status: "EXENTO" });
+  });
+
+  it("E5C-CON-06: no stale review operation creates evidence for a version other than expected", async () => {
+    const { application, item, uploaded: v1 } = await readyDocument();
+    const v2 = await upload(application.id, item.id);
+    await processDocument(v2.documentVersionId);
+    for (const operation of ["accept", "observe"] as const) {
+      await expect(
+        runWithTenantContext(fixture.reviewerA, () =>
+          operation === "accept"
+            ? documents.acceptDocument(
+                fixture.reviewerA,
+                item.id,
+                v1.documentVersionId,
+              )
+            : documents.observeDocument(
+                fixture.reviewerA,
+                item.id,
+                v1.documentVersionId,
+                "Synthetic stale review",
+                NOW,
+              ),
+        ),
+      ).rejects.toBeInstanceOf(IntakeConflictError);
+    }
+    const reviews = await inTenant((transaction) =>
+      transaction.documentReview.findMany({
+        where: { documentSubmissionId: item.id },
+      }),
+    );
+    expect(reviews).toEqual([]);
+  });
 });
 
+describe.sequential(
+  "E5-C document same-submission database constraints",
+  () => {
+    it("E5C-DB-01: raw review insert cannot pair submission A with version B", async () => {
+      await createPublishedRequirement();
+      const applicationA = await createDraft();
+      const applicationB = await createDraft(fixture.studentA2);
+      const itemA = await submissionFor(applicationA.id);
+      const itemB = await submissionFor(applicationB.id);
+      const versionB = await upload(applicationB.id, itemB.id);
+      await expect(
+        inTenant((transaction) =>
+          transaction.$executeRawUnsafe(
+            `INSERT INTO document_reviews
+          (id, tenant_id, document_submission_id, document_version_id, verdict, actor_id)
+         VALUES ($1, $2, $3, $4, 'ACCEPTED', $5)`,
+            randomUUID(),
+            fixture.tenantA,
+            itemA.id,
+            versionB.documentVersionId,
+            fixture.adminA,
+          ),
+        ),
+      ).rejects.toThrow(/foreign key|document_reviews_version_fkey/i);
+    });
+
+    it("E5C-DB-02: raw replacement insert cannot reference another submission", async () => {
+      await createPublishedRequirement();
+      const applicationA = await createDraft();
+      const applicationB = await createDraft(fixture.studentA2);
+      const itemA = await submissionFor(applicationA.id);
+      const itemB = await submissionFor(applicationB.id);
+      const versionB = await upload(applicationB.id, itemB.id);
+      await expect(
+        inTenant((transaction) =>
+          transaction.$executeRawUnsafe(
+            `INSERT INTO document_versions
+          (id, tenant_id, document_submission_id, version_number,
+           display_name_sanitized, declared_mime, size_bytes,
+           quarantine_object_key, technical_status, origin, uploaded_by,
+           replaces_version_id)
+         VALUES ($1, $2, $3, 1, 'synthetic-cross.pdf', 'application/pdf', 0,
+           $4, 'UPLOAD_PENDING', 'SELF_SERVICE', $5, $6)`,
+            randomUUID(),
+            fixture.tenantA,
+            itemA.id,
+            randomUUID(),
+            fixture.userA,
+            versionB.documentVersionId,
+          ),
+        ),
+      ).rejects.toThrow(/foreign key|document_versions_replaces_fkey/i);
+    });
+
+    it("E5C-DB-03: raw replacement insert within the same submission succeeds", async () => {
+      await createPublishedRequirement();
+      const application = await createDraft();
+      const item = await submissionFor(application.id);
+      const version1 = await upload(application.id, item.id);
+      await expect(
+        inTenant((transaction) =>
+          transaction.$executeRawUnsafe(
+            `INSERT INTO document_versions
+          (id, tenant_id, document_submission_id, version_number,
+           display_name_sanitized, declared_mime, size_bytes,
+           quarantine_object_key, technical_status, origin, uploaded_by,
+           replaces_version_id)
+         VALUES ($1, $2, $3, 2, 'synthetic-valid.pdf', 'application/pdf', 0,
+           $4, 'UPLOAD_PENDING', 'SELF_SERVICE', $5, $6)`,
+            randomUUID(),
+            fixture.tenantA,
+            item.id,
+            randomUUID(),
+            fixture.userA,
+            version1.documentVersionId,
+          ),
+        ),
+      ).resolves.toBe(1);
+    });
+  },
+);
+
 describe.sequential("E5-C assisted application without impersonation", () => {
+  async function readyAssistedApplication() {
+    await createPublishedRequirement(versionInput({ required: false }));
+    const session = await runWithTenantContext(fixture.assistOnlyA, () =>
+      assistance.startSession(
+        fixture.assistOnlyA,
+        {
+          adultPresentConfirmed: true,
+          authorizationConfirmed: true,
+          familyProfileId: fixture.profileA,
+        },
+        NOW,
+      ),
+    );
+    const application = await runWithTenantContext(fixture.assistOnlyA, () =>
+      assistance.createAssistedApplicationDraft(
+        fixture.assistOnlyA,
+        session.id,
+        { offeringId: fixture.offeringA, studentId: fixture.studentA },
+        NOW,
+      ),
+    );
+    await runWithTenantContext(fixture.assistOnlyA, () =>
+      assistance.saveAssistedAnswers(
+        fixture.assistOnlyA,
+        session.id,
+        application.id,
+        [{ fieldId: fixture.fieldA, value: true }],
+      ),
+    );
+    return { application, session };
+  }
+
   it("E5C-AST-01/02/03: assist permission, adult presence and authorization are mandatory", async () => {
     const denied = tenantContext(fixture.adminA, fixture.tenantA, []);
     await expect(
@@ -1248,7 +1837,7 @@ describe.sequential("E5-C assisted application without impersonation", () => {
     expect(audit.actorId).toBe(fixture.adminA);
   });
 
-  it("E5C-AST-07/08/09: assisted and physical uploads use the same fail-closed quarantine pipeline", async () => {
+  it("E5C-AST-07/08/09 and E5C-AUTH-09: assisted upload remains authorized through the same fail-closed quarantine pipeline", async () => {
     await createPublishedRequirement();
     const session = await runWithTenantContext(fixture.assistOnlyA, () =>
       assistance.startSession(
@@ -1289,6 +1878,15 @@ describe.sequential("E5-C assisted application without impersonation", () => {
           originalFilename: "synthetic-paper.pdf",
         },
       ),
+    );
+    const assistedProjection = await runWithTenantContext(
+      fixture.assistOnlyA,
+      () =>
+        documents.listAssistedDocuments(fixture.assistOnlyA, application.id),
+    );
+    expect(assistedProjection.items[0]?.history).toEqual([]);
+    expect(JSON.stringify(assistedProjection)).not.toMatch(
+      /detectedMime|scanProvider|scanEngine|sha256|sensitivity|actorId/i,
     );
     const origin = await inTenant((transaction) =>
       transaction.documentVersion.findUniqueOrThrow({
@@ -1395,5 +1993,99 @@ describe.sequential("E5-C assisted application without impersonation", () => {
       operatorUserId: fixture.adminA,
       submissionMode: "ASSISTED",
     });
+  });
+
+  it("E5C-AST-CON-01: close commits first and the later submit preserves DRAFT with no snapshot", async () => {
+    const { application, session } = await readyAssistedApplication();
+    await runWithTenantContext(fixture.assistOnlyA, () =>
+      assistance.closeSession(fixture.assistOnlyA, session.id, NOW),
+    );
+    await expect(
+      runWithTenantContext(fixture.assistOnlyA, () =>
+        assistance.submitAssistedApplication(
+          fixture.assistOnlyA,
+          session.id,
+          application.id,
+          NOW,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(IntakeNotFoundError);
+    const persisted = await inTenant(async (transaction) => ({
+      application: await transaction.application.findUniqueOrThrow({
+        where: { id: application.id },
+      }),
+      snapshots: await transaction.applicationSnapshot.count({
+        where: { applicationId: application.id },
+      }),
+    }));
+    expect(persisted.application.status).toBe("DRAFT");
+    expect(persisted.snapshots).toBe(0);
+  });
+
+  it("E5C-AST-CON-02: submit commits first exactly once and close can follow", async () => {
+    const { application, session } = await readyAssistedApplication();
+    const first = await runWithTenantContext(fixture.assistOnlyA, () =>
+      assistance.submitAssistedApplication(
+        fixture.assistOnlyA,
+        session.id,
+        application.id,
+        NOW,
+      ),
+    );
+    const retry = await runWithTenantContext(fixture.assistOnlyA, () =>
+      assistance.submitAssistedApplication(
+        fixture.assistOnlyA,
+        session.id,
+        application.id,
+        NOW,
+      ),
+    );
+    expect(retry.snapshotId).toBe(first.snapshotId);
+    await runWithTenantContext(fixture.assistOnlyA, () =>
+      assistance.closeSession(fixture.assistOnlyA, session.id, NOW),
+    );
+    const persisted = await inTenant(async (transaction) => ({
+      application: await transaction.application.findUniqueOrThrow({
+        where: { id: application.id },
+      }),
+      session: await transaction.assistanceSession.findUniqueOrThrow({
+        where: { id: session.id },
+      }),
+      snapshots: await transaction.applicationSnapshot.count({
+        where: { applicationId: application.id },
+      }),
+    }));
+    expect(persisted.application.status).toBe("SUBMITTED");
+    expect(persisted.session.status).toBe("CLOSED");
+    expect(persisted.snapshots).toBe(1);
+  });
+
+  it("E5C-AST-CON-03: definitive form submission cannot bypass a session already closed", async () => {
+    const { application, session } = await readyAssistedApplication();
+    await runWithTenantContext(fixture.assistOnlyA, () =>
+      assistance.closeSession(fixture.assistOnlyA, session.id, NOW),
+    );
+    await expect(
+      runWithTenantContext(fixture.assistOnlyA, () =>
+        forms.submitAssistedApplication(
+          fixture.assistOnlyA,
+          {
+            applicationId: application.id,
+            assistanceSessionId: session.id,
+          },
+          NOW,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(IntakeNotFoundError);
+    const persisted = await inTenant(async (transaction) => ({
+      application: await transaction.application.findUniqueOrThrow({
+        where: { id: application.id },
+      }),
+      snapshots: await transaction.applicationSnapshot.count({
+        where: { applicationId: application.id },
+      }),
+    }));
+    expect(persisted.application.status).toBe("DRAFT");
+    expect(persisted.snapshots).toBe(0);
   });
 });

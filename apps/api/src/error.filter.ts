@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import {
   ForbiddenError,
+  IntakeConflictError,
   IntakeDuplicateError,
   IntakeNotFoundError,
   IntakeValidationError,
@@ -24,6 +25,7 @@ export interface PublicErrorResponse {
     | "NOT_FOUND"
     | "VALIDATION";
   message: "Request failed";
+  code?: "DOCUMENT_PROCESSING_IN_PROGRESS" | "DOCUMENT_VERSION_CHANGED";
 }
 
 @Catch()
@@ -39,15 +41,21 @@ export class GlobalErrorFilter implements ExceptionFilter {
     const error = classifyStatus(status);
     const correlationId = getCorrelationId() ?? "unbound-request";
     this.logger.error("HTTP_REQUEST_FAILED", error, { correlationId, status });
-    response
-      .status(status)
-      .json({ correlationId, error, message: "Request failed" });
+    response.status(status).json({
+      correlationId,
+      error,
+      message: "Request failed",
+      ...(exception instanceof IntakeConflictError
+        ? { code: exception.code }
+        : {}),
+    });
   }
 }
 
 function exceptionStatus(exception: unknown): number {
   if (exception instanceof HttpException) return exception.getStatus();
   if (exception instanceof ForbiddenError) return HttpStatus.FORBIDDEN;
+  if (exception instanceof IntakeConflictError) return HttpStatus.CONFLICT;
   if (exception instanceof IntakeDuplicateError) return HttpStatus.CONFLICT;
   if (exception instanceof IntakeNotFoundError) return HttpStatus.NOT_FOUND;
   if (exception instanceof IntakeValidationError) return HttpStatus.BAD_REQUEST;

@@ -20,3 +20,13 @@ export class IntakeValidationError extends Error {
     this.name = "IntakeValidationError";
   }
 }
+
+export type IntakeConflictCode =
+  "DOCUMENT_PROCESSING_IN_PROGRESS" | "DOCUMENT_VERSION_CHANGED";
+
+export class IntakeConflictError extends Error {
+  constructor(readonly code: IntakeConflictCode) {
+    super(code);
+    this.name = "IntakeConflictError";
+  }
+}

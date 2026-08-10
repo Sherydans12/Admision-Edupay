@@ -147,9 +147,11 @@ export interface ApplicationDto {
 }
 
 export {
+  IntakeConflictError,
   IntakeDuplicateError,
   IntakeNotFoundError,
   IntakeValidationError,
+  type IntakeConflictCode,
 } from "./domain-errors.js";
 
 export interface AdmissionOfferingValidityCandidate {

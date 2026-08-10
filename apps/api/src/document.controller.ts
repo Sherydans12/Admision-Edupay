@@ -21,6 +21,7 @@ import { FileInterceptor } from "@nestjs/platform-express";
 
 import { ApiAssistanceService } from "./assistance.service.js";
 import {
+  acceptDocumentSchema,
   assistedAnswersSchema,
   assistedApplicationSchema,
   assistanceStartSchema,
@@ -28,6 +29,7 @@ import {
   parseDocumentBody,
   requirementSchema,
   requirementVersionSchema,
+  observeDocumentSchema,
   reviewReasonSchema,
 } from "./document-schemas.js";
 import { ApiDocumentService } from "./document.service.js";
@@ -335,6 +337,7 @@ export class DocumentController {
     @Req() request: RequestLike,
     @Param("tenantId") tenantId: string,
     @Param("submissionId") submissionId: string,
+    @Body() body: unknown,
   ) {
     await this.contexts.assertMutationSafe(request);
     const context = await this.staffContext(
@@ -343,7 +346,11 @@ export class DocumentController {
       "document.review",
     );
     return this.inTenant(context, () =>
-      this.documents.acceptDocument(context, parseUuid(submissionId)),
+      this.documents.acceptDocument(
+        context,
+        parseUuid(submissionId),
+        parseDocumentBody(acceptDocumentSchema, body).expectedDocumentVersionId,
+      ),
     );
   }
 
@@ -355,6 +362,7 @@ export class DocumentController {
     @Body() body: unknown,
   ) {
     await this.contexts.assertMutationSafe(request);
+    const parsed = parseDocumentBody(observeDocumentSchema, body);
     const context = await this.staffContext(
       request,
       tenantId,
@@ -364,7 +372,8 @@ export class DocumentController {
       this.documents.observeDocument(
         context,
         parseUuid(submissionId),
-        parseDocumentBody(reviewReasonSchema, body).reason,
+        parsed.expectedDocumentVersionId,
+        parsed.reason,
       ),
     );
   }

@@ -31,6 +31,7 @@ type HttpFixture = {
   adminAllowedUserId: string;
   adminDeniedToken: string;
   adminManageToken: string;
+  adminManageUserId: string;
   applicationBId: string;
   formFieldAId: string;
   formVersionAId: string;
@@ -250,6 +251,7 @@ async function seedFixture(): Promise<void> {
     adminAllowedUserId: adminAllowed,
     adminDeniedToken: adminDeniedSession.token,
     adminManageToken: adminManageSession.token,
+    adminManageUserId: adminManage,
     applicationBId: applicationB,
     familyAToken: familySession.token,
     familyBToken: familyBSession.token,
@@ -1013,26 +1015,36 @@ describe.sequential("E5-A real HTTP boundary", () => {
 
   it("E5C-HTTP-08: tenant staff without review permission cannot accept", async () => {
     const setup = await createDocumentApplication();
-    await makeHttpDocumentReady(setup);
+    const ready = await makeHttpDocumentReady(setup);
     const token = await csrf(fixture.adminManageToken);
     const response = await mutation(
       `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/accept`,
       fixture.adminManageToken,
       token,
-      { method: "POST" },
+      {
+        body: JSON.stringify({
+          expectedDocumentVersionId: ready.documentVersionId,
+        }),
+        method: "POST",
+      },
     );
     expect(response.status).toBe(403);
   });
 
   it("E5C-HTTP-09: explicitly authorized reviewer accepts READY evidence", async () => {
     const setup = await createDocumentApplication();
-    await makeHttpDocumentReady(setup);
+    const ready = await makeHttpDocumentReady(setup);
     const token = await csrf(fixture.adminAllowedToken);
     const response = await mutation(
       `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/accept`,
       fixture.adminAllowedToken,
       token,
-      { method: "POST" },
+      {
+        body: JSON.stringify({
+          expectedDocumentVersionId: ready.documentVersionId,
+        }),
+        method: "POST",
+      },
     );
     expect(response.status).toBe(201);
     expect(await response.json()).toMatchObject({ status: "ACEPTADO" });
@@ -1040,13 +1052,19 @@ describe.sequential("E5-A real HTTP boundary", () => {
 
   it("E5C-HTTP-10: observe requires a non-empty reason", async () => {
     const setup = await createDocumentApplication();
-    await makeHttpDocumentReady(setup);
+    const ready = await makeHttpDocumentReady(setup);
     const token = await csrf(fixture.adminAllowedToken);
     const response = await mutation(
       `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/observe`,
       fixture.adminAllowedToken,
       token,
-      { body: JSON.stringify({ reason: "" }), method: "POST" },
+      {
+        body: JSON.stringify({
+          expectedDocumentVersionId: ready.documentVersionId,
+          reason: "",
+        }),
+        method: "POST",
+      },
     );
     expect(response.status).toBe(400);
   });
@@ -1158,5 +1176,102 @@ describe.sequential("E5-A real HTTP boundary", () => {
       documents: { applicationId: application.id },
       form: { applicationId: application.id },
     });
+  });
+
+  it("E5C-HTTP-15: accept requires expectedDocumentVersionId", async () => {
+    const setup = await createDocumentApplication();
+    await makeHttpDocumentReady(setup);
+    const token = await csrf(fixture.adminAllowedToken);
+    const response = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/accept`,
+      fixture.adminAllowedToken,
+      token,
+      { body: JSON.stringify({}), method: "POST" },
+    );
+    expect(response.status).toBe(400);
+  });
+
+  it("E5C-HTTP-16: stale expected version returns 409", async () => {
+    const setup = await createDocumentApplication();
+    const v1 = await makeHttpDocumentReady(setup);
+    const v2 = await makeHttpDocumentReady(setup);
+    const token = await csrf(fixture.adminAllowedToken);
+    const response = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/accept`,
+      fixture.adminAllowedToken,
+      token,
+      {
+        body: JSON.stringify({
+          expectedDocumentVersionId: v1.documentVersionId,
+        }),
+        method: "POST",
+      },
+    );
+    expect(v2.documentVersionId).not.toBe(v1.documentVersionId);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      code: "DOCUMENT_VERSION_CHANGED",
+      error: "CONFLICT",
+    });
+  });
+
+  it("E5C-HTTP-17: restricted review without sensitivity permission returns 403", async () => {
+    const setup = await createDocumentApplication();
+    const ready = await makeHttpDocumentReady(setup);
+    await prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT set_config('admission.tenant_id', ${fixture.tenantAId}, true)`;
+      await transaction.$executeRaw`
+        UPDATE role_assignments
+        SET permissions = array_append(
+          array_remove(permissions, ${PERMISSIONS.RESTRICTED_READ}),
+          ${PERMISSIONS.DOCUMENT_REVIEW}
+        )
+        WHERE membership_id = (
+          SELECT id FROM memberships
+          WHERE tenant_id = ${fixture.tenantAId}::uuid
+            AND user_id = ${fixture.adminManageUserId}::uuid
+        )
+      `;
+    });
+    const token = await csrf(fixture.adminManageToken);
+    const response = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/document-submissions/${setup.submissionId}/accept`,
+      fixture.adminManageToken,
+      token,
+      {
+        body: JSON.stringify({
+          expectedDocumentVersionId: ready.documentVersionId,
+        }),
+        method: "POST",
+      },
+    );
+    expect(response.status).toBe(403);
+  });
+
+  it("E5C-HTTP-18: restricted list omits every sensitive document projection", async () => {
+    const setup = await createDocumentApplication();
+    await makeHttpDocumentReady(setup);
+    await prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT set_config('admission.tenant_id', ${fixture.tenantAId}, true)`;
+      await transaction.$executeRaw`
+        UPDATE role_assignments
+        SET permissions = array_remove(permissions, ${PERMISSIONS.RESTRICTED_READ})
+        WHERE membership_id = (
+          SELECT id FROM memberships
+          WHERE tenant_id = ${fixture.tenantAId}::uuid
+            AND user_id = ${fixture.adminManageUserId}::uuid
+        )
+      `;
+    });
+    const response = await request(
+      `/staff/tenants/${fixture.tenantAId}/applications/${setup.applicationId}/documents`,
+      { token: fixture.adminManageToken },
+    );
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { items: unknown[] };
+    expect(body.items).toEqual([]);
+    expect(JSON.stringify(body)).not.toMatch(
+      /Documento HTTP|restricted|review|reason|history/i,
+    );
   });
 });

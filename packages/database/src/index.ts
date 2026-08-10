@@ -1,6 +1,7 @@
 export { createAppPrismaClient } from "./prisma-client.js";
 export {
   AVAILABILITY_LABELS,
+  IntakeConflictError,
   IntakeDuplicateError,
   IntakeNotFoundError,
   IntakeService,
@@ -11,6 +12,7 @@ export {
   type AdmissionProcessInput,
   type ApplicationDto,
   type AvailabilityCategory,
+  type IntakeConflictCode,
   type CampusDto,
   type CampusInput,
   type ConfigurationDto,
@@ -65,7 +67,12 @@ export {
   createOpaqueSessionCookie,
 } from "./session-cookie.js";
 export { InMemoryCsrfService } from "./csrf.js";
-export { OutboxService, type EnqueueOutboxInput } from "./outbox.js";
+export {
+  DEFAULT_OUTBOX_LEASE_MS,
+  OutboxService,
+  type EnqueueOutboxInput,
+  type OutboxConfig,
+} from "./outbox.js";
 export { listActiveTenantIdsForTrustedWorker } from "./outbox.js";
 export {
   DEFAULT_DOCUMENT_UPLOAD_HARD_MAX_BYTES,

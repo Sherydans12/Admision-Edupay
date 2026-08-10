@@ -630,11 +630,12 @@ model DocumentVersion {
   tenant          Tenant                  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   submission      DocumentSubmission      @relation("SubmissionVersions", fields: [tenantId, documentSubmissionId], references: [tenantId, id], onDelete: Restrict)
   currentForSubmission DocumentSubmission? @relation("CurrentDocumentVersion")
-  replacesVersion DocumentVersion?        @relation("DocumentReplacement", fields: [tenantId, replacesVersionId], references: [tenantId, id], onDelete: Restrict)
+  replacesVersion DocumentVersion?        @relation("DocumentReplacement", fields: [tenantId, documentSubmissionId, replacesVersionId], references: [tenantId, documentSubmissionId, id], onDelete: Restrict, map: "document_versions_replaces_fkey")
   replacementVersions DocumentVersion[]   @relation("DocumentReplacement")
   reviews         DocumentReview[]
 
   @@unique([tenantId, id])
+  @@unique([tenantId, documentSubmissionId, id], map: "document_versions_submission_id_key")
   @@unique([tenantId, documentSubmissionId, versionNumber])
   @@index([tenantId, documentSubmissionId, technicalStatus])
   @@map("document_versions")
@@ -653,7 +654,7 @@ model DocumentReview {
   createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
   tenant          Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   submission      DocumentSubmission    @relation(fields: [tenantId, documentSubmissionId], references: [tenantId, id], onDelete: Restrict)
-  documentVersion DocumentVersion?      @relation(fields: [tenantId, documentVersionId], references: [tenantId, id], onDelete: Restrict)
+  documentVersion DocumentVersion?      @relation(fields: [tenantId, documentSubmissionId, documentVersionId], references: [tenantId, documentSubmissionId, id], onDelete: Restrict, map: "document_reviews_version_fkey")
 
   @@unique([tenantId, id])
   @@index([tenantId, documentSubmissionId, createdAt])

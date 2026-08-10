@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 
 import { Prisma, type PrismaClient } from "./generated/prisma/client.js";
-import { authorizeOrThrow } from "./authorization.js";
+import { authorizeOrThrow, ForbiddenError } from "./authorization.js";
 import {
+  IntakeConflictError,
   IntakeDuplicateError,
   IntakeNotFoundError,
   IntakeValidationError,
@@ -15,6 +16,7 @@ import {
 import {
   PERMISSIONS,
   SENSITIVITIES,
+  type PermissionKey,
   type Sensitivity,
 } from "./permission-catalog.js";
 import type {
@@ -94,6 +96,7 @@ const requirementVersionInclude = {
 } satisfies Prisma.DocumentRequirementVersionInclude;
 
 const submissionInclude = {
+  application: { include: { offering: true } },
   currentDocumentVersion: true,
   requirement: true,
   requirementVersion: { include: requirementVersionInclude },
@@ -107,6 +110,107 @@ type RequirementVersionRecord = Prisma.DocumentRequirementVersionGetPayload<{
 type SubmissionRecord = Prisma.DocumentSubmissionGetPayload<{
   include: typeof submissionInclude;
 }>;
+
+export interface DocumentResourceApplication {
+  id: string;
+  offering: { campusId: string };
+  offeringId: string;
+  processId: string;
+  tenantId: string;
+}
+
+export interface DocumentResourceRequirementVersion {
+  sensitivity: string;
+}
+
+export interface DocumentResourceAuthorizationInput {
+  application: DocumentResourceApplication;
+  permission: PermissionKey;
+  purpose: string;
+  requirementVersion: DocumentResourceRequirementVersion;
+  sensitivity: Sensitivity;
+}
+
+function documentResourceScopes(
+  application: DocumentResourceApplication,
+): readonly string[] {
+  return [
+    `application:${application.id}`,
+    `offering:${application.offeringId}`,
+    `process:${application.processId}`,
+    `campus:${application.offering.campusId}`,
+  ];
+}
+
+function sensitivityIsRecognized(value: string): value is Sensitivity {
+  return Object.values(SENSITIVITIES).includes(value as Sensitivity);
+}
+
+function resourceScopeAllowed(
+  scopes: readonly string[] | undefined,
+  application: DocumentResourceApplication,
+): boolean {
+  if (scopes?.includes("*") === true) return true;
+  const resourceScopes = documentResourceScopes(application);
+  return resourceScopes.some((scope) => scopes?.includes(scope) === true);
+}
+
+/**
+ * E5-C resource authorization. Resource scopes are server-derived and use only:
+ * `*`, `application:<uuid>`, `offering:<uuid>`, `process:<uuid>` or
+ * `campus:<uuid>`. Request-provided scopes are never accepted here.
+ */
+export function authorizeDocumentResource(
+  context: TenantExecutionContext,
+  input: DocumentResourceAuthorizationInput,
+): void {
+  if (
+    input.application.tenantId !== context.tenantId ||
+    input.requirementVersion.sensitivity !== input.sensitivity ||
+    !sensitivityIsRecognized(input.requirementVersion.sensitivity)
+  ) {
+    throw new ForbiddenError();
+  }
+
+  authorizeOrThrow(context, {
+    permission: input.permission,
+    purpose: input.purpose,
+    resourceTenantId: input.application.tenantId,
+  });
+
+  const elevated = context.contextOrigin === "support_elevation";
+  const effectiveScopes = elevated
+    ? context.supportElevation?.scopes
+    : context.scopes;
+  if (!resourceScopeAllowed(effectiveScopes, input.application)) {
+    throw new ForbiddenError();
+  }
+
+  const exposesSensitiveContent =
+    input.permission === PERMISSIONS.DOCUMENT_READ ||
+    input.permission === PERMISSIONS.DOCUMENT_REVIEW ||
+    input.permission === PERMISSIONS.DOCUMENT_EXEMPT;
+  if (exposesSensitiveContent && input.sensitivity !== SENSITIVITIES.INTERNAL) {
+    const sensitivityAllowed = elevated
+      ? context.supportElevation?.categories.includes(input.sensitivity) ===
+        true
+      : context.capabilities?.includes(PERMISSIONS.RESTRICTED_READ) === true;
+    if (!sensitivityAllowed) throw new ForbiddenError();
+  }
+}
+
+function canAuthorizeDocumentResource(
+  context: TenantExecutionContext,
+  input: DocumentResourceAuthorizationInput,
+): boolean {
+  try {
+    authorizeDocumentResource(context, input);
+    return true;
+  } catch (error) {
+    if (error instanceof ForbiddenError) return false;
+    throw error;
+  }
+}
 
 function asJson(value: unknown): Prisma.InputJsonValue {
   return value as Prisma.InputJsonValue;
@@ -547,6 +651,75 @@ function mapSubmission(
   };
 }
 
+function assistedTechnicalStatus(status: string): string {
+  if (["UPLOAD_PENDING", "QUARANTINED", "PROCESSING"].includes(status)) {
+    return "PROCESSING";
+  }
+  if (status === "READY_FOR_REVIEW") return "READY";
+  if (status.startsWith("BLOCKED_")) return "ACTION_REQUIRED";
+  return status;
+}
+
+function mapAssistedSubmission(
+  submission: SubmissionRecord,
+  applicable: boolean,
+  now: Date,
+) {
+  const current = submission.currentDocumentVersion;
+  const version = submission.requirementVersion;
+  const latestFamilyObservation = [...submission.reviews]
+    .reverse()
+    .find((review) => review.verdict === "OBSERVED");
+  return {
+    applicable,
+    correctionDueAt: submission.correctionDueAt?.toISOString() ?? null,
+    correctionOverdue:
+      submission.correctionDueAt !== null && now > submission.correctionDueAt,
+    currentDocumentVersion:
+      current === null
+        ? null
+        : {
+            documentIssuedOn:
+              current.documentIssuedOn?.toISOString().slice(0, 10) ?? null,
+            equivalentOptionCode: current.equivalentOptionCode,
+            id: current.id,
+            technicalStatus: assistedTechnicalStatus(current.technicalStatus),
+            versionNumber: current.versionNumber,
+          },
+    history: [],
+    id: submission.id,
+    requirement: {
+      code: submission.requirement.code,
+      id: submission.requirement.id,
+      name: submission.requirement.name,
+      version: {
+        allowedFileTypes: parseAllowedFileTypes(version.allowedFileTypes),
+        allowsEquivalent: version.allowsEquivalent,
+        equivalentOptions: parseEquivalentOptions(version.equivalentOptions),
+        id: version.id,
+        instruction: version.instruction,
+        maxAgeDays: version.maxAgeDays,
+        maxFileSizeBytes: Number(version.maxFileSizeBytes),
+        required: version.required,
+        validityRule: version.validityRule,
+        versionNumber: version.versionNumber,
+      },
+    },
+    reviews:
+      latestFamilyObservation === undefined
+        ? []
+        : [
+            {
+              correctionDueAt:
+                latestFamilyObservation.correctionDueAt?.toISOString() ?? null,
+              reason: latestFamilyObservation.reason,
+              verdict: latestFamilyObservation.verdict,
+            },
+          ],
+    status: submission.status,
+  };
+}
+
 function parsePersistedAnswers(
   answers: Array<{ fieldId: string; value: Prisma.JsonValue }>,
 ): Map<string, ConditionValue> {
@@ -610,6 +783,7 @@ export interface UploadDocumentInput {
 interface UploadActor {
   actorId: string;
   context: TenantExecutionContext;
+  familyOwned: boolean;
 }
 
 export class DocumentService {
@@ -873,7 +1047,23 @@ export class DocumentService {
         applicationId,
       );
       if (application === null) throw new IntakeNotFoundError();
-      return this.projectApplicationDocuments(transaction, application, now);
+      const authorizedSubmissions = application.documentSubmissions.filter(
+        (submission) =>
+          canAuthorizeDocumentResource(context, {
+            application,
+            permission: PERMISSIONS.DOCUMENT_READ,
+            purpose: context.purpose,
+            requirementVersion: submission.requirementVersion,
+            sensitivity: submission.requirementVersion
+              .sensitivity as Sensitivity,
+          }),
+      );
+      return this.projectApplicationDocuments(
+        transaction,
+        application,
+        now,
+        authorizedSubmissions,
+      );
     });
   }
 
@@ -891,7 +1081,22 @@ export class DocumentService {
       if (application === null || application.origin !== "ASSISTED") {
         throw new IntakeNotFoundError();
       }
-      return this.projectApplicationDocuments(transaction, application, now);
+      const authorizedSubmissions = application.documentSubmissions.filter(
+        (submission) =>
+          canAuthorizeDocumentResource(context, {
+            application,
+            permission: PERMISSIONS.APPLICATION_ASSIST,
+            purpose: context.purpose,
+            requirementVersion: submission.requirementVersion,
+            sensitivity: submission.requirementVersion
+              .sensitivity as Sensitivity,
+          }),
+      );
+      return this.projectAssistedApplicationDocuments(
+        application,
+        now,
+        authorizedSubmissions,
+      );
     });
   }
 
@@ -913,7 +1118,11 @@ export class DocumentService {
       if (application === null) throw new IntakeNotFoundError();
     });
     return this.uploadDocument(
-      { actorId: familyContext.actorId, context: applicantContext },
+      {
+        actorId: familyContext.actorId,
+        context: applicantContext,
+        familyOwned: true,
+      },
       applicationId,
       submissionId,
       { ...input, origin: "SELF_SERVICE" },
@@ -927,13 +1136,20 @@ export class DocumentService {
     input: UploadDocumentInput,
   ) {
     assertPermission(context, PERMISSIONS.DOCUMENT_UPLOAD);
+    if (input.origin === "ASSISTED") {
+      assertPermission(context, PERMISSIONS.APPLICATION_ASSIST);
+    }
     if (input.origin === "SELF_SERVICE") {
       throw new IntakeValidationError(
         "Staff upload requires assisted or physical origin",
       );
     }
     return this.uploadDocument(
-      { actorId: context.effectiveActorId ?? context.actorId, context },
+      {
+        actorId: context.effectiveActorId ?? context.actorId,
+        context,
+        familyOwned: false,
+      },
       applicationId,
       submissionId,
       input,
@@ -970,6 +1186,26 @@ export class DocumentService {
           where: { applicationId, id: submissionId },
         });
         if (submission === null) throw new IntakeNotFoundError();
+        if (!actor.familyOwned) {
+          authorizeDocumentResource(actor.context, {
+            application: submission.application,
+            permission: PERMISSIONS.DOCUMENT_UPLOAD,
+            purpose: actor.context.purpose,
+            requirementVersion: submission.requirementVersion,
+            sensitivity: submission.requirementVersion
+              .sensitivity as Sensitivity,
+          });
+          if (input.origin === "ASSISTED") {
+            authorizeDocumentResource(actor.context, {
+              application: submission.application,
+              permission: PERMISSIONS.APPLICATION_ASSIST,
+              purpose: actor.context.purpose,
+              requirementVersion: submission.requirementVersion,
+              sensitivity: submission.requirementVersion
+                .sensitivity as Sensitivity,
+            });
+          }
+        }
         const active = submission.versions.some((version) =>
           ["PROCESSING", "QUARANTINED", "UPLOAD_PENDING"].includes(
             version.technicalStatus,
@@ -1297,7 +1533,10 @@ export class DocumentService {
           where: { id: documentVersionId },
         });
         if (durable === null) throw new IntakeNotFoundError();
-        if (durable.technicalStatus === "READY_FOR_REVIEW") {
+        if (
+          durable.technicalStatus === "READY_FOR_REVIEW" ||
+          durable.technicalStatus.startsWith("BLOCKED_")
+        ) {
           return durable;
         }
         if (durable.technicalStatus !== "PROCESSING") {
@@ -1387,6 +1626,30 @@ export class DocumentService {
     },
   ) {
     return withTenantTransaction(this.prisma, async (transaction) => {
+      const locked = await transaction.$queryRaw<Array<{ id: string }>>`
+        SELECT id FROM document_versions
+        WHERE tenant_id = ${context.tenantId}::uuid AND id = ${documentVersionId}::uuid
+        FOR UPDATE
+      `;
+      if (locked.length !== 1) throw new IntakeNotFoundError();
+      const durable = await transaction.documentVersion.findFirst({
+        where: { id: documentVersionId },
+      });
+      if (durable === null) throw new IntakeNotFoundError();
+      if (
+        durable.technicalStatus === "READY_FOR_REVIEW" ||
+        durable.technicalStatus.startsWith("BLOCKED_")
+      ) {
+        return {
+          documentVersionId: durable.id,
+          technicalStatus: durable.technicalStatus,
+        };
+      }
+      if (durable.technicalStatus !== "PROCESSING") {
+        throw new IntakeValidationError(
+          "Document processing state changed concurrently",
+        );
+      }
       const updated = await transaction.documentVersion.update({
         data: {
           ...(detectedMime === undefined ? {} : { detectedMime }),
@@ -1401,7 +1664,7 @@ export class DocumentService {
           scanStatus,
           technicalStatus,
         },
-        where: { id: documentVersionId },
+        where: { id: durable.id },
       });
       await recordAudit(transaction, context, {
         action: "DOCUMENT_SCAN_BLOCKED",
@@ -1413,8 +1676,11 @@ export class DocumentService {
     });
   }
 
-  async acceptDocument(context: TenantExecutionContext, submissionId: string) {
-    assertPermission(context, PERMISSIONS.DOCUMENT_REVIEW);
+  async acceptDocument(
+    context: TenantExecutionContext,
+    submissionId: string,
+    expectedDocumentVersionId: string,
+  ) {
     return withTenantTransaction(this.prisma, async (transaction) => {
       const submission = await this.lockSubmission(
         transaction,
@@ -1422,11 +1688,19 @@ export class DocumentService {
         submissionId,
       );
       const current = submission.currentDocumentVersion;
+      this.assertExpectedReviewVersion(submission, expectedDocumentVersionId);
       if (current === null || current.technicalStatus !== "READY_FOR_REVIEW") {
         throw new IntakeValidationError(
           "A ready current document version is required",
         );
       }
+      authorizeDocumentResource(context, {
+        application: submission.application,
+        permission: PERMISSIONS.DOCUMENT_REVIEW,
+        purpose: context.purpose,
+        requirementVersion: submission.requirementVersion,
+        sensitivity: submission.requirementVersion.sensitivity as Sensitivity,
+      });
       await transaction.documentReview.create({
         data: {
           actorId: context.effectiveActorId ?? context.actorId,
@@ -1446,6 +1720,7 @@ export class DocumentService {
         resourceType: "DocumentSubmission",
       });
       return {
+        documentVersionId: current.id,
         documentSubmissionId: submission.id,
         status: "ACEPTADO" as const,
       };
@@ -1455,10 +1730,10 @@ export class DocumentService {
   async observeDocument(
     context: TenantExecutionContext,
     submissionId: string,
+    expectedDocumentVersionId: string,
     reasonInput: string,
     now = new Date(),
   ) {
-    assertPermission(context, PERMISSIONS.DOCUMENT_REVIEW);
     const reason = safeText(
       reasonInput,
       "family-facing observation reason",
@@ -1471,11 +1746,19 @@ export class DocumentService {
         submissionId,
       );
       const current = submission.currentDocumentVersion;
+      this.assertExpectedReviewVersion(submission, expectedDocumentVersionId);
       if (current === null || current.technicalStatus !== "READY_FOR_REVIEW") {
         throw new IntakeValidationError(
           "A ready current document version is required",
         );
       }
+      authorizeDocumentResource(context, {
+        application: submission.application,
+        permission: PERMISSIONS.DOCUMENT_REVIEW,
+        purpose: context.purpose,
+        requirementVersion: submission.requirementVersion,
+        sensitivity: submission.requirementVersion.sensitivity as Sensitivity,
+      });
       const correctionDueAt = this.calendar.addBusinessDays(
         now,
         submission.requirementVersion.correctionWindowBusinessDays,
@@ -1506,6 +1789,7 @@ export class DocumentService {
       });
       return {
         correctionDueAt: correctionDueAt.toISOString(),
+        documentVersionId: current.id,
         documentSubmissionId: submission.id,
         status: "OBSERVADO" as const,
       };
@@ -1517,7 +1801,6 @@ export class DocumentService {
     submissionId: string,
     reasonInput: string,
   ) {
-    assertPermission(context, PERMISSIONS.DOCUMENT_EXEMPT);
     const reason = safeText(reasonInput, "exemption reason", 1000);
     return withTenantTransaction(this.prisma, async (transaction) => {
       const submission = await this.lockSubmission(
@@ -1525,6 +1808,22 @@ export class DocumentService {
         context,
         submissionId,
       );
+      authorizeDocumentResource(context, {
+        application: submission.application,
+        permission: PERMISSIONS.DOCUMENT_EXEMPT,
+        purpose: context.purpose,
+        requirementVersion: submission.requirementVersion,
+        sensitivity: submission.requirementVersion.sensitivity as Sensitivity,
+      });
+      if (
+        submission.versions.some((version) =>
+          ["UPLOAD_PENDING", "QUARANTINED", "PROCESSING"].includes(
+            version.technicalStatus,
+          ),
+        )
+      ) {
+        throw new IntakeConflictError("DOCUMENT_PROCESSING_IN_PROGRESS");
+      }
       await transaction.documentReview.create({
         data: {
           actorId: context.effectiveActorId ?? context.actorId,
@@ -1584,15 +1883,25 @@ export class DocumentService {
   ) {
     return withTenantTransaction(this.prisma, async (transaction) => {
       const version = await transaction.documentVersion.findFirst({
-        include: { submission: { include: { requirementVersion: true } } },
+        include: {
+          submission: {
+            include: {
+              application: { include: { offering: true } },
+              requirementVersion: true,
+            },
+          },
+        },
         where: { id: documentVersionId },
       });
       if (version === null) throw new IntakeNotFoundError();
-      assertPermission(
-        context,
-        PERMISSIONS.DOCUMENT_READ,
-        version.submission.requirementVersion.sensitivity as Sensitivity,
-      );
+      authorizeDocumentResource(context, {
+        application: version.submission.application,
+        permission: PERMISSIONS.DOCUMENT_READ,
+        purpose: context.purpose,
+        requirementVersion: version.submission.requirementVersion,
+        sensitivity: version.submission.requirementVersion
+          .sensitivity as Sensitivity,
+      });
       return this.authorizeAndReadApproved(transaction, context, version);
     });
   }
@@ -1648,6 +1957,30 @@ export class DocumentService {
     return submission;
   }
 
+  private assertExpectedReviewVersion(
+    submission: SubmissionRecord,
+    expectedDocumentVersionId: string,
+  ): void {
+    const current = submission.currentDocumentVersion;
+    if (
+      current === null ||
+      submission.currentDocumentVersionId !== expectedDocumentVersionId ||
+      current.id !== expectedDocumentVersionId ||
+      submission.versions.some(
+        (version) =>
+          version.versionNumber > current.versionNumber &&
+          [
+            "UPLOAD_PENDING",
+            "QUARANTINED",
+            "PROCESSING",
+            "READY_FOR_REVIEW",
+          ].includes(version.technicalStatus),
+      )
+    ) {
+      throw new IntakeConflictError("DOCUMENT_VERSION_CHANGED");
+    }
+  }
+
   private async ownedFamilyProfile(context: FamilyExecutionContext) {
     const profile = await this.prisma.familyProfile.findUnique({
       select: { id: true },
@@ -1692,6 +2025,7 @@ export class DocumentService {
       Awaited<ReturnType<DocumentService["loadApplication"]>>
     >,
     now: Date,
+    submissions = application.documentSubmissions,
   ) {
     if (application.documentRequirementsPinnedAt === null) {
       throw new IntakeValidationError(
@@ -1701,8 +2035,34 @@ export class DocumentService {
     const answers = parsePersistedAnswers(application.draftAnswers);
     return {
       applicationId: application.id,
-      items: application.documentSubmissions.map((submission) =>
+      items: submissions.map((submission) =>
         mapSubmission(
+          submission,
+          conditionMatches(submission.requirementVersion, answers),
+          now,
+        ),
+      ),
+      pinnedAt: application.documentRequirementsPinnedAt.toISOString(),
+    };
+  }
+
+  private projectAssistedApplicationDocuments(
+    application: NonNullable<
+      Awaited<ReturnType<DocumentService["loadApplication"]>>
+    >,
+    now: Date,
+    submissions: readonly SubmissionRecord[],
+  ) {
+    if (application.documentRequirementsPinnedAt === null) {
+      throw new IntakeValidationError(
+        "Legacy development draft has no pinned document requirements and must be recreated",
+      );
+    }
+    const answers = parsePersistedAnswers(application.draftAnswers);
+    return {
+      applicationId: application.id,
+      items: submissions.map((submission) =>
+        mapAssistedSubmission(
           submission,
           conditionMatches(submission.requirementVersion, answers),
           now,
