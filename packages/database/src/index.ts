@@ -1,5 +1,22 @@
 export { createAppPrismaClient } from "./prisma-client.js";
 export {
+  ACTIVITY_KINDS,
+  ACTIVITY_STATUSES,
+  ActivityService,
+  pinApplicationActivities,
+  type ActivityDefinitionDto,
+  type ActivityDefinitionInput,
+  type ActivityKind,
+  type ActivityResultValue,
+  type ActivityVersionDto,
+  type ActivityVersionInput,
+  type FamilyActivityDto,
+  type RecordOutcomeInput,
+  type RepeatActivityInput,
+  type StaffActivityDto,
+  type StaffScheduleInput,
+} from "./activities.js";
+export {
   AVAILABILITY_LABELS,
   IntakeConflictError,
   IntakeDuplicateError,
@@ -25,6 +42,7 @@ export {
   type StudentDto,
   type StudentInput,
 } from "./intake.js";
+export { ActivityConflictError } from "./domain-errors.js";
 export { PrismaClient } from "./generated/prisma/client.js";
 export {
   FORM_CONDITION_OPERATORS,

@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from "./generated/prisma/client.js";
+import { pinApplicationActivities } from "./activities.js";
 import { authorizeOrThrow } from "./authorization.js";
 import { evaluateDocumentSubmissionReadiness } from "./documents.js";
 import {
@@ -1894,6 +1895,18 @@ export class FormService {
           tenantId: applicantContext.tenantId,
         },
       );
+      const activityCount = await pinApplicationActivities(
+        transaction,
+        {
+          academicYearId: application.academicYearId,
+          applicationId,
+          courseLevelId: application.offering.courseLevel.id,
+          offeringId: application.offering.id,
+          processId: application.offering.process.id,
+          tenantId: applicantContext.tenantId,
+        },
+        now,
+      );
       const submittedBy =
         verifiedAssistanceSession?.operatorUserId ??
         (input.submissionMode === "SELF_SERVICE"
@@ -1980,6 +1993,7 @@ export class FormService {
       await recordAudit(transaction, applicantContext, {
         action: "APPLICATION_SUBMITTED",
         metadata: {
+          activityCount,
           fieldCount: form.sections.reduce(
             (sum, section) => sum + section.fields.length,
             0,

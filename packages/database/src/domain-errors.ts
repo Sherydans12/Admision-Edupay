@@ -30,3 +30,17 @@ export class IntakeConflictError extends Error {
     this.name = "IntakeConflictError";
   }
 }
+
+export type ActivityConflictCode =
+  | "ACTIVITY_APPOINTMENT_CHANGED"
+  | "ACTIVITY_ALREADY_SCHEDULED"
+  | "ACTIVITY_NO_SHOW_TOO_EARLY"
+  | "ACTIVITY_CLOSED"
+  | "NORMAL_RESCHEDULE_LIMIT_REQUIRES_REVIEW";
+
+export class ActivityConflictError extends Error {
+  constructor(readonly code: ActivityConflictCode) {
+    super(code);
+    this.name = "ActivityConflictError";
+  }
+}

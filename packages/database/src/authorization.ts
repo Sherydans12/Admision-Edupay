@@ -160,6 +160,23 @@ export function authorize(
     (requirement.sensitivity === "restricted" ||
       requirement.sensitivity === "highly_restricted") &&
     context.capabilities?.includes(PERMISSIONS.RESTRICTED_READ) !== true &&
+    !(
+      [
+        PERMISSIONS.ACTIVITY_CLOSE,
+        PERMISSIONS.ACTIVITY_READ,
+        PERMISSIONS.ACTIVITY_REPEAT,
+        PERMISSIONS.ACTIVITY_SCHEDULE,
+      ] as PermissionKey[]
+    ).includes(requirement.permission) &&
+    !(
+      requirement.sensitivity === "highly_restricted" &&
+      (
+        [
+          PERMISSIONS.ACTIVITY_PERFORM,
+          PERMISSIONS.ACTIVITY_RESULT_READ,
+        ] as PermissionKey[]
+      ).includes(requirement.permission)
+    ) &&
     !context.supportElevation?.categories.includes(requirement.sensitivity)
   ) {
     return { code: "SENSITIVITY_NOT_ALLOWED", decision: "DENY" };

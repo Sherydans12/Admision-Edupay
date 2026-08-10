@@ -73,6 +73,57 @@ enum ApplicationStatus {
   SUBMITTED
 }
 
+enum ActivityDefinitionKind {
+  GUARDIAN_INTERVIEW
+  DIAGNOSTIC_EVALUATION
+}
+
+enum ActivityDefinitionVersionLifecycle {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ActivityModality {
+  IN_PERSON
+}
+
+enum ApplicationActivityStatus {
+  PENDIENTE
+  PROGRAMADA
+  REALIZADA
+  REPROGRAMADA
+  INASISTENCIA
+  EXENTA
+  NO_COMPLETADA
+  CERRADA
+}
+
+enum ActivityAppointmentStatus {
+  PROGRAMADA
+  REALIZADA
+  INASISTENCIA
+  NO_COMPLETADA
+  REPROGRAMADA
+}
+
+enum ActivityRescheduleRequestStatus {
+  PENDING
+  FULFILLED
+}
+
+enum ActivityAttemptOutcome {
+  REALIZADA
+  INASISTENCIA
+  NO_COMPLETADA
+}
+
+enum ActivityResultValue {
+  FAVORABLE
+  NO_FAVORABLE
+  INCONCLUSO
+}
+
 enum FormVersionLifecycle {
   DRAFT
   PUBLISHED
@@ -177,6 +228,7 @@ model PlatformUser {
   sessions          PlatformSession[]
   supportElevations SupportElevation[]
   familyProfile     FamilyProfile?
+  activityRescheduleRequests ActivityRescheduleRequest[]
 
   @@map("platform_users")
 }
@@ -228,6 +280,13 @@ model Tenant {
   documentVersions DocumentVersion[]
   documentReviews DocumentReview[]
   assistanceSessions AssistanceSession[]
+  activityDefinitions ActivityDefinition[]
+  activityDefinitionVersions ActivityDefinitionVersion[]
+  applicationActivities ApplicationActivity[]
+  activityAppointments ActivityAppointment[]
+  activityRescheduleRequests ActivityRescheduleRequest[]
+  activityAttempts ActivityAttempt[]
+  activityResults ActivityResult[]
   auditEvents        AuditEvent[]
 
   @@map("tenants")
@@ -390,6 +449,7 @@ model AcademicYear {
   offerings    AdmissionOffering[]
   applications Application[]
   documentRequirementVersions DocumentRequirementVersion[]
+  activityDefinitionVersions ActivityDefinitionVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, code])
@@ -408,6 +468,7 @@ model CourseLevel {
   tenant    Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   offerings AdmissionOffering[]
   documentRequirementVersions DocumentRequirementVersion[]
+  activityDefinitionVersions ActivityDefinitionVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, code])
@@ -431,6 +492,7 @@ model AdmissionProcess {
   offerings      AdmissionOffering[]
   applications   Application[]
   documentRequirementVersions DocumentRequirementVersion[]
+  activityDefinitionVersions ActivityDefinitionVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, academicYearId])
@@ -462,6 +524,7 @@ model AdmissionOffering {
   formVersion          FormVersion?            @relation(fields: [tenantId, formVersionId], references: [tenantId, id], onDelete: Restrict)
   applications         Application[]
   documentRequirementVersions DocumentRequirementVersion[]
+  activityDefinitionVersions ActivityDefinitionVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, processId, academicYearId])
@@ -486,6 +549,7 @@ model Application {
   origin          ApplicationOrigin @default(SELF_SERVICE)
   assistanceSessionId String?       @map("assistance_session_id") @db.Uuid
   documentRequirementsPinnedAt DateTime? @map("document_requirements_pinned_at") @db.Timestamptz(3)
+  activitiesPinnedAt DateTime? @map("activities_pinned_at") @db.Timestamptz(3)
   createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
   tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -498,6 +562,7 @@ model Application {
   draftAnswers    ApplicationDraftAnswer[]
   snapshot        ApplicationSnapshot?
   documentSubmissions DocumentSubmission[]
+  activities ApplicationActivity[]
   assistanceSession AssistanceSession? @relation("ApplicationAssistance", fields: [tenantId, assistanceSessionId], references: [tenantId, id], onDelete: Restrict)
 
   @@unique([tenantId, id])
@@ -506,6 +571,196 @@ model Application {
   @@index([tenantId, familyProfileId, status, updatedAt])
   @@index([tenantId, studentId, status])
   @@map("applications")
+}
+
+/// Stable tenant-owned activity configuration root.
+model ActivityDefinition {
+  id          String                 @id @default(uuid()) @db.Uuid
+  tenantId    String                 @map("tenant_id") @db.Uuid
+  code        String                 @db.VarChar(80)
+  name        String                 @db.VarChar(160)
+  kind        ActivityDefinitionKind
+  createdAt   DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant      Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  versions    ActivityDefinitionVersion[]
+  applicationActivities ApplicationActivity[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, code])
+  @@index([tenantId, kind])
+  @@map("activity_definitions")
+}
+
+/// Versioned activity rules. Published content is immutable; later versions do not rewrite pins.
+model ActivityDefinitionVersion {
+  id                    String                              @id @default(uuid()) @db.Uuid
+  tenantId              String                              @map("tenant_id") @db.Uuid
+  activityDefinitionId  String                              @map("activity_definition_id") @db.Uuid
+  versionNumber         Int                                 @map("version_number")
+  lifecycle              ActivityDefinitionVersionLifecycle @default(DRAFT)
+  required              Boolean                             @default(false)
+  modality              ActivityModality                    @default(IN_PERSON)
+  durationMinutes       Int                                 @map("duration_minutes")
+  maxNormalReschedules  Int                                 @default(2) @map("max_normal_reschedules")
+  lateToleranceMinutes  Int                                 @default(15) @map("late_tolerance_minutes")
+  instructions          String?                             @db.VarChar(1000)
+  scopeAcademicYearId   String?                             @map("scope_academic_year_id") @db.Uuid
+  scopeProcessId        String?                             @map("scope_process_id") @db.Uuid
+  scopeCourseLevelId    String?                             @map("scope_course_level_id") @db.Uuid
+  scopeOfferingId       String?                             @map("scope_offering_id") @db.Uuid
+  createdAt             DateTime                            @default(now()) @map("created_at") @db.Timestamptz(3)
+  publishedAt           DateTime?                           @map("published_at") @db.Timestamptz(3)
+  archivedAt            DateTime?                           @map("archived_at") @db.Timestamptz(3)
+  tenant                Tenant                              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  definition            ActivityDefinition                  @relation(fields: [tenantId, activityDefinitionId], references: [tenantId, id], onDelete: Restrict)
+  scopeAcademicYear     AcademicYear?                       @relation(fields: [tenantId, scopeAcademicYearId], references: [tenantId, id], onDelete: Restrict)
+  scopeProcess          AdmissionProcess?                   @relation(fields: [tenantId, scopeProcessId], references: [tenantId, id], onDelete: Restrict)
+  scopeCourseLevel      CourseLevel?                        @relation(fields: [tenantId, scopeCourseLevelId], references: [tenantId, id], onDelete: Restrict)
+  scopeOffering         AdmissionOffering?                  @relation(fields: [tenantId, scopeOfferingId], references: [tenantId, id], onDelete: Restrict)
+  applicationActivities ApplicationActivity[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, activityDefinitionId, id], map: "activity_definition_versions_definition_id_key")
+  @@unique([tenantId, activityDefinitionId, versionNumber])
+  @@index([tenantId, lifecycle, scopeOfferingId])
+  @@index([tenantId, lifecycle, scopeProcessId, scopeCourseLevelId])
+  @@map("activity_definition_versions")
+}
+
+/// Versioned evidence of which activity rules were assigned to an application.
+model ApplicationActivity {
+  id                       String                    @id @default(uuid()) @db.Uuid
+  tenantId                 String                    @map("tenant_id") @db.Uuid
+  applicationId            String                    @map("application_id") @db.Uuid
+  activityDefinitionId     String                    @map("activity_definition_id") @db.Uuid
+  activityDefinitionVersionId String                 @map("activity_definition_version_id") @db.Uuid
+  status                   ApplicationActivityStatus @default(PENDIENTE)
+  currentAppointmentId     String?                   @map("current_appointment_id") @db.Uuid
+  pinnedAt                 DateTime                  @map("pinned_at") @db.Timestamptz(3)
+  createdAt                DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant                   Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application              Application               @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+  definition               ActivityDefinition        @relation(fields: [tenantId, activityDefinitionId], references: [tenantId, id], onDelete: Restrict)
+  definitionVersion        ActivityDefinitionVersion @relation(fields: [tenantId, activityDefinitionId, activityDefinitionVersionId], references: [tenantId, activityDefinitionId, id], onDelete: Restrict)
+  currentAppointment       ActivityAppointment?       @relation("CurrentActivityAppointment", fields: [tenantId, currentAppointmentId], references: [tenantId, id], onDelete: Restrict)
+  appointments             ActivityAppointment[]
+  rescheduleRequests       ActivityRescheduleRequest[]
+  attempts                 ActivityAttempt[]
+  results                  ActivityResult[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, applicationId, activityDefinitionId])
+  @@unique([tenantId, currentAppointmentId])
+  @@index([tenantId, applicationId, status])
+  @@map("application_activities")
+}
+
+/// Appointment history. Reprogramming creates a new row and marks the previous row.
+model ActivityAppointment {
+  id                    String                    @id @default(uuid()) @db.Uuid
+  tenantId              String                    @map("tenant_id") @db.Uuid
+  applicationActivityId String                    @map("application_activity_id") @db.Uuid
+  sequence              Int
+  scheduledStartAt      DateTime                  @map("scheduled_start_at") @db.Timestamptz(3)
+  durationMinutes       Int                       @map("duration_minutes")
+  location              String                    @db.VarChar(240)
+  assignedUserId        String                    @map("assigned_user_id") @db.Uuid
+  status                ActivityAppointmentStatus @default(PROGRAMADA)
+  createdBy             String                    @map("created_by") @db.Uuid
+  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  reprogramReason       String?                   @map("reprogram_reason") @db.VarChar(1000)
+  previousAppointmentId String?                   @map("previous_appointment_id") @db.Uuid
+  tenant                Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  activity              ApplicationActivity      @relation(fields: [tenantId, applicationActivityId], references: [tenantId, id], onDelete: Restrict)
+  currentForActivity    ApplicationActivity?     @relation("CurrentActivityAppointment")
+  previousAppointment   ActivityAppointment?     @relation("AppointmentHistory", fields: [tenantId, previousAppointmentId], references: [tenantId, id], onDelete: Restrict)
+  nextAppointments      ActivityAppointment[]    @relation("AppointmentHistory")
+  rescheduleRequests    ActivityRescheduleRequest[]
+  fulfilledRequests     ActivityRescheduleRequest[] @relation("FulfilledAppointment")
+  attempts              ActivityAttempt[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, applicationActivityId, id], map: "activity_appointments_activity_id_key")
+  @@unique([tenantId, applicationActivityId, sequence])
+  @@index([tenantId, applicationActivityId, status])
+  @@map("activity_appointments")
+}
+
+/// Family request for a staff-assigned reschedule; it never contains a requested slot.
+model ActivityRescheduleRequest {
+  id                    String                           @id @default(uuid()) @db.Uuid
+  tenantId              String                           @map("tenant_id") @db.Uuid
+  applicationActivityId String                           @map("application_activity_id") @db.Uuid
+  appointmentId         String                           @map("appointment_id") @db.Uuid
+  requestedByUserId     String                           @map("requested_by_user_id") @db.Uuid
+  reason                String                           @db.VarChar(1000)
+  status                ActivityRescheduleRequestStatus  @default(PENDING)
+  fulfilledAppointmentId String?                         @map("fulfilled_appointment_id") @db.Uuid
+  createdAt             DateTime                         @default(now()) @map("created_at") @db.Timestamptz(3)
+  fulfilledAt           DateTime?                        @map("fulfilled_at") @db.Timestamptz(3)
+  tenant                Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  activity              ApplicationActivity             @relation(fields: [tenantId, applicationActivityId], references: [tenantId, id], onDelete: Restrict, map: "activity_reschedule_requests_activity_fkey")
+  appointment           ActivityAppointment              @relation(fields: [tenantId, applicationActivityId, appointmentId], references: [tenantId, applicationActivityId, id], onDelete: Restrict, map: "activity_reschedule_requests_appointment_fkey")
+  fulfilledAppointment  ActivityAppointment?             @relation("FulfilledAppointment", fields: [tenantId, applicationActivityId, fulfilledAppointmentId], references: [tenantId, applicationActivityId, id], onDelete: Restrict, map: "activity_reschedule_requests_fulfilled_fkey")
+  requestedBy           PlatformUser                     @relation(fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, applicationActivityId, status])
+  @@map("activity_reschedule_requests")
+}
+
+/// Append-only operational attempt, including no-show classification.
+model ActivityAttempt {
+  id                    String                @id @default(uuid()) @db.Uuid
+  tenantId              String                @map("tenant_id") @db.Uuid
+  applicationActivityId String                @map("application_activity_id") @db.Uuid
+  appointmentId         String                @map("appointment_id") @db.Uuid
+  sequence              Int
+  previousAttemptId     String?               @map("previous_attempt_id") @db.Uuid
+  recordedBy            String                @map("recorded_by") @db.Uuid
+  occurredAt            DateTime              @map("occurred_at") @db.Timestamptz(3)
+  operationalOutcome    ActivityAttemptOutcome @map("operational_outcome")
+  reason                String?               @db.VarChar(1000)
+  noShowJustified       Boolean?              @map("no_show_justified")
+  tenant                Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  activity              ApplicationActivity  @relation(fields: [tenantId, applicationActivityId], references: [tenantId, id], onDelete: Restrict)
+  appointment           ActivityAppointment  @relation(fields: [tenantId, applicationActivityId, appointmentId], references: [tenantId, applicationActivityId, id], onDelete: Restrict)
+  previousAttempt       ActivityAttempt?     @relation("AttemptHistory", fields: [tenantId, applicationActivityId, previousAttemptId], references: [tenantId, applicationActivityId, id], onDelete: Restrict)
+  nextAttempts          ActivityAttempt[]    @relation("AttemptHistory")
+  results               ActivityResult[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, applicationActivityId, id], map: "activity_attempts_activity_id_key")
+  @@unique([tenantId, applicationActivityId, sequence])
+  @@index([tenantId, applicationActivityId, operationalOutcome])
+  @@map("activity_attempts")
+}
+
+/// Append-only internal result version attached to an exact attempt.
+model ActivityResult {
+  id                    String             @id @default(uuid()) @db.Uuid
+  tenantId              String             @map("tenant_id") @db.Uuid
+  applicationActivityId String             @map("application_activity_id") @db.Uuid
+  attemptId             String             @map("attempt_id") @db.Uuid
+  versionNumber         Int                @map("version_number")
+  previousResultId      String?            @map("previous_result_id") @db.Uuid
+  result                ActivityResultValue
+  comment               String?            @db.VarChar(1000)
+  recordedBy            String             @map("recorded_by") @db.Uuid
+  createdAt             DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant                Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  activity              ApplicationActivity @relation(fields: [tenantId, applicationActivityId], references: [tenantId, id], onDelete: Restrict)
+  attempt               ActivityAttempt    @relation(fields: [tenantId, applicationActivityId, attemptId], references: [tenantId, applicationActivityId, id], onDelete: Restrict)
+  previousResult        ActivityResult?    @relation("ResultHistory", fields: [tenantId, applicationActivityId, previousResultId], references: [tenantId, applicationActivityId, id], onDelete: Restrict)
+  nextResults           ActivityResult[]   @relation("ResultHistory")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, applicationActivityId, attemptId, versionNumber])
+  @@unique([tenantId, applicationActivityId, id], map: "activity_results_activity_id_key")
+  @@index([tenantId, applicationActivityId, attemptId])
+  @@map("activity_results")
 }
 
 /// Stable tenant-owned identity for a configurable document requirement.
