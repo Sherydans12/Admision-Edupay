@@ -1,6 +1,6 @@
 # E5-D — Evidencia de actividades y agenda
 
-Estado de esta entrega: `E5-D IN_PROGRESS` con evidencia funcional focalizada aprobada y dos gates heredados aún no concluyentes por timeout (`pnpm test` y `pnpm e4:deploy:smoke`). No se marca `COMPLETE` hasta cerrar esos gates o recibir una decisión humana sobre el bloqueo operativo.
+Estado de esta entrega: `E5-D COMPLETE` con evidencia local, CI remoto `validate` en verde y revisión humana pendiente. E5 permanece `IN PROGRESS / E5-A+B+C+D COMPLETE — READY FOR E5-E REVIEW`.
 
 ## Alcance y trazabilidad
 
