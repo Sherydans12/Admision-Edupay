@@ -66,7 +66,10 @@ function fakeService(
         communicationId: input.communicationId,
         tenantId: currentContext?.tenantId ?? "",
       });
-      return { id: input.communicationId, lifecycle: "SENT" } as unknown as Awaited<
+      return {
+        id: input.communicationId,
+        lifecycle: "SENT",
+      } as unknown as Awaited<
         ReturnType<CommunicationService["processOutboxSend"]>
       >;
     },
@@ -144,7 +147,9 @@ describe.sequential("E5-G tenant-scoped communication worker", () => {
 
     await expect(worker.pollOnce()).resolves.toBe(true);
     await expect(worker.pollOnce()).resolves.toBe(false);
-    expect(processed).toEqual([{ communicationId: commId, tenantId: TENANT_A }]);
+    expect(processed).toEqual([
+      { communicationId: commId, tenantId: TENANT_A },
+    ]);
   });
 
   it("WRK-05: invalid payload fails permanently without retrying", async () => {
@@ -160,7 +165,7 @@ describe.sequential("E5-G tenant-scoped communication worker", () => {
 
   it("WRK-06..07: transient failures back off and stop at max attempts", async () => {
     let nowTime = 1_000_000;
-    const commId = await enqueue(TENANT_A, { availableAt: new Date(nowTime) });
+    const _commId = await enqueue(TENANT_A, { availableAt: new Date(nowTime) });
     const worker = new CommunicationWorker(prisma, failingService(), 50, {
       baseBackoffMs: 1_000,
       maxAttempts: 3,

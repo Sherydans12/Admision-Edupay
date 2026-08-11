@@ -140,35 +140,42 @@ export class FamilyApplicationProjectionService {
 
       // Determine communicable result only if direction decision exists and has been communicated or is ready
       const latestDecisionVer = app.directionDecision?.versions[0];
-      let communicableResult: "APROBADO" | "LISTA_DE_ESPERA" | "RECHAZADO" | null = null;
+      let communicableResult:
+        "APROBADO" | "LISTA_DE_ESPERA" | "RECHAZADO" | null = null;
 
       if (latestDecisionVer) {
         if (latestDecisionVer.disposition === DirectionDisposition.APROBADO) {
           communicableResult = "APROBADO";
-        } else if (latestDecisionVer.disposition === DirectionDisposition.LISTA_DE_ESPERA) {
+        } else if (
+          latestDecisionVer.disposition === DirectionDisposition.LISTA_DE_ESPERA
+        ) {
           communicableResult = "LISTA_DE_ESPERA";
-        } else if (latestDecisionVer.disposition === DirectionDisposition.RECHAZADO) {
+        } else if (
+          latestDecisionVer.disposition === DirectionDisposition.RECHAZADO
+        ) {
           communicableResult = "RECHAZADO";
         }
         // DEVUELTO_A_REVISION remains null for communicableResult
       }
 
       // Documents projection (omits internal technical errors/notes)
-      const documents: FamilyDocumentProjection[] = app.documentSubmissions.map((sub) => {
-        const lastReview = sub.reviews[0];
-        const observedReason =
-          sub.status === DocumentFunctionalStatus.OBSERVADO && lastReview
-            ? lastReview.reason
-            : null;
-        return {
-          correctionDueAt: sub.correctionDueAt?.toISOString() ?? null,
-          id: sub.id,
-          observedReason,
-          requirementCode: sub.requirement.code,
-          requirementName: sub.requirement.name,
-          status: sub.status,
-        };
-      });
+      const documents: FamilyDocumentProjection[] = app.documentSubmissions.map(
+        (sub) => {
+          const lastReview = sub.reviews[0];
+          const observedReason =
+            sub.status === DocumentFunctionalStatus.OBSERVADO && lastReview
+              ? lastReview.reason
+              : null;
+          return {
+            correctionDueAt: sub.correctionDueAt?.toISOString() ?? null,
+            id: sub.id,
+            observedReason,
+            requirementCode: sub.requirement.code,
+            requirementName: sub.requirement.name,
+            status: sub.status,
+          };
+        },
+      );
 
       // Activities projection (omits results, comments, internal scores)
       const activities: FamilyActivityProjection[] = app.activities
@@ -178,7 +185,8 @@ export class FamilyApplicationProjectionService {
           activityType: act.definition.kind,
           id: act.id,
           location: act.currentAppointment!.location,
-          scheduledStartAt: act.currentAppointment!.scheduledStartAt.toISOString(),
+          scheduledStartAt:
+            act.currentAppointment!.scheduledStartAt.toISOString(),
           status: act.currentAppointment!.status,
         }));
 
@@ -193,7 +201,10 @@ export class FamilyApplicationProjectionService {
         );
 
         const allowedActions: ("ACCEPT" | "DECLINE")[] = [];
-        if (curVer.lifecycle === AdmissionOfferLifecycle.ACTIVE && secondsRemaining > 0) {
+        if (
+          curVer.lifecycle === AdmissionOfferLifecycle.ACTIVE &&
+          secondsRemaining > 0
+        ) {
           allowedActions.push("ACCEPT", "DECLINE");
         }
 
@@ -243,13 +254,22 @@ export class FamilyApplicationProjectionService {
       let status = "EN_REVISION";
       if (app.status === "WITHDRAWN") {
         status = "RETIRADA";
-      } else if (offerProjection?.lifecycle === AdmissionOfferLifecycle.ACCEPTED) {
+      } else if (
+        offerProjection?.lifecycle === AdmissionOfferLifecycle.ACCEPTED
+      ) {
         status = "OFERTA_ACEPTADA";
-      } else if (offerProjection?.lifecycle === AdmissionOfferLifecycle.ACTIVE) {
+      } else if (
+        offerProjection?.lifecycle === AdmissionOfferLifecycle.ACTIVE
+      ) {
         status = "OFERTA_EMITIDA";
-      } else if (offerProjection?.lifecycle === AdmissionOfferLifecycle.EXPIRED) {
+      } else if (
+        offerProjection?.lifecycle === AdmissionOfferLifecycle.EXPIRED
+      ) {
         status = "OFERTA_EXPIRADA";
-      } else if (communicableResult === "LISTA_DE_ESPERA" || app.waitlistEntries.length > 0) {
+      } else if (
+        communicableResult === "LISTA_DE_ESPERA" ||
+        app.waitlistEntries.length > 0
+      ) {
         status = "LISTA_DE_ESPERA";
       } else if (communicableResult === "RECHAZADO") {
         status = "NO_ADMITIDO";

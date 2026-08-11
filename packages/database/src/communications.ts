@@ -103,7 +103,9 @@ export class CommunicationService {
     private readonly emailAdapter: EmailAdapter = new DevelopmentEmailAdapter(),
   ) {}
 
-  async prepareDecisionCommunication(params: PrepareDecisionCommunicationInput) {
+  async prepareDecisionCommunication(
+    params: PrepareDecisionCommunicationInput,
+  ) {
     const context = getRequiredTenantContext();
 
     return withTenantTransaction(this.prisma, async (tx) => {
@@ -135,7 +137,9 @@ export class CommunicationService {
         purpose = CommunicationPurpose.ADMISSION_APPROVED;
         subject = `Admisión Aprobada para ${decisionVer.application.student.givenName}`;
         body = `Nos complace informar que la postulación de ${decisionVer.application.student.givenName} ${decisionVer.application.student.familyName} ha sido APROBADA por la Dirección Institucional. La oferta formal con las condiciones asociadas estará disponible en el Portal Familiar.`;
-      } else if (decisionVer.disposition === DirectionDisposition.LISTA_DE_ESPERA) {
+      } else if (
+        decisionVer.disposition === DirectionDisposition.LISTA_DE_ESPERA
+      ) {
         purpose = CommunicationPurpose.WAITLIST_STATUS;
         subject = `Postulación en Lista de Espera para ${decisionVer.application.student.givenName}`;
         body = `Informamos que la postulación de ${decisionVer.application.student.givenName} ${decisionVer.application.student.familyName} ha sido asignada a LISTA DE ESPERA. Les notificaremos oportunamente en caso de producirse una vacante.`;
@@ -169,7 +173,8 @@ export class CommunicationService {
             studentGivenName: decisionVer.application.student.givenName,
           },
           purpose,
-          recipientEmail: decisionVer.application.familyProfile.user.emailNormalized,
+          recipientEmail:
+            decisionVer.application.familyProfile.user.emailNormalized,
           subject,
           templateKey: `tpl_decision_${purpose.toLowerCase()}`,
           templateVersion: 1,
@@ -213,7 +218,8 @@ export class CommunicationService {
       });
 
       if (!offerVer) throw new Error("ADMISSION_OFFER_VERSION_NOT_FOUND");
-      if (offerVer.lifecycle !== AdmissionOfferLifecycle.ACTIVE) return undefined;
+      if (offerVer.lifecycle !== AdmissionOfferLifecycle.ACTIVE)
+        return undefined;
 
       const existing = await tx.communication.findFirst({
         where: {
@@ -336,7 +342,9 @@ export class CommunicationService {
     });
   }
 
-  async prepareDocumentCorrectionCommunication(params: PrepareDocumentCorrectionInput) {
+  async prepareDocumentCorrectionCommunication(
+    params: PrepareDocumentCorrectionInput,
+  ) {
     const context = getRequiredTenantContext();
 
     return withTenantTransaction(this.prisma, async (tx) => {
@@ -375,7 +383,8 @@ export class CommunicationService {
             requirementCode: submission.requirement.code,
           },
           purpose: CommunicationPurpose.DOCUMENT_CORRECTION,
-          recipientEmail: submission.application.familyProfile.user.emailNormalized,
+          recipientEmail:
+            submission.application.familyProfile.user.emailNormalized,
           subject: `Observación en documento para ${submission.application.student.givenName}`,
           templateKey: "tpl_document_observed",
           templateVersion: 1,
@@ -398,7 +407,9 @@ export class CommunicationService {
     });
   }
 
-  async prepareActivityAppointmentCommunication(params: PrepareActivityAppointmentInput) {
+  async prepareActivityAppointmentCommunication(
+    params: PrepareActivityAppointmentInput,
+  ) {
     const context = getRequiredTenantContext();
 
     return withTenantTransaction(this.prisma, async (tx) => {
@@ -434,7 +445,8 @@ export class CommunicationService {
             scheduledStartAt: appointment.scheduledStartAt.toISOString(),
           },
           purpose: CommunicationPurpose.APPOINTMENT_SCHEDULED,
-          recipientEmail: appointment.activity.application.familyProfile.user.emailNormalized,
+          recipientEmail:
+            appointment.activity.application.familyProfile.user.emailNormalized,
           subject: `Cita Agendada: ${appointment.activity.definition.name}`,
           templateKey: "tpl_activity_scheduled",
           templateVersion: 1,
@@ -459,7 +471,9 @@ export class CommunicationService {
 
   async confirmCommunication(params: ConfirmCommunicationInput) {
     const context = getRequiredTenantContext();
-    if (!(context.capabilities ?? []).includes(PERMISSIONS.COMMUNICATION_CONFIRM)) {
+    if (
+      !(context.capabilities ?? []).includes(PERMISSIONS.COMMUNICATION_CONFIRM)
+    ) {
       throw new ForbiddenError();
     }
 
@@ -757,7 +771,9 @@ export class CommunicationService {
 
   async retryCommunication(params: RetryCommunicationInput) {
     const context = getRequiredTenantContext();
-    if (!(context.capabilities ?? []).includes(PERMISSIONS.COMMUNICATION_RETRY)) {
+    if (
+      !(context.capabilities ?? []).includes(PERMISSIONS.COMMUNICATION_RETRY)
+    ) {
       throw new ForbiddenError();
     }
 
@@ -805,7 +821,9 @@ export class CommunicationService {
 
   async recordManualContact(params: RecordManualContactInput) {
     const context = getRequiredTenantContext();
-    if (!(context.capabilities ?? []).includes(PERMISSIONS.MANUAL_CONTACT_RECORD)) {
+    if (
+      !(context.capabilities ?? []).includes(PERMISSIONS.MANUAL_CONTACT_RECORD)
+    ) {
       throw new Error("FORBIDDEN_MANUAL_CONTACT_RECORD_CAPABILITY_REQUIRED");
     }
 
@@ -844,7 +862,9 @@ export class CommunicationService {
 
   async listCommunicationsForApplication(applicationId: string) {
     const context = getRequiredTenantContext();
-    if (!(context.capabilities ?? []).includes(PERMISSIONS.COMMUNICATION_READ)) {
+    if (
+      !(context.capabilities ?? []).includes(PERMISSIONS.COMMUNICATION_READ)
+    ) {
       throw new ForbiddenError();
     }
 

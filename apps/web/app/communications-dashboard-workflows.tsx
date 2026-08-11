@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-async function apiFetch<T>(apiBase: string, path: string, init?: RequestInit): Promise<T> {
+async function apiFetch<T>(
+  apiBase: string,
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
   const response = await fetch(`${apiBase}${path}`, {
     credentials: "include",
     ...init,
@@ -12,7 +16,12 @@ async function apiFetch<T>(apiBase: string, path: string, init?: RequestInit): P
   return (await response.json()) as T;
 }
 
-async function mutate<T>(apiBase: string, path: string, method: string, body?: unknown): Promise<T> {
+async function mutate<T>(
+  apiBase: string,
+  path: string,
+  method: string,
+  body?: unknown,
+): Promise<T> {
   const csrf = await apiFetch<{ token: string }>(apiBase, "/auth/csrf");
   return apiFetch<T>(apiBase, path, {
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -91,7 +100,11 @@ export function StaffDashboardWorkspace(props: {
         </button>
       </div>
 
-      {error ? <div className="alert alert-error" role="alert">{error}</div> : null}
+      {error ? (
+        <div className="alert alert-error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
       {metrics ? (
         <div className="metric-grid">
@@ -166,7 +179,10 @@ export function StaffCommunicationsWorkspace(props: {
     return () => window.clearTimeout(handle);
   }, [loadCommunications]);
 
-  async function handleConfirm(communicationId: string, expectedVersion: number) {
+  async function handleConfirm(
+    communicationId: string,
+    expectedVersion: number,
+  ) {
     setError("");
     setNotice("");
     try {
@@ -179,7 +195,9 @@ export function StaffCommunicationsWorkspace(props: {
       setNotice("Envío de comunicación confirmado por el Responsable.");
       await loadCommunications();
     } catch {
-      setError("No se pudo confirmar el envío. Requiere capacidad de confirmación autorizada.");
+      setError(
+        "No se pudo confirmar el envío. Requiere capacidad de confirmación autorizada.",
+      );
     }
   }
 
@@ -234,8 +252,16 @@ export function StaffCommunicationsWorkspace(props: {
         </div>
       </div>
 
-      {error ? <div className="alert alert-error" role="alert">{error}</div> : null}
-      {notice ? <div className="alert alert-success" role="status">{notice}</div> : null}
+      {error ? (
+        <div className="alert alert-error" role="alert">
+          {error}
+        </div>
+      ) : null}
+      {notice ? (
+        <div className="alert alert-success" role="status">
+          {notice}
+        </div>
+      ) : null}
 
       <div className="split-grid">
         <article className="info-card">
@@ -243,15 +269,21 @@ export function StaffCommunicationsWorkspace(props: {
           {loading ? <p className="muted">Cargando...</p> : null}
           <div className="stack-list">
             {communications.length === 0 ? (
-              <p className="empty-state">No hay comunicaciones para esta postulación.</p>
+              <p className="empty-state">
+                No hay comunicaciones para esta postulación.
+              </p>
             ) : (
               communications.map((comm) => (
                 <div className="communication-item" key={comm.id}>
                   <div className="item-header">
-                    <span className={`badge badge-${comm.lifecycle.toLowerCase()}`}>
+                    <span
+                      className={`badge badge-${comm.lifecycle.toLowerCase()}`}
+                    >
                       {comm.lifecycle}
                     </span>
-                    <small>{new Date(comm.createdAt).toLocaleString("es-CL")}</small>
+                    <small>
+                      {new Date(comm.createdAt).toLocaleString("es-CL")}
+                    </small>
                   </div>
                   <h4>{comm.subject}</h4>
                   <p className="muted">{comm.recipientEmail}</p>

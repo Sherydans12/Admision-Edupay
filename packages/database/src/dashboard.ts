@@ -22,7 +22,9 @@ export interface OperationalDashboardMetrics {
 export class OperationalDashboardService {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async getDashboardMetrics(now = new Date()): Promise<OperationalDashboardMetrics> {
+  async getDashboardMetrics(
+    now = new Date(),
+  ): Promise<OperationalDashboardMetrics> {
     const context = getRequiredTenantContext();
 
     if (!(context.capabilities ?? []).includes(PERMISSIONS.DASHBOARD_READ)) {
@@ -54,16 +56,19 @@ export class OperationalDashboardService {
       });
 
       // 3. Document corrections expiring count (OBSERVADO with correctionDueAt set)
-      const correctionLeadWindow = new Date(now.getTime() + 72 * 60 * 60 * 1000); // 72h window
-      const documentCorrectionsExpiringCount = await tx.documentSubmission.count({
-        where: {
-          correctionDueAt: {
-            lte: correctionLeadWindow,
+      const correctionLeadWindow = new Date(
+        now.getTime() + 72 * 60 * 60 * 1000,
+      ); // 72h window
+      const documentCorrectionsExpiringCount =
+        await tx.documentSubmission.count({
+          where: {
+            correctionDueAt: {
+              lte: correctionLeadWindow,
+            },
+            status: DocumentFunctionalStatus.OBSERVADO,
+            tenantId,
           },
-          status: DocumentFunctionalStatus.OBSERVADO,
-          tenantId,
-        },
-      });
+        });
 
       // 4. Upcoming appointments count (PROGRAMADA or REPROGRAMADA)
       const upcomingAppointmentsCount = await tx.activityAppointment.count({

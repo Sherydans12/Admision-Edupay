@@ -104,51 +104,62 @@ const familyCtx = (userId = familyUserId) => ({
   source: "authenticated_request" as const,
 });
 
-async function createSubmittedApp(sId?: string, fProfileId = familyProfileId, tId = tenantId, oId = offeringId) {
-  return runWithTenantContext(staffCtx(admissionUserId, [PERMISSIONS.APPLICATION_CREATE, PERMISSIONS.APPLICATION_READ], tId), () =>
-    withTenantTransaction(prisma, async (tx) => {
-      const offering = await tx.admissionOffering.findUniqueOrThrow({
-        where: { id: oId },
-      });
-      let targetStudentId = sId;
-      if (!targetStudentId) {
-        const freshStudent = await tx.student.create({
+async function createSubmittedApp(
+  sId?: string,
+  fProfileId = familyProfileId,
+  tId = tenantId,
+  oId = offeringId,
+) {
+  return runWithTenantContext(
+    staffCtx(
+      admissionUserId,
+      [PERMISSIONS.APPLICATION_CREATE, PERMISSIONS.APPLICATION_READ],
+      tId,
+    ),
+    () =>
+      withTenantTransaction(prisma, async (tx) => {
+        const offering = await tx.admissionOffering.findUniqueOrThrow({
+          where: { id: oId },
+        });
+        let targetStudentId = sId;
+        if (!targetStudentId) {
+          const freshStudent = await tx.student.create({
+            data: {
+              familyName: "Sintético",
+              familyProfileId: fProfileId,
+              givenName: "Estudiante",
+            },
+          });
+          targetStudentId = freshStudent.id;
+        }
+        const submittedAt = new Date();
+        const app = await tx.application.create({
           data: {
-            familyName: "Sintético",
+            academicYearId: offering.academicYearId,
+            draftData: { currentStep: "REVIEW" },
             familyProfileId: fProfileId,
-            givenName: "Estudiante",
+            offeringId: oId,
+            formVersionId: offering.formVersionId,
+            processId: offering.processId,
+            status: "SUBMITTED",
+            studentId: targetStudentId,
+            submittedAt,
+            tenantId: tId,
           },
         });
-        targetStudentId = freshStudent.id;
-      }
-      const submittedAt = new Date();
-      const app = await tx.application.create({
-        data: {
-          academicYearId: offering.academicYearId,
-          draftData: { currentStep: "REVIEW" },
-          familyProfileId: fProfileId,
-          offeringId: oId,
-          formVersionId: offering.formVersionId,
-          processId: offering.processId,
-          status: "SUBMITTED",
-          studentId: targetStudentId,
-          submittedAt,
-          tenantId: tId,
-        },
-      });
-      await tx.applicationSnapshot.create({
-        data: {
-          applicationId: app.id,
-          formVersionId: offering.formVersionId!,
-          payload: { answers: {} },
-          schemaVersion: 1,
-          submittedAt,
-          submittedBy: admissionUserId,
-          tenantId: tId,
-        },
-      });
-      return app;
-    }),
+        await tx.applicationSnapshot.create({
+          data: {
+            applicationId: app.id,
+            formVersionId: offering.formVersionId!,
+            payload: { answers: {} },
+            schemaVersion: 1,
+            submittedAt,
+            submittedBy: admissionUserId,
+            tenantId: tId,
+          },
+        });
+        return app;
+      }),
   );
 }
 
@@ -157,33 +168,53 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     // Insert test tenants
     await migrationPool.query(
       "INSERT INTO tenants (id, name) VALUES ($1, $2), ($3, $4)",
-      [tenantId, "E5-G tenant A sintético", tenantBId, "E5-G tenant B sintético"],
+      [
+        tenantId,
+        "E5-G tenant A sintético",
+        tenantBId,
+        "E5-G tenant B sintético",
+      ],
     );
     // Insert platform users
     await migrationPool.query(
       "INSERT INTO platform_users (id, email_normalized) VALUES ($1, $2), ($3, $4), ($5, $6), ($7, $8), ($9, $10)",
       [
-        admissionUserId, `e5g-admission-${admissionUserId}@example.invalid`,
-        directionUserId, `e5g-direction-${directionUserId}@example.invalid`,
-        secretaryUserId, `e5g-secretary-${secretaryUserId}@example.invalid`,
-        familyUserId, `family-${familyUserId}@example.invalid`,
-        foreignFamilyUserId, `foreign-${foreignFamilyUserId}@example.invalid`,
+        admissionUserId,
+        `e5g-admission-${admissionUserId}@example.invalid`,
+        directionUserId,
+        `e5g-direction-${directionUserId}@example.invalid`,
+        secretaryUserId,
+        `e5g-secretary-${secretaryUserId}@example.invalid`,
+        familyUserId,
+        `family-${familyUserId}@example.invalid`,
+        foreignFamilyUserId,
+        `foreign-${foreignFamilyUserId}@example.invalid`,
       ],
     );
     // Insert family profiles
     await migrationPool.query(
       "INSERT INTO family_profiles (id, user_id, display_name) VALUES ($1, $2, $3), ($4, $5, $6)",
       [
-        familyProfileId, familyUserId, "Familia E5-G A",
-        foreignFamilyProfileId, foreignFamilyUserId, "Familia E5-G B",
+        familyProfileId,
+        familyUserId,
+        "Familia E5-G A",
+        foreignFamilyProfileId,
+        foreignFamilyUserId,
+        "Familia E5-G B",
       ],
     );
     // Insert students
     await migrationPool.query(
       "INSERT INTO students (id, family_profile_id, given_name, family_name) VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)",
       [
-        studentId, familyProfileId, "Estudiante", "E5G-A",
-        studentBId, foreignFamilyProfileId, "Estudiante B", "E5G-B",
+        studentId,
+        familyProfileId,
+        "Estudiante",
+        "E5G-A",
+        studentBId,
+        foreignFamilyProfileId,
+        "Estudiante B",
+        "E5G-B",
       ],
     );
 
@@ -194,19 +225,36 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
           data: { code: "E5G-CAMPUS", name: "Sede E5G", tenantId },
         });
         const year = await tx.academicYear.create({
-          data: { code: "E5G-YEAR", label: "Año E5G", status: "OPEN", tenantId },
+          data: {
+            code: "E5G-YEAR",
+            label: "Año E5G",
+            status: "OPEN",
+            tenantId,
+          },
         });
         const level = await tx.courseLevel.create({
           data: { code: "E5G-LEVEL", name: "Nivel E5G", tenantId },
         });
         const process = await tx.admissionProcess.create({
-          data: { academicYearId: year.id, code: "E5G-PROC", name: "Proceso E5G", status: "PUBLISHED", tenantId },
+          data: {
+            academicYearId: year.id,
+            code: "E5G-PROC",
+            name: "Proceso E5G",
+            status: "PUBLISHED",
+            tenantId,
+          },
         });
         const formDef = await tx.formDefinition.create({
           data: { name: "Form E5G", purpose: "admission", tenantId },
         });
         const formVer = await tx.formVersion.create({
-          data: { formDefinitionId: formDef.id, lifecycle: "PUBLISHED", publishedAt: new Date(), tenantId, versionNumber: 1 },
+          data: {
+            formDefinitionId: formDef.id,
+            lifecycle: "PUBLISHED",
+            publishedAt: new Date(),
+            tenantId,
+            versionNumber: 1,
+          },
         });
         const offering = await tx.admissionOffering.create({
           data: {
@@ -227,34 +275,67 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     );
 
     // Setup tenant B offerings
-    await runWithTenantContext(staffCtx(admissionUserId, [PERMISSIONS.APPLICATION_RECOMMEND], tenantBId), () =>
-      withTenantTransaction(prisma, async (tx) => {
-        const campus = await tx.campus.create({ data: { code: "E5GB-CAMPUS", name: "Sede B", tenantId: tenantBId } });
-        const year = await tx.academicYear.create({ data: { code: "E5GB-YEAR", label: "Año B", status: "OPEN", tenantId: tenantBId } });
-        const level = await tx.courseLevel.create({ data: { code: "E5GB-LEVEL", name: "Nivel B", tenantId: tenantBId } });
-        const process = await tx.admissionProcess.create({ data: { academicYearId: year.id, code: "E5GB-PROC", name: "Proceso B", status: "PUBLISHED", tenantId: tenantBId } });
-        const formDef = await tx.formDefinition.create({ data: { name: "Form B", purpose: "admission", tenantId: tenantBId } });
-        const formVer = await tx.formVersion.create({ data: { formDefinitionId: formDef.id, lifecycle: "PUBLISHED", publishedAt: new Date(), tenantId: tenantBId, versionNumber: 1 } });
-        await tx.admissionOffering.create({
-          data: {
-            academicYearId: year.id,
-            availabilityCategory: "POSTULATIONS_OPEN",
-            campusId: campus.id,
-            code: "E5GB-OFFER",
-            courseLevelId: level.id,
-            formVersionId: formVer.id,
-            processId: process.id,
-            status: "PUBLISHED",
-            tenantId: tenantBId,
-            title: "Oferta Tenant B",
-          },
-        });
-      }),
+    await runWithTenantContext(
+      staffCtx(admissionUserId, [PERMISSIONS.APPLICATION_RECOMMEND], tenantBId),
+      () =>
+        withTenantTransaction(prisma, async (tx) => {
+          const campus = await tx.campus.create({
+            data: { code: "E5GB-CAMPUS", name: "Sede B", tenantId: tenantBId },
+          });
+          const year = await tx.academicYear.create({
+            data: {
+              code: "E5GB-YEAR",
+              label: "Año B",
+              status: "OPEN",
+              tenantId: tenantBId,
+            },
+          });
+          const level = await tx.courseLevel.create({
+            data: { code: "E5GB-LEVEL", name: "Nivel B", tenantId: tenantBId },
+          });
+          const process = await tx.admissionProcess.create({
+            data: {
+              academicYearId: year.id,
+              code: "E5GB-PROC",
+              name: "Proceso B",
+              status: "PUBLISHED",
+              tenantId: tenantBId,
+            },
+          });
+          const formDef = await tx.formDefinition.create({
+            data: { name: "Form B", purpose: "admission", tenantId: tenantBId },
+          });
+          const formVer = await tx.formVersion.create({
+            data: {
+              formDefinitionId: formDef.id,
+              lifecycle: "PUBLISHED",
+              publishedAt: new Date(),
+              tenantId: tenantBId,
+              versionNumber: 1,
+            },
+          });
+          await tx.admissionOffering.create({
+            data: {
+              academicYearId: year.id,
+              availabilityCategory: "POSTULATIONS_OPEN",
+              campusId: campus.id,
+              code: "E5GB-OFFER",
+              courseLevelId: level.id,
+              formVersionId: formVer.id,
+              processId: process.id,
+              status: "PUBLISHED",
+              tenantId: tenantBId,
+              title: "Oferta Tenant B",
+            },
+          });
+        }),
     );
 
     // Set capacity for offering A
     await runWithTenantContext(directionStaff(), () =>
-      capService.createCapacity(directionStaff(), offeringId, { configuredCapacity: 50 }),
+      capService.createCapacity(directionStaff(), offeringId, {
+        configuredCapacity: 50,
+      }),
     );
   });
 
@@ -262,7 +343,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     it("E5G-COM-01..02: APROBADO creates PREPARED communication and does not auto-send", async () => {
       const app = await createSubmittedApp();
       const draft = await runWithTenantContext(admissionStaff(), () =>
-        recService.createDraft(admissionStaff(), app.id, { foundation: "Rec ok", option: "RECOMENDAR_ADMISION" }),
+        recService.createDraft(admissionStaff(), app.id, {
+          foundation: "Rec ok",
+          option: "RECOMENDAR_ADMISION",
+        }),
       );
       const subRec = await runWithTenantContext(admissionStaff(), () =>
         recService.submitRecommendation(admissionStaff(), draft.id),
@@ -290,7 +374,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     it("E5G-COM-03: Secretary without communication.confirm cannot confirm", async () => {
       const app = await createSubmittedApp();
       const draft = await runWithTenantContext(admissionStaff(), () =>
-        recService.createDraft(admissionStaff(), app.id, { foundation: "Rec ok", option: "RECOMENDAR_ADMISION" }),
+        recService.createDraft(admissionStaff(), app.id, {
+          foundation: "Rec ok",
+          option: "RECOMENDAR_ADMISION",
+        }),
       );
       const subRec = await runWithTenantContext(admissionStaff(), () =>
         recService.submitRecommendation(admissionStaff(), draft.id),
@@ -318,7 +405,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     it("E5G-COM-04..05: Authorized confirm sets CONFIRMED & outbox send idempotently", async () => {
       const app = await createSubmittedApp();
       const draft = await runWithTenantContext(admissionStaff(), () =>
-        recService.createDraft(admissionStaff(), app.id, { foundation: "Rec ok", option: "RECOMENDAR_ADMISION" }),
+        recService.createDraft(admissionStaff(), app.id, {
+          foundation: "Rec ok",
+          option: "RECOMENDAR_ADMISION",
+        }),
       );
       const subRec = await runWithTenantContext(admissionStaff(), () =>
         recService.submitRecommendation(admissionStaff(), draft.id),
@@ -346,7 +436,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
 
       const fulfilled = results.filter((r) => r.status === "fulfilled");
       expect(fulfilled).toHaveLength(20);
-      expect((fulfilled[0] as PromiseFulfilledResult<{ lifecycle: string }>).value.lifecycle).toBe("CONFIRMED");
+      expect(
+        (fulfilled[0] as PromiseFulfilledResult<{ lifecycle: string }>).value
+          .lifecycle,
+      ).toBe("CONFIRMED");
 
       const outboxCount = await runWithTenantContext(admissionStaff(), () =>
         withTenantTransaction(prisma, (tx) =>
@@ -362,7 +455,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       emailAdapter.setForceFailure(false);
       const app = await createSubmittedApp();
       const draft = await runWithTenantContext(admissionStaff(), () =>
-        recService.createDraft(admissionStaff(), app.id, { foundation: "Rec ok", option: "RECOMENDAR_ADMISION" }),
+        recService.createDraft(admissionStaff(), app.id, {
+          foundation: "Rec ok",
+          option: "RECOMENDAR_ADMISION",
+        }),
       );
       const subRec = await runWithTenantContext(admissionStaff(), () =>
         recService.submitRecommendation(admissionStaff(), draft.id),
@@ -395,7 +491,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       const deliveredComm = await runWithTenantContext(admissionStaff(), () =>
         commService.recordDeliveryEvidence({
           communicationId: prepared.id,
-          evidence: { webhookEvent: "delivered", timestamp: new Date().toISOString() },
+          evidence: {
+            webhookEvent: "delivered",
+            timestamp: new Date().toISOString(),
+          },
         }),
       );
       expect(deliveredComm.lifecycle).toBe("DELIVERED");
@@ -404,7 +503,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       const dupDelivered = await runWithTenantContext(admissionStaff(), () =>
         commService.recordDeliveryEvidence({
           communicationId: prepared.id,
-          evidence: { webhookEvent: "delivered", timestamp: new Date().toISOString() },
+          evidence: {
+            webhookEvent: "delivered",
+            timestamp: new Date().toISOString(),
+          },
         }),
       );
       expect(dupDelivered.lifecycle).toBe("DELIVERED");
@@ -414,7 +516,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       emailAdapter.setForceFailure(true);
       const app = await createSubmittedApp();
       const draft = await runWithTenantContext(admissionStaff(), () =>
-        recService.createDraft(admissionStaff(), app.id, { foundation: "Rec ok", option: "RECOMENDAR_ADMISION" }),
+        recService.createDraft(admissionStaff(), app.id, {
+          foundation: "Rec ok",
+          option: "RECOMENDAR_ADMISION",
+        }),
       );
       const subRec = await runWithTenantContext(admissionStaff(), () =>
         recService.submitRecommendation(admissionStaff(), draft.id),
@@ -444,7 +549,11 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       const task = await runWithTenantContext(admissionStaff(), () =>
         withTenantTransaction(prisma, (tx) =>
           tx.operationalTask.findFirst({
-            where: { tenantId, communicationId: prepared.id, type: "COMMUNICATION_FAILED" },
+            where: {
+              tenantId,
+              communicationId: prepared.id,
+              type: "COMMUNICATION_FAILED",
+            },
           }),
         ),
       );
@@ -475,7 +584,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     it("E5G-COM-14..17: Content privacy & DEVUELTO_A_REVISION handling", async () => {
       const app = await createSubmittedApp();
       const draft = await runWithTenantContext(admissionStaff(), () =>
-        recService.createDraft(admissionStaff(), app.id, { foundation: "Secret internal foundation notes", option: "NO_RECOMENDAR_ADMISION" }),
+        recService.createDraft(admissionStaff(), app.id, {
+          foundation: "Secret internal foundation notes",
+          option: "NO_RECOMENDAR_ADMISION",
+        }),
       );
       const subRec = await runWithTenantContext(admissionStaff(), () =>
         recService.submitRecommendation(admissionStaff(), draft.id),
@@ -499,7 +611,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
 
       // RECHAZADO does not expose internal foundation
       const v2Draft = await runWithTenantContext(admissionStaff(), () =>
-        recService.createDraft(admissionStaff(), app.id, { foundation: "Internal deliberation details", option: "NO_RECOMENDAR_ADMISION" }),
+        recService.createDraft(admissionStaff(), app.id, {
+          foundation: "Internal deliberation details",
+          option: "NO_RECOMENDAR_ADMISION",
+        }),
       );
       const v2SubRec = await runWithTenantContext(admissionStaff(), () =>
         recService.submitRecommendation(admissionStaff(), v2Draft.id),
@@ -526,7 +641,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     it("E5G-REM-01..04: Prepares reminder for ACTIVE offer and suppresses for ACCEPTED/WITHDRAWN", async () => {
       const app = await createSubmittedApp();
       const draft = await runWithTenantContext(admissionStaff(), () =>
-        recService.createDraft(admissionStaff(), app.id, { foundation: "Rec ok", option: "RECOMENDAR_ADMISION" }),
+        recService.createDraft(admissionStaff(), app.id, {
+          foundation: "Rec ok",
+          option: "RECOMENDAR_ADMISION",
+        }),
       );
       const subRec = await runWithTenantContext(admissionStaff(), () =>
         recService.submitRecommendation(admissionStaff(), draft.id),
@@ -557,17 +675,26 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
 
       // Accept offer -> subsequent reminder attempt should be suppressed (return undefined)
       await runWithFamilyContext(familyCtx(), () =>
-        runWithTenantContext(staffCtx(familyUserId, [PERMISSIONS.APPLICATION_READ]), () =>
-          capService.acceptOffer(familyCtx(), staffCtx(familyUserId, [PERMISSIONS.APPLICATION_READ]), offer.id, {
-            expectedOfferVersionId: offer.currentVersion!.id,
-          }),
+        runWithTenantContext(
+          staffCtx(familyUserId, [PERMISSIONS.APPLICATION_READ]),
+          () =>
+            capService.acceptOffer(
+              familyCtx(),
+              staffCtx(familyUserId, [PERMISSIONS.APPLICATION_READ]),
+              offer.id,
+              {
+                expectedOfferVersionId: offer.currentVersion!.id,
+              },
+            ),
         ),
       );
 
-      const reminderAfterAccept = await runWithTenantContext(admissionStaff(), () =>
-        commService.prepareOfferReminderCommunication({
-          offerVersionId: offer.currentVersion!.id,
-        }),
+      const reminderAfterAccept = await runWithTenantContext(
+        admissionStaff(),
+        () =>
+          commService.prepareOfferReminderCommunication({
+            offerVersionId: offer.currentVersion!.id,
+          }),
       );
       expect(reminderAfterAccept).toBeUndefined();
     });
@@ -577,8 +704,9 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     it("E5G-PORTAL-01..02: Projects family application safely and denies foreign family", async () => {
       const app = await createSubmittedApp();
       const proj = await runWithFamilyContext(familyCtx(), () =>
-        runWithTenantContext(staffCtx(familyUserId, [PERMISSIONS.APPLICATION_READ]), () =>
-          familyProjectionService.getFamilyApplicationProjection(app.id),
+        runWithTenantContext(
+          staffCtx(familyUserId, [PERMISSIONS.APPLICATION_READ]),
+          () => familyProjectionService.getFamilyApplicationProjection(app.id),
         ),
       );
       expect(proj.studentGivenName).toBe("Estudiante");
@@ -587,8 +715,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       // Foreign family receives FORBIDDEN_FOREIGN_FAMILY_APPLICATION error
       await expect(
         runWithFamilyContext(familyCtx(foreignFamilyUserId), () =>
-          runWithTenantContext(staffCtx(foreignFamilyUserId, [PERMISSIONS.APPLICATION_READ]), () =>
-            familyProjectionService.getFamilyApplicationProjection(app.id),
+          runWithTenantContext(
+            staffCtx(foreignFamilyUserId, [PERMISSIONS.APPLICATION_READ]),
+            () =>
+              familyProjectionService.getFamilyApplicationProjection(app.id),
           ),
         ),
       ).rejects.toThrow(ForbiddenError);
@@ -597,7 +727,10 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     it("E5G-PORTAL-04..08: Omits internal results, recommendation, foundation, rank, capacity", async () => {
       const app = await createSubmittedApp();
       const draft = await runWithTenantContext(admissionStaff(), () =>
-        recService.createDraft(admissionStaff(), app.id, { foundation: "Secret internal notes", option: "RECOMENDAR_ADMISION" }),
+        recService.createDraft(admissionStaff(), app.id, {
+          foundation: "Secret internal notes",
+          option: "RECOMENDAR_ADMISION",
+        }),
       );
       const subRec = await runWithTenantContext(admissionStaff(), () =>
         recService.submitRecommendation(admissionStaff(), draft.id),
@@ -611,8 +744,9 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       );
 
       const proj = await runWithFamilyContext(familyCtx(), () =>
-        runWithTenantContext(staffCtx(familyUserId, [PERMISSIONS.APPLICATION_READ]), () =>
-          familyProjectionService.getFamilyApplicationProjection(app.id),
+        runWithTenantContext(
+          staffCtx(familyUserId, [PERMISSIONS.APPLICATION_READ]),
+          () => familyProjectionService.getFamilyApplicationProjection(app.id),
         ),
       );
 
@@ -622,7 +756,9 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       expect(json).not.toContain("Secret direction foundation");
       expect(json).not.toContain("configuredCapacity");
       expect(json).not.toContain("internalPosition");
-      expect(proj.offerProjection?.acceptanceNotice).toBe("Aceptar no equivale a matrícula/pago.");
+      expect(proj.offerProjection?.acceptanceNotice).toBe(
+        "Aceptar no equivale a matrícula/pago.",
+      );
     });
   });
 
@@ -636,8 +772,9 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       expect(metricsA).toHaveProperty("waitingDecisionCount");
 
       // Tenant B metrics should be isolated
-      const metricsB = await runWithTenantContext(staffCtx(directionUserId, [PERMISSIONS.DASHBOARD_READ], tenantBId), () =>
-        dashboardService.getDashboardMetrics(),
+      const metricsB = await runWithTenantContext(
+        staffCtx(directionUserId, [PERMISSIONS.DASHBOARD_READ], tenantBId),
+        () => dashboardService.getDashboardMetrics(),
       );
       expect(metricsB).toBeDefined();
     });

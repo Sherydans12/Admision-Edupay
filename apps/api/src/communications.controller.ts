@@ -102,7 +102,9 @@ export class CommunicationsController {
     }));
   }
 
-  @Post("staff/tenants/:tenantId/communications/:communicationId/delivery-evidence")
+  @Post(
+    "staff/tenants/:tenantId/communications/:communicationId/delivery-evidence",
+  )
   async deliveryEvidence(
     @Req() request: RequestLike,
     @Param("tenantId") tenantId: string,

@@ -114,20 +114,30 @@ describe("E5-G Communications and Dashboard HTTP API", () => {
     await migrationPool.query(
       "INSERT INTO platform_users (id, email_normalized) VALUES ($1,$2), ($3,$4), ($5,$6), ($7,$8), ($9,$10), ($11,$12)",
       [
-        staffUserId, `staff-${staffUserId}@example.invalid`,
-        directionUserId, `dir-${directionUserId}@example.invalid`,
-        secretaryUserId, `sec-${secretaryUserId}@example.invalid`,
-        noPermissionUserId, `noperm-${noPermissionUserId}@example.invalid`,
-        familyUserId, `family-${familyUserId}@example.invalid`,
-        foreignFamilyUserId, `foreign-${foreignFamilyUserId}@example.invalid`,
+        staffUserId,
+        `staff-${staffUserId}@example.invalid`,
+        directionUserId,
+        `dir-${directionUserId}@example.invalid`,
+        secretaryUserId,
+        `sec-${secretaryUserId}@example.invalid`,
+        noPermissionUserId,
+        `noperm-${noPermissionUserId}@example.invalid`,
+        familyUserId,
+        `family-${familyUserId}@example.invalid`,
+        foreignFamilyUserId,
+        `foreign-${foreignFamilyUserId}@example.invalid`,
       ],
     );
 
     await migrationPool.query(
       "INSERT INTO family_profiles (id, user_id, display_name) VALUES ($1,$2,$3), ($4,$5,$6)",
       [
-        familyProfileId, familyUserId, "Familia HTTP A",
-        foreignFamilyProfileId, foreignFamilyUserId, "Familia HTTP B",
+        familyProfileId,
+        familyUserId,
+        "Familia HTTP A",
+        foreignFamilyProfileId,
+        foreignFamilyUserId,
+        "Familia HTTP B",
       ],
     );
 
@@ -185,12 +195,45 @@ describe("E5-G Communications and Dashboard HTTP API", () => {
       ]),
       () =>
         withTenantTransaction(prisma, async (tx) => {
-          const campus = await tx.campus.create({ data: { code: "CAMP-HTTP", name: "Sede HTTP", tenantId: tenantAId } });
-          const year = await tx.academicYear.create({ data: { code: "YEAR-HTTP", label: "Año HTTP", status: "OPEN", tenantId: tenantAId } });
-          const level = await tx.courseLevel.create({ data: { code: "LEV-HTTP", name: "Nivel HTTP", tenantId: tenantAId } });
-          const process = await tx.admissionProcess.create({ data: { academicYearId: year.id, code: "PROC-HTTP", name: "Proceso HTTP", status: "PUBLISHED", tenantId: tenantAId } });
-          const formDef = await tx.formDefinition.create({ data: { name: "Form HTTP", purpose: "admission", tenantId: tenantAId } });
-          const formVer = await tx.formVersion.create({ data: { formDefinitionId: formDef.id, lifecycle: "PUBLISHED", publishedAt: new Date(), tenantId: tenantAId, versionNumber: 1 } });
+          const campus = await tx.campus.create({
+            data: { code: "CAMP-HTTP", name: "Sede HTTP", tenantId: tenantAId },
+          });
+          const year = await tx.academicYear.create({
+            data: {
+              code: "YEAR-HTTP",
+              label: "Año HTTP",
+              status: "OPEN",
+              tenantId: tenantAId,
+            },
+          });
+          const level = await tx.courseLevel.create({
+            data: { code: "LEV-HTTP", name: "Nivel HTTP", tenantId: tenantAId },
+          });
+          const process = await tx.admissionProcess.create({
+            data: {
+              academicYearId: year.id,
+              code: "PROC-HTTP",
+              name: "Proceso HTTP",
+              status: "PUBLISHED",
+              tenantId: tenantAId,
+            },
+          });
+          const formDef = await tx.formDefinition.create({
+            data: {
+              name: "Form HTTP",
+              purpose: "admission",
+              tenantId: tenantAId,
+            },
+          });
+          const formVer = await tx.formVersion.create({
+            data: {
+              formDefinitionId: formDef.id,
+              lifecycle: "PUBLISHED",
+              publishedAt: new Date(),
+              tenantId: tenantAId,
+              versionNumber: 1,
+            },
+          });
 
           const offering = await tx.admissionOffering.create({
             data: {
@@ -288,7 +331,10 @@ describe("E5-G Communications and Dashboard HTTP API", () => {
             PERMISSIONS.RESTRICTED_READ,
           ]),
           applicationId,
-          { disposition: "APROBADO", expectedRecommendationVersionId: subRec.id },
+          {
+            disposition: "APROBADO",
+            expectedRecommendationVersionId: subRec.id,
+          },
         ),
     );
 

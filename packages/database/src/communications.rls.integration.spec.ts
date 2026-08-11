@@ -97,20 +97,74 @@ async function seedTenant(suffix: string): Promise<TenantFixture> {
       const q = (sql: string, params: unknown[] = []) =>
         tx.$executeRawUnsafe(sql, ...params);
 
-      await q("INSERT INTO campuses (id, tenant_id, code, name) VALUES ($1, $2, $3, $4)", [ids.campus, tenantId, `E5G-C-${suffix}`, `Sede ${suffix}`]);
-      await q("INSERT INTO academic_years (id, tenant_id, code, label, status) VALUES ($1, $2, $3, $4, 'OPEN')", [ids.year, tenantId, `E5G-Y-${suffix}`, `Año ${suffix}`]);
-      await q("INSERT INTO course_levels (id, tenant_id, code, name) VALUES ($1, $2, $3, $4)", [ids.level, tenantId, `E5G-L-${suffix}`, `Nivel ${suffix}`]);
-      await q("INSERT INTO admission_processes (id, tenant_id, academic_year_id, code, name, status) VALUES ($1, $2, $3, $4, $5, 'PUBLISHED')", [ids.process, tenantId, ids.year, `E5G-P-${suffix}`, `Proceso ${suffix}`]);
-      await q("INSERT INTO form_definitions (id, tenant_id, name, purpose) VALUES ($1, $2, $3, 'admission')", [ids.formDef, tenantId, `Form ${suffix}`]);
-      await q("INSERT INTO form_versions (id, tenant_id, form_definition_id, version_number, lifecycle, published_at) VALUES ($1, $2, $3, 1, 'PUBLISHED', CURRENT_TIMESTAMP)", [ids.formVer, tenantId, ids.formDef]);
-      await q("INSERT INTO admission_offerings (id, tenant_id, campus_id, academic_year_id, process_id, course_level_id, form_version_id, code, title, status, availability_category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'PUBLISHED', 'POSTULATIONS_OPEN')", [ids.offering, tenantId, ids.campus, ids.year, ids.process, ids.level, ids.formVer, `E5G-O-${suffix}`, `Oferta ${suffix}`]);
-      await q("INSERT INTO applications (id, tenant_id, family_profile_id, student_id, academic_year_id, process_id, offering_id, form_version_id, status, submitted_at, draft_data) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'SUBMITTED', CURRENT_TIMESTAMP, '{}')", [ids.application, tenantId, ids.profile, ids.student, ids.year, ids.process, ids.offering, ids.formVer]);
+      await q(
+        "INSERT INTO campuses (id, tenant_id, code, name) VALUES ($1, $2, $3, $4)",
+        [ids.campus, tenantId, `E5G-C-${suffix}`, `Sede ${suffix}`],
+      );
+      await q(
+        "INSERT INTO academic_years (id, tenant_id, code, label, status) VALUES ($1, $2, $3, $4, 'OPEN')",
+        [ids.year, tenantId, `E5G-Y-${suffix}`, `Año ${suffix}`],
+      );
+      await q(
+        "INSERT INTO course_levels (id, tenant_id, code, name) VALUES ($1, $2, $3, $4)",
+        [ids.level, tenantId, `E5G-L-${suffix}`, `Nivel ${suffix}`],
+      );
+      await q(
+        "INSERT INTO admission_processes (id, tenant_id, academic_year_id, code, name, status) VALUES ($1, $2, $3, $4, $5, 'PUBLISHED')",
+        [
+          ids.process,
+          tenantId,
+          ids.year,
+          `E5G-P-${suffix}`,
+          `Proceso ${suffix}`,
+        ],
+      );
+      await q(
+        "INSERT INTO form_definitions (id, tenant_id, name, purpose) VALUES ($1, $2, $3, 'admission')",
+        [ids.formDef, tenantId, `Form ${suffix}`],
+      );
+      await q(
+        "INSERT INTO form_versions (id, tenant_id, form_definition_id, version_number, lifecycle, published_at) VALUES ($1, $2, $3, 1, 'PUBLISHED', CURRENT_TIMESTAMP)",
+        [ids.formVer, tenantId, ids.formDef],
+      );
+      await q(
+        "INSERT INTO admission_offerings (id, tenant_id, campus_id, academic_year_id, process_id, course_level_id, form_version_id, code, title, status, availability_category) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'PUBLISHED', 'POSTULATIONS_OPEN')",
+        [
+          ids.offering,
+          tenantId,
+          ids.campus,
+          ids.year,
+          ids.process,
+          ids.level,
+          ids.formVer,
+          `E5G-O-${suffix}`,
+          `Oferta ${suffix}`,
+        ],
+      );
+      await q(
+        "INSERT INTO applications (id, tenant_id, family_profile_id, student_id, academic_year_id, process_id, offering_id, form_version_id, status, submitted_at, draft_data) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'SUBMITTED', CURRENT_TIMESTAMP, '{}')",
+        [
+          ids.application,
+          tenantId,
+          ids.profile,
+          ids.student,
+          ids.year,
+          ids.process,
+          ids.offering,
+          ids.formVer,
+        ],
+      );
 
       await q(
         `INSERT INTO communications
          (id, tenant_id, application_id, purpose, audience, template_key, template_version, lifecycle, recipient_email, subject, body, payload_snapshot)
          VALUES ($1, $2, $3, 'ADMISSION_APPROVED', 'FAMILY', 'tpl_1', 1, 'CONFIRMED', $4, 'Subject', 'Body', '{}')`,
-        [ids.comm, tenantId, ids.application, `recipient-${suffix}@example.invalid`],
+        [
+          ids.comm,
+          tenantId,
+          ids.application,
+          `recipient-${suffix}@example.invalid`,
+        ],
       );
 
       await q(
@@ -149,19 +203,26 @@ describe("E5-G Tenant RLS and Database Seals", () => {
   });
 
   it("E5G-RLS-01..04: communications, attempts, tasks and contacts expose only active tenant", async () => {
-    await runWithTenantContext(context(tenantA.tenantId, tenantA.user), async () => {
-      const comms = await prisma.communication.findMany();
-      expect(comms.every((c) => c.tenantId === tenantA.tenantId)).toBe(true);
+    await runWithTenantContext(
+      context(tenantA.tenantId, tenantA.user),
+      async () => {
+        const comms = await prisma.communication.findMany();
+        expect(comms.every((c) => c.tenantId === tenantA.tenantId)).toBe(true);
 
-      const attempts = await prisma.communicationAttempt.findMany();
-      expect(attempts.every((a) => a.tenantId === tenantA.tenantId)).toBe(true);
+        const attempts = await prisma.communicationAttempt.findMany();
+        expect(attempts.every((a) => a.tenantId === tenantA.tenantId)).toBe(
+          true,
+        );
 
-      const tasks = await prisma.operationalTask.findMany();
-      expect(tasks.every((t) => t.tenantId === tenantA.tenantId)).toBe(true);
+        const tasks = await prisma.operationalTask.findMany();
+        expect(tasks.every((t) => t.tenantId === tenantA.tenantId)).toBe(true);
 
-      const contacts = await prisma.manualContact.findMany();
-      expect(contacts.every((c) => c.tenantId === tenantA.tenantId)).toBe(true);
-    });
+        const contacts = await prisma.manualContact.findMany();
+        expect(contacts.every((c) => c.tenantId === tenantA.tenantId)).toBe(
+          true,
+        );
+      },
+    );
   });
 
   it("E5G-RLS-05..07: no tenant context returns empty, forged tenant inserts fail", async () => {

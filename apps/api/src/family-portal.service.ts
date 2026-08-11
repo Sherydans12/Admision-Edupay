@@ -1,4 +1,7 @@
-import { FamilyApplicationProjectionService, PrismaClient } from "@admission/database";
+import {
+  FamilyApplicationProjectionService,
+  PrismaClient,
+} from "@admission/database";
 import { Injectable } from "@nestjs/common";
 
 @Injectable()

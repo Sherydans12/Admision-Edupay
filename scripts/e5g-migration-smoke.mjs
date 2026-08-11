@@ -20,7 +20,9 @@ const migrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .sort();
 const expectedMigration = "20260811190000_e5g_communications_projections";
 if (migrations.length !== 13 || migrations.at(-1) !== expectedMigration) {
-  throw new Error(`Expected 13 migrations ending in ${expectedMigration}, found ${migrations.length}`);
+  throw new Error(
+    `Expected 13 migrations ending in ${expectedMigration}, found ${migrations.length}`,
+  );
 }
 
 function run(command, args, options = {}) {
