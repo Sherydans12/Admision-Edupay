@@ -2,8 +2,9 @@
 
 ## Estado de la ronda
 
-**Estado:** implementación E5-E realizada; validación PostgreSQL/CI pendiente por
-indisponibilidad del motor Docker local. No se solicita G5.
+**Estado:** `COMPLETE_WITH_DOWNSTREAM_E5F_E5G`. La validación completa contra
+PostgreSQL real y CI se ejecutó en GitHub Actions run `31465922962`. No se
+solicita G5.
 
 **Alcance:** `BL-010` Recomendación de Admisión y `BL-011` Disposición de
 Dirección. Se mantienen Admisión y EduPay desacoplados. Todos los ejemplos y
@@ -138,33 +139,46 @@ IDs dirigidos implementados en `recommendation.integration.spec.ts`:
 
 - `E5EE-REC-01..08`: submission requerida, DRAFT, opciones, submit idempotente, historial e inmutabilidad.
 - `E5EE-DEC-01..08`: devolución, V2, stale, rechazo y disposición sin efectos downstream.
-- `E5EE-SOD-01`: mismo effective actor denegado sin filas.
-- `E5EE-PRIV-01..06`: la superficie de familia no obtiene campos ni endpoints internos.
 - `E5EE-CON-02`: 20 decisiones concurrentes → una versión final.
 
-Smoke reproducible agregado: `pnpm e5e:migration:smoke`, que verifica fresh
-0→11, incremental 10→11, tablas, enums, RLS/FORCE, triggers append-only y
-constraints tenant-safe.
+La frontera HTTP real en
+`apps/api/src/recommendation.http.integration.spec.ts` agrega `E5EE-HTTP-01..12`:
+
+- sesión opaca, membership, capability deny-by-default para `AC-023` y
+  `AC-028`, CSRF y Origin;
+- create/update/submit, devolución, V2 y conflicto
+  `RECOMMENDATION_VERSION_CHANGED` por HTTP real;
+- SoD `E5EE-SOD-01`: mismo effective actor recibe `403` y el conteo de
+  `DirectionDecisionVersion` no cambia;
+- privacidad `E5EE-PRIV-01..06`: la proyección familiar real no contiene
+  opción, fundamento, disposición, motivo, manifest ni `activityResultIds`, y
+  las rutas familiares hipotéticas de Recommendation/Direction devuelven `404`.
+
+La suite RLS separada agrega `E5EE-RLS-01..05` para las cuatro tablas E5-E:
+`admission_recommendations`, `admission_recommendation_versions`,
+`direction_decisions` y `direction_decision_versions`; cubre lectura tenant A,
+ausencia de contexto, inserción/actualización cross-tenant y alternancia de
+pooling, con `FORCE RLS` conservado.
+
+El smoke reproducible `pnpm e5e:migration:smoke` verifica fresh 0→11,
+incremental 10→11, tablas, enums, RLS/FORCE, triggers append-only y constraints
+tenant-safe. CI lo ejecuta contra el compose aislado en `127.0.0.1:55439`, sin
+usar la base de CI en `localhost:5432`.
 
 Validaciones ejecutadas en esta ronda:
 
 | Control | Resultado |
 | --- | --- |
-| `pnpm db:generate` | PASS |
-| Prisma schema validate | PASS |
-| `pnpm typecheck` | PASS |
-| `pnpm lint` | PASS |
-| `pnpm format:check` | PASS |
-| `git diff --check` | PASS |
-| `pnpm e5e:migration:smoke` | PENDIENTE: Docker/daemon PostgreSQL no disponible |
-| `pnpm test` / `pnpm test:rls` | PENDIENTE: requieren PostgreSQL local |
-| `pnpm build` | PASS |
-| `pnpm security:secrets` | PASS; 229 archivos versionados inspeccionados |
-| `pnpm security:deps` | PASS; sin vulnerabilidades conocidas de severidad alta |
-| `docker compose config` | PASS |
-| smokes anteriores y CI | PENDIENTE de ejecución final |
-
-No se declaran cifras de regresión ni CI verde sin ejecutarlas en este entorno.
+| `pnpm install --frozen-lockfile` | PASS |
+| `pnpm db:generate` / `pnpm db:migrate` | PASS en CI |
+| `pnpm format:check` / `pnpm lint` / `pnpm typecheck` / `pnpm build` | PASS |
+| `pnpm test` | PASS — 21 archivos, 287/287 |
+| `pnpm test:rls` | PASS — 27/27, incluyendo 5 `E5EE-RLS` |
+| `pnpm e5e:migration:smoke` | PASS — `FRESH_0_TO_11`, `INCREMENTAL_10_TO_11`, `E5E_DB_SEALS` |
+| `pnpm security:secrets` | PASS — 239 archivos versionados inspeccionados |
+| `pnpm security:deps` | PASS — sin vulnerabilidades conocidas de severidad alta |
+| `docker compose config` / `git diff --check` | PASS |
+| GitHub Actions | PASS — run `31465922962` |
 
 ## Trazabilidad y compuerta
 
@@ -174,15 +188,16 @@ No se declaran cifras de regresión ni CI verde sin ejecutarlas en este entorno.
 - `AC-023` = `COVERED`.
 - `AC-024` = `COVERED`.
 - `AC-025` = `PARTIAL / DOWNSTREAM_E5F_E5G`.
-- `AC-026` = `PARTIAL / DOWNSTREAM_E5F`.
-- `AC-027` = `COVERED` para la decisión; comunicación posterior.
+- `AC-026` = `PARTIAL / DOWNSTREAM_E5F_E5G`.
+- `AC-027` = `DECISION_COVERED / COMMUNICATION_E5G`.
 - `AC-028` = `COVERED`.
 - `E2E-009` = `COVERED` en recomendación V1, devolución, V2 y decisión contra V2.
 - `E2E-010` = `DECISION_COVERED / COMMUNICATION_E5G`.
 - `E2E-011` = `DECISION_COVERED / WAITLIST_E5F`.
+- `E5-E` = `COMPLETE_WITH_DOWNSTREAM_E5F_E5G`.
 - `E5-F` = `NOT_STARTED`; `G5` = `NO APROBADA`.
 - `Q-106` = `DEFERRED`; `C-013` = `LEGAL_VALIDATION_PENDING`;
   `Q-301..Q-309` = `FUTURE_INTEGRATION_PENDING`.
 
-La siguiente acción humana es habilitar PostgreSQL/Docker local o CI y ejecutar
-la matriz completa antes de cambiar E5-E a `COMPLETE_WITH_DOWNSTREAM_E5F_E5G`.
+La siguiente acción humana es revisión y aprobación explícita para iniciar
+E5-F. No se ha iniciado E5-F ni se solicita G5.

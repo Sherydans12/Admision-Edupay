@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A+B+C+D COMPLETE — READY FOR E5-E REVIEW` |
+| Estado | `IN PROGRESS / E5-A+B+C+D+E COMPLETE — READY FOR E5-F REVIEW` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
@@ -120,6 +120,14 @@ Cobertura principal: `BL-008` y `BL-009`: agenda, reprogramación, asistencia/no
 ### E5-E — Recomendación y decisión
 
 Cobertura principal: `BL-010`, `BL-011`, SoD y workspace del expediente. Admisión recomienda; Dirección decide; recomendador no decide el mismo caso.
+
+**Estado:** `COMPLETE_WITH_DOWNSTREAM_E5F_E5G`.
+
+La frontera HTTP real, los negativos de permiso, la privacidad familiar, la
+matriz RLS de las cuatro tablas y el smoke fresh/incremental de migration 11
+pasaron en CI. `AC-022`, `AC-023`, `AC-024` y `AC-028` están `COVERED`;
+`AC-025` y `AC-026` permanecen `PARTIAL / DOWNSTREAM_E5F_E5G`; `AC-027` es
+`DECISION_COVERED / COMMUNICATION_E5G`. No se iniciaron E5-F ni G5.
 
 ### E5-F — Cupos, waitlist y oferta
 
