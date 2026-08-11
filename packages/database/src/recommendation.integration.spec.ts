@@ -398,9 +398,9 @@ describe.sequential("E5-E recommendation and direction", () => {
         ),
       ),
     );
-    expect(
-      results.filter((result) => result.status === "fulfilled"),
-    ).toHaveLength(1);
+    const fulfilled = results.filter((result) => result.status === "fulfilled");
+    expect(fulfilled).toHaveLength(20);
+    expect(new Set(fulfilled.map((result) => result.value.id)).size).toBe(1);
     const versions = await runWithTenantContext(direction(), () =>
       withTenantTransaction(prisma, (transaction) =>
         transaction.directionDecisionVersion.count({

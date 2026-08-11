@@ -77,7 +77,7 @@ const family = (actorId = familyUserId): FamilyExecutionContext => ({
   source: "authenticated_request",
 });
 const job = (): TenantExecutionContext => ({
-  actorId: "offer-expiry-worker",
+  actorId: "00000000-0000-4000-8000-000000000005",
   capabilities: [],
   contextOrigin: "trusted_job",
   correlationId: `e5f-job-${randomUUID()}`,

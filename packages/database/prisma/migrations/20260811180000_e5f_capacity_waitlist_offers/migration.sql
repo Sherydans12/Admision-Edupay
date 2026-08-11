@@ -3,6 +3,15 @@
 
 ALTER TYPE "ApplicationStatus" ADD VALUE IF NOT EXISTS 'WITHDRAWN';
 
+-- A withdrawal preserves the immutable submission timestamp and pinned form.
+ALTER TABLE "applications"
+  DROP CONSTRAINT "applications_submission_coherence_check";
+ALTER TABLE "applications"
+  ADD CONSTRAINT "applications_submission_coherence_check" CHECK (
+    ("status" = 'DRAFT' AND "submitted_at" IS NULL)
+    OR ("status" <> 'DRAFT' AND "submitted_at" IS NOT NULL AND "form_version_id" IS NOT NULL)
+  );
+
 CREATE TYPE "SeatReservationState" AS ENUM ('ACTIVE', 'COMMITTED', 'RELEASED');
 CREATE TYPE "WaitlistEntryState" AS ENUM ('ACTIVE', 'PROMOTED', 'WITHDRAWN');
 CREATE TYPE "AdmissionOfferOrigin" AS ENUM ('NORMAL', 'WAITLIST');

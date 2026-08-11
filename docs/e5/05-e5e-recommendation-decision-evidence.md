@@ -100,8 +100,8 @@ La operación exige `expectedRecommendationVersionId`, bloquea el caso, valida l
 versión enviada vigente y registra una nueva versión append-only. Una versión
 stale devuelve `409 RECOMMENDATION_VERSION_CHANGED`.
 
-- `APROBADO`: persiste el hecho favorable; no crea reserva, oferta, deadline, comunicación ni handoff.
-- `LISTA_DE_ESPERA`: persiste la disposición; no crea `WaitlistEntry`, posición, prioridad, reserva u oferta.
+- `APROBADO`: E5-F consume el hecho favorable en la misma transacción y crea reserva + primera versión de oferta; comunicación y handoff siguen fuera.
+- `LISTA_DE_ESPERA`: E5-F crea la entrada interna ordenada; no publica posición ni prioridad a la familia y no emite oferta inmediata.
 - `RECHAZADO`: persiste la disposición con fundamento; comunicación queda E5-G.
 - `DEVUELTO_A_REVISION`: persiste motivo, no es definitiva y habilita una recomendación posterior.
 
@@ -138,8 +138,8 @@ foco inicial, responsive D1/T1 y no dependencia de color único.
 IDs dirigidos implementados en `recommendation.integration.spec.ts`:
 
 - `E5EE-REC-01..08`: submission requerida, DRAFT, opciones, submit idempotente, historial e inmutabilidad.
-- `E5EE-DEC-01..08`: devolución, V2, stale, rechazo y disposición sin efectos downstream.
-- `E5EE-CON-02`: 20 decisiones concurrentes → una versión final.
+- `E5EE-DEC-01..08`: devolución, V2, stale, rechazo y disposiciones no asociadas a capacidad.
+- `E5EE-CON-02`: 20 reintentos concurrentes idempotentes → una versión final, una reserva y una oferta.
 
 La frontera HTTP real en
 `apps/api/src/recommendation.http.integration.spec.ts` agrega `E5EE-HTTP-01..12`:
@@ -187,17 +187,18 @@ Validaciones ejecutadas en esta ronda:
 - `AC-022` = `COVERED`.
 - `AC-023` = `COVERED`.
 - `AC-024` = `COVERED`.
-- `AC-025` = `PARTIAL / DOWNSTREAM_E5F_E5G`.
-- `AC-026` = `PARTIAL / DOWNSTREAM_E5F_E5G`.
+- `AC-025` = `DECISION_AND_OFFER_COVERED / COMMUNICATION_E5G`.
+- `AC-026` = `WAITLIST_AND_OFFER_COVERED / COMMUNICATION_E5G`.
 - `AC-027` = `DECISION_COVERED / COMMUNICATION_E5G`.
 - `AC-028` = `COVERED`.
 - `E2E-009` = `COVERED` en recomendación V1, devolución, V2 y decisión contra V2.
 - `E2E-010` = `DECISION_COVERED / COMMUNICATION_E5G`.
 - `E2E-011` = `DECISION_COVERED / WAITLIST_E5F`.
 - `E5-E` = `COMPLETE_WITH_DOWNSTREAM_E5F_E5G`.
-- `E5-F` = `NOT_STARTED`; `G5` = `NO APROBADA`.
+- `E5-F` = `COMPLETE_WITH_COMMUNICATION_E5G`; `G5` = `NO APROBADA`.
 - `Q-106` = `DEFERRED`; `C-013` = `LEGAL_VALIDATION_PENDING`;
   `Q-301..Q-309` = `FUTURE_INTEGRATION_PENDING`.
 
-La siguiente acción humana es revisión y aprobación explícita para iniciar
-E5-F. No se ha iniciado E5-F ni se solicita G5.
+La evidencia E5-F está en
+[`06-e5f-capacity-waitlist-offer-evidence.md`](06-e5f-capacity-waitlist-offer-evidence.md).
+No se solicita G5.

@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A+B+C+D+E COMPLETE — READY FOR E5-F REVIEW` |
+| Estado | `IN PROGRESS / E5-A+B+C+D+E+F COMPLETE — READY FOR E5-G REVIEW` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
@@ -126,12 +126,21 @@ Cobertura principal: `BL-010`, `BL-011`, SoD y workspace del expediente. Admisi�
 La frontera HTTP real, los negativos de permiso, la privacidad familiar, la
 matriz RLS de las cuatro tablas y el smoke fresh/incremental de migration 11
 pasaron en CI. `AC-022`, `AC-023`, `AC-024` y `AC-028` están `COVERED`;
-`AC-025` y `AC-026` permanecen `PARTIAL / DOWNSTREAM_E5F_E5G`; `AC-027` es
-`DECISION_COVERED / COMMUNICATION_E5G`. No se iniciaron E5-F ni G5.
+Los efectos de cupo, waitlist y oferta pendientes se cerraron en E5-F. Las
+comunicaciones permanecen en E5-G. G5 no se inició.
 
 ### E5-F — Cupos, waitlist y oferta
 
 Cobertura principal: `BL-012`, `BL-013`, `BL-014`: reservas, concurrencia de último cupo, waitlist privada, promoción humana, oferta, aceptación, rechazo, expiración y liberación.
+
+**Estado:** `COMPLETE_WITH_COMMUNICATION_E5G`.
+
+Migration 12, dominio transaccional, API/worker/UI, concurrencia, privacidad
+familiar, aislamiento de las ocho tablas y smoke fresh 0→12 / incremental
+11→12 pasaron en GitHub Actions run `31472103030`. La evidencia ejecutable y
+los límites se documentan en
+[`06-e5f-capacity-waitlist-offer-evidence.md`](06-e5f-capacity-waitlist-offer-evidence.md).
+No se iniciaron E5-G, handoff, EduPay ni G5.
 
 ### E5-G — Comunicaciones y proyecciones
 
