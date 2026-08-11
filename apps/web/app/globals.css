@@ -912,6 +912,85 @@ h3 {
   display: grid;
   gap: 1rem;
 }
+.capacity-offer-workspace {
+  display: grid;
+  gap: 1rem;
+}
+.capacity-console,
+.waitlist-console,
+.offer-console,
+.admission-state-panel,
+.offer-decision-panel,
+.withdrawal-panel {
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+.offer-decision-panel {
+  border-color: #bedcd4;
+  background: #f6fbf9;
+}
+.offer-decision-heading,
+.capacity-edit-row,
+.reopen-row,
+.offer-admin-detail {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+  justify-content: space-between;
+}
+.capacity-edit-row .field,
+.reopen-row .field {
+  flex: 1;
+}
+.capacity-measures {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+.capacity-measures div {
+  padding: 0.8rem;
+  border-radius: 0.6rem;
+  background: #f2f6f6;
+}
+.capacity-measures dt {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.capacity-measures dd {
+  margin: 0.25rem 0 0;
+  color: var(--teal-dark);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.waitlist-table {
+  display: grid;
+  gap: 0.5rem;
+  padding-left: 1.5rem;
+}
+.waitlist-table li {
+  padding: 0.7rem;
+  border-bottom: 1px solid var(--line);
+}
+.waitlist-table li > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.privacy-note {
+  padding: 0.8rem;
+  border-left: 0.25rem solid var(--teal);
+  background: #eef7f5;
+  color: #34505a;
+}
+.offer-history {
+  margin-top: 0.8rem;
+  color: #3e5761;
+}
 .recommendation-options {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -1087,6 +1166,17 @@ h3 {
   .activity-action-row,
   .recommendation-options {
     grid-template-columns: 1fr;
+    flex-direction: column;
+  }
+  .capacity-measures {
+    grid-template-columns: 1fr;
+  }
+  .offer-decision-heading,
+  .capacity-edit-row,
+  .reopen-row,
+  .offer-admin-detail,
+  .waitlist-table li > div {
+    align-items: stretch;
     flex-direction: column;
   }
 }

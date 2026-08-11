@@ -1,8 +1,10 @@
 import {
+  CapacityOfferService,
   DOCUMENT_PROCESS_TOPIC,
   DocumentService,
   listActiveTenantIdsForTrustedWorker,
   OutboxService,
+  OFFER_EXPIRY_TOPIC,
   runWithTenantContext,
   StructuredLogger,
   type PrismaClient,
@@ -13,6 +15,26 @@ export interface WorkerDescriptor {
   environment: "synthetic-development";
   service: "admission-worker";
   status: "ready";
+}
+
+function parseOfferExpiryPayload(value: unknown): {
+  correlationId: string;
+  offerVersionId: string;
+} {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("offerVersionId" in value) ||
+    !("correlationId" in value) ||
+    typeof value.offerVersionId !== "string" ||
+    typeof value.correlationId !== "string"
+  ) {
+    throw new Error("INVALID_OFFER_EXPIRY_JOB_PAYLOAD");
+  }
+  return {
+    correlationId: value.correlationId,
+    offerVersionId: value.offerVersionId,
+  };
 }
 
 export const DEFAULT_DOCUMENT_JOB_MAX_ATTEMPTS = 5;
@@ -179,5 +201,126 @@ export class DocumentWorker {
     return new Promise((resolve) => {
       setTimeout(resolve, this.pollIntervalMs);
     });
+  }
+}
+
+export class OfferExpiryWorker {
+  private stopping = false;
+  private readonly logger = new StructuredLogger("admission-worker");
+  private readonly baseBackoffMs: number;
+  private readonly maxAttempts: number;
+  private readonly now: () => Date;
+  private readonly outboxLeaseMs: number | undefined;
+
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly capacityOffers: CapacityOfferService,
+    private readonly pollIntervalMs = 1_000,
+    options: DocumentWorkerOptions = {},
+  ) {
+    if (!Number.isInteger(pollIntervalMs) || pollIntervalMs < 50) {
+      throw new TypeError("Worker polling interval must be at least 50ms");
+    }
+    this.baseBackoffMs =
+      options.baseBackoffMs ?? DEFAULT_DOCUMENT_JOB_BASE_BACKOFF_MS;
+    this.maxAttempts = options.maxAttempts ?? DEFAULT_DOCUMENT_JOB_MAX_ATTEMPTS;
+    this.now = options.now ?? (() => new Date());
+    this.outboxLeaseMs = options.outboxLeaseMs;
+  }
+
+  stop(): void {
+    this.stopping = true;
+  }
+
+  async run(): Promise<void> {
+    this.logger.info("OFFER_EXPIRY_WORKER_STARTED", "READY");
+    while (!this.stopping) {
+      const processed = await this.pollOnce();
+      if (!processed && !this.stopping) await this.waitForPoll();
+    }
+    this.logger.info("OFFER_EXPIRY_WORKER_STOPPED", "SUCCESS");
+  }
+
+  async pollOnce(): Promise<boolean> {
+    const tenantIds = await listActiveTenantIdsForTrustedWorker(this.prisma);
+    for (const tenantId of tenantIds) {
+      if (this.stopping) return false;
+      if (await this.processTenant(tenantId)) return true;
+    }
+    return false;
+  }
+
+  private async processTenant(tenantId: string): Promise<boolean> {
+    const baseContext: TenantExecutionContext = {
+      actorId: WORKER_ACTOR_ID,
+      capabilities: [],
+      contextOrigin: "trusted_job",
+      correlationId: `offer-expiry-worker:${tenantId}`,
+      effectiveActorId: WORKER_ACTOR_ID,
+      purpose: "offer.expiry",
+      source: "trusted_job",
+      tenantId,
+    };
+    return runWithTenantContext(baseContext, async () => {
+      const outbox = new OutboxService(this.prisma, {
+        ...(this.outboxLeaseMs === undefined
+          ? {}
+          : { leaseMs: this.outboxLeaseMs }),
+      });
+      const message = await outbox.claimNext(this.now(), [OFFER_EXPIRY_TOPIC]);
+      if (message === undefined) return false;
+      if (message.claimedAt === null) {
+        throw new Error("CLAIMED_OFFER_EXPIRY_JOB_WITHOUT_LEASE");
+      }
+      try {
+        const payload = parseOfferExpiryPayload(message.payload);
+        const context = {
+          ...baseContext,
+          correlationId: payload.correlationId,
+        };
+        await runWithTenantContext(context, () =>
+          this.capacityOffers.expireOfferVersion(
+            context,
+            payload.offerVersionId,
+            this.now(),
+          ),
+        );
+        await outbox.markSent(message.id, message.claimedAt);
+        this.logger.info("OFFER_EXPIRY_JOB_PROCESSED", "SUCCESS", {
+          offerVersionId: payload.offerVersionId,
+          stateTransition: "TERMINAL_OR_NOOP",
+        });
+      } catch (error) {
+        const permanent =
+          error instanceof Error &&
+          error.message === "INVALID_OFFER_EXPIRY_JOB_PAYLOAD";
+        const safeErrorCode = permanent
+          ? "INVALID_OFFER_EXPIRY_JOB_PAYLOAD"
+          : "OFFER_EXPIRY_FAILED";
+        if (permanent || message.attempts >= this.maxAttempts) {
+          await outbox.markFailed(message.id, message.claimedAt, safeErrorCode);
+        } else {
+          const exponent = Math.max(0, message.attempts - 1);
+          const backoffMs = Math.min(
+            this.baseBackoffMs * 2 ** exponent,
+            24 * 60 * 60 * 1_000,
+          );
+          await outbox.requeueAfterFailure(
+            message.id,
+            message.claimedAt,
+            safeErrorCode,
+            new Date(this.now().getTime() + backoffMs),
+          );
+        }
+        this.logger.error("OFFER_EXPIRY_JOB_FAILED", safeErrorCode, {
+          jobId: message.id,
+        });
+      }
+      return true;
+    });
+  }
+
+  private waitForPoll(): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, this.pollIntervalMs));
   }
 }

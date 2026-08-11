@@ -1,4 +1,5 @@
 import {
+  CapacityOfferService,
   createAppPrismaClient,
   DevelopmentBusinessCalendar,
   DocumentService,
@@ -8,7 +9,11 @@ import {
 import { resolve } from "node:path";
 
 import { markWorkerReady } from "./worker-health.js";
-import { DocumentWorker, getWorkerDescriptor } from "./worker.js";
+import {
+  DocumentWorker,
+  getWorkerDescriptor,
+  OfferExpiryWorker,
+} from "./worker.js";
 
 const environment = process.env.NODE_ENV ?? "development";
 const storageRoot = resolve(
@@ -34,14 +39,23 @@ const worker = new DocumentWorker(prisma, documents, pollMs, {
   maxAttempts,
   outboxLeaseMs,
 });
+const offerExpiryWorker = new OfferExpiryWorker(
+  prisma,
+  new CapacityOfferService(prisma, new DevelopmentBusinessCalendar()),
+  pollMs,
+  { baseBackoffMs, maxAttempts, outboxLeaseMs },
+);
 
 markWorkerReady();
 console.info(JSON.stringify(getWorkerDescriptor()));
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
-  process.once(signal, () => worker.stop());
+  process.once(signal, () => {
+    worker.stop();
+    offerExpiryWorker.stop();
+  });
 }
 
-void worker.run().finally(async () => {
+void Promise.all([worker.run(), offerExpiryWorker.run()]).finally(async () => {
   await prisma.$disconnect();
 });

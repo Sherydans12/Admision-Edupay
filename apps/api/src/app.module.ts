@@ -22,6 +22,8 @@ import { ActivityController } from "./activity.controller.js";
 import { ApiActivityService } from "./activity.service.js";
 import { RecommendationController } from "./recommendation.controller.js";
 import { ApiRecommendationService } from "./recommendation.service.js";
+import { CapacityOfferController } from "./capacity-offer.controller.js";
+import { ApiCapacityOfferService } from "./capacity-offer.service.js";
 
 const prismaProvider = {
   provide: PrismaClient,
@@ -46,6 +48,7 @@ const sessionProvider = {
     DocumentController,
     ActivityController,
     RecommendationController,
+    CapacityOfferController,
   ],
   providers: [
     prismaProvider,
@@ -56,6 +59,7 @@ const sessionProvider = {
     ApiAssistanceService,
     ApiActivityService,
     ApiRecommendationService,
+    ApiCapacityOfferService,
     HealthService,
     RequestContextService,
   ],

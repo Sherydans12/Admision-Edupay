@@ -16,6 +16,10 @@ import {
   StaffDirectionWorkspace,
   StaffRecommendationWorkspace,
 } from "./recommendation-workflows";
+import {
+  FamilyAdmissionWorkspace,
+  StaffCapacityOfferWorkspace,
+} from "./capacity-offer-workflows";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
@@ -23,7 +27,13 @@ const FALLBACK_TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 
 type Mode = "family" | "admin" | "staff";
 type FamilySection =
-  "home" | "students" | "offerings" | "applications" | "activities" | "form";
+  | "home"
+  | "students"
+  | "offerings"
+  | "applications"
+  | "activities"
+  | "admission"
+  | "form";
 type AdminSection =
   | "forms"
   | "documents"
@@ -34,7 +44,12 @@ type AdminSection =
   | "offering"
   | "activities";
 type StaffSection =
-  "review" | "assistance" | "activities" | "recommendation" | "direction";
+  | "review"
+  | "assistance"
+  | "activities"
+  | "recommendation"
+  | "direction"
+  | "capacityOffers";
 
 interface Offering {
   academicYear: string;
@@ -468,6 +483,7 @@ function FamilyView(props: {
             "offerings",
             "applications",
             "activities",
+            "admission",
           ] as FamilySection[]
         ).map((section) => (
           <button
@@ -487,7 +503,9 @@ function FamilyView(props: {
                   ? "Ofertas"
                   : section === "applications"
                     ? "Postulaciones"
-                    : "Actividades"}
+                    : section === "activities"
+                      ? "Actividades"
+                      : "Resultado de admisión"}
           </button>
         ))}
         <div className="side-note">
@@ -512,6 +530,19 @@ function FamilyView(props: {
               props.activeApplicationId ||
               props.applications.find(
                 (application) => application.status === "SUBMITTED",
+              )?.id ||
+              ""
+            }
+            tenantId={props.tenantId}
+          />
+        ) : null}
+        {familySection === "admission" ? (
+          <FamilyAdmissionWorkspace
+            apiBase={API_BASE}
+            applicationId={
+              props.activeApplicationId ||
+              props.applications.find(
+                (application) => application.status !== "DRAFT",
               )?.id ||
               ""
             }
@@ -925,6 +956,7 @@ function StaffView({
     { key: "activities", label: "Agenda y actividades" },
     { key: "recommendation", label: "Recomendación interna" },
     { key: "direction", label: "Disposición de Dirección" },
+    { key: "capacityOffers", label: "Cupos, espera y ofertas" },
   ];
   return (
     <div className="content-grid">
@@ -977,6 +1009,8 @@ function StaffView({
             apiBase={API_BASE}
             tenantId={tenantId}
           />
+        ) : staffSection === "capacityOffers" ? (
+          <StaffCapacityOfferWorkspace apiBase={API_BASE} tenantId={tenantId} />
         ) : (
           <StaffDirectionWorkspace apiBase={API_BASE} tenantId={tenantId} />
         )}

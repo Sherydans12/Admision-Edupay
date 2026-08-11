@@ -435,7 +435,11 @@ export function StaffDirectionWorkspace({
       );
       setConfirming(false);
       setNotice(
-        "Disposición registrada y auditada. Los efectos posteriores aún no se crean en E5-E.",
+        disposition === "APROBADO"
+          ? "Disposición registrada: el cupo quedó reservado y la oferta fue emitida de forma atómica."
+          : disposition === "LISTA_DE_ESPERA"
+            ? "Disposición registrada: la postulación ingresó a la lista de espera."
+            : "Disposición registrada y auditada.",
       );
       await load();
     } catch (requestError) {
@@ -534,10 +538,10 @@ export function StaffDirectionWorkspace({
               </fieldset>
               <div className="effect-card" aria-live="polite">
                 {disposition === "APROBADO"
-                  ? "Registra decisión favorable. Reserva/oferta se procesarán en la etapa correspondiente."
+                  ? "Registra la decisión favorable, reserva un cupo disponible y emite la primera versión de oferta en una sola transacción."
                   : null}
                 {disposition === "LISTA_DE_ESPERA"
-                  ? "No crea oferta inmediata."
+                  ? "Crea una entrada activa de lista de espera. No emite una oferta inmediata."
                   : null}
                 {disposition === "RECHAZADO"
                   ? "Registra disposición negativa."
@@ -592,8 +596,8 @@ export function StaffDirectionWorkspace({
                 </button>
               </div>
               <p className="muted">
-                E5-E no crea reserva, oferta, comunicación, deadline,
-                WaitlistEntry ni handoff.
+                Las comunicaciones y el traspaso a matrícula permanecen fuera de
+                este alcance.
               </p>
             </section>
           ) : null}

@@ -7,6 +7,8 @@ import {
 } from "@nestjs/common";
 import {
   ActivityConflictError,
+  CapacityOfferConflictError,
+  CapacityOfferValidationError,
   ForbiddenError,
   IntakeConflictError,
   IntakeDuplicateError,
@@ -39,7 +41,22 @@ export interface PublicErrorResponse {
     | "RECOMMENDATION_VERSION_CHANGED"
     | "RECOMMENDATION_NOT_SUBMITTED"
     | "DECISION_ALREADY_FINAL"
-    | "CASE_RETURNED_TO_REVIEW";
+    | "CASE_RETURNED_TO_REVIEW"
+    | "CAPACITY_ALREADY_CONFIGURED"
+    | "CAPACITY_NOT_CONFIGURED"
+    | "CAPACITY_VERSION_CHANGED"
+    | "CAPACITY_BELOW_CONSUMED_SEATS"
+    | "NO_ADMISSION_SEAT_AVAILABLE"
+    | "RESERVATION_ALREADY_EXISTS"
+    | "WAITLIST_ENTRY_VERSION_CHANGED"
+    | "WAITLIST_ENTRY_NOT_ACTIVE"
+    | "WAITLIST_ENTRY_NOT_FIRST"
+    | "OFFER_VERSION_CHANGED"
+    | "OFFER_NOT_ACTIVE"
+    | "OFFER_NOT_EXPIRED"
+    | "OFFER_ALREADY_ACCEPTED"
+    | "OFFER_EXPIRED"
+    | "APPLICATION_WITHDRAWN";
 }
 
 @Catch()
@@ -65,7 +82,9 @@ export class GlobalErrorFilter implements ExceptionFilter {
           ? { code: exception.code }
           : exception instanceof RecommendationConflictError
             ? { code: exception.code }
-            : {}),
+            : exception instanceof CapacityOfferConflictError
+              ? { code: exception.code }
+              : {}),
     });
   }
 }
@@ -77,10 +96,14 @@ function exceptionStatus(exception: unknown): number {
   if (exception instanceof ActivityConflictError) return HttpStatus.CONFLICT;
   if (exception instanceof RecommendationConflictError)
     return HttpStatus.CONFLICT;
+  if (exception instanceof CapacityOfferConflictError)
+    return HttpStatus.CONFLICT;
   if (exception instanceof IntakeDuplicateError) return HttpStatus.CONFLICT;
   if (exception instanceof IntakeNotFoundError) return HttpStatus.NOT_FOUND;
   if (exception instanceof IntakeValidationError) return HttpStatus.BAD_REQUEST;
   if (exception instanceof RecommendationValidationError)
+    return HttpStatus.BAD_REQUEST;
+  if (exception instanceof CapacityOfferValidationError)
     return HttpStatus.BAD_REQUEST;
   return HttpStatus.INTERNAL_SERVER_ERROR;
 }
