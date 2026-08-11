@@ -23,8 +23,12 @@ const admissionUserId = randomUUID();
 const directionUserId = randomUUID();
 const familyProfileId = randomUUID();
 const studentId = randomUUID();
+const sodStudentId = randomUUID();
+const concurrencyStudentId = randomUUID();
 let offeringId = "";
 let applicationId = "";
+let publishedFormVersionId = "";
+let applicationSnapshotId = "";
 
 function context(
   actorId: string,
@@ -54,31 +58,84 @@ const direction = (actorId = directionUserId) =>
     PERMISSIONS.RESTRICTED_READ,
   ]);
 
-async function createSubmittedApplication(): Promise<string> {
+async function createSubmittedApplication(
+  applicationStudentId = studentId,
+): Promise<{
+  applicationId: string;
+  formVersionId: string;
+  snapshotId: string;
+}> {
   return runWithTenantContext(admission(), () =>
     withTenantTransaction(prisma, async (transaction) => {
+      const offering = await transaction.admissionOffering.findUniqueOrThrow({
+        where: { id: offeringId },
+      });
+      let formVersionId = publishedFormVersionId;
+      if (formVersionId === "") {
+        const formDefinition = await transaction.formDefinition.create({
+          data: {
+            name: "Formulario E5-E sintético",
+            purpose: "admission_application",
+            tenantId,
+          },
+        });
+        const formVersion = await transaction.formVersion.create({
+          data: {
+            formDefinitionId: formDefinition.id,
+            lifecycle: "PUBLISHED",
+            publishedAt: new Date(),
+            tenantId,
+            versionNumber: 1,
+          },
+        });
+        await transaction.admissionOffering.update({
+          data: { formVersionId: formVersion.id },
+          where: { id: offering.id },
+        });
+        formVersionId = formVersion.id;
+      }
+      const boundOffering =
+        await transaction.admissionOffering.findUniqueOrThrow({
+          where: { id: offeringId },
+        });
+      if (boundOffering.formVersionId !== formVersionId) {
+        throw new Error("E5-E offering is not bound to the published form");
+      }
+      const submittedAt = new Date();
       const application = await transaction.application.create({
         data: {
-          academicYearId: (
-            await transaction.admissionOffering.findUniqueOrThrow({
-              where: { id: offeringId },
-            })
-          ).academicYearId,
+          academicYearId: boundOffering.academicYearId,
           draftData: { acknowledgedNoGuarantee: true, currentStep: "REVIEW" },
           familyProfileId,
           offeringId,
-          processId: (
-            await transaction.admissionOffering.findUniqueOrThrow({
-              where: { id: offeringId },
-            })
-          ).processId,
+          formVersionId,
+          processId: boundOffering.processId,
           status: "SUBMITTED",
-          studentId,
-          submittedAt: new Date(),
+          studentId: applicationStudentId,
+          submittedAt,
           tenantId,
         },
       });
-      return application.id;
+      const snapshot = await transaction.applicationSnapshot.create({
+        data: {
+          applicationId: application.id,
+          formVersionId,
+          payload: {
+            answers: {},
+            fixture: "synthetic-e5e",
+            formVersionId,
+          },
+          schemaVersion: 1,
+          submittedAt,
+          submittedBy: admissionUserId,
+          tenantId,
+        },
+      });
+      return {
+        applicationId: application.id,
+        formVersionId,
+        snapshotId: snapshot.id,
+      };
     }),
   );
 }
@@ -103,8 +160,21 @@ describe.sequential("E5-E recommendation and direction", () => {
       [familyProfileId, admissionUserId, "Familia E5-E sintética"],
     );
     await migrationPool.query(
-      "INSERT INTO students (id, family_profile_id, given_name, family_name) VALUES ($1, $2, $3, $4)",
-      [studentId, familyProfileId, "Estudiante", "E5-E"],
+      "INSERT INTO students (id, family_profile_id, given_name, family_name) VALUES ($1, $2, $3, $4), ($5, $6, $7, $8), ($9, $10, $11, $12)",
+      [
+        studentId,
+        familyProfileId,
+        "Estudiante",
+        "E5-E",
+        sodStudentId,
+        familyProfileId,
+        "Estudiante SoD",
+        "E5-E",
+        concurrencyStudentId,
+        familyProfileId,
+        "Estudiante Concurrencia",
+        "E5-E",
+      ],
     );
     await runWithTenantContext(admission(), () =>
       withTenantTransaction(prisma, async (transaction) => {
@@ -147,7 +217,30 @@ describe.sequential("E5-E recommendation and direction", () => {
         offeringId = offering.id;
       }),
     );
-    applicationId = await createSubmittedApplication();
+    const submittedFixture = await createSubmittedApplication();
+    applicationId = submittedFixture.applicationId;
+    publishedFormVersionId = submittedFixture.formVersionId;
+    applicationSnapshotId = submittedFixture.snapshotId;
+
+    const submittedApplication = await runWithTenantContext(admission(), () =>
+      withTenantTransaction(prisma, (transaction) =>
+        transaction.application.findUniqueOrThrow({
+          where: { id: applicationId },
+        }),
+      ),
+    );
+    const snapshot = await runWithTenantContext(admission(), () =>
+      withTenantTransaction(prisma, (transaction) =>
+        transaction.applicationSnapshot.findUniqueOrThrow({
+          where: { id: applicationSnapshotId },
+        }),
+      ),
+    );
+    expect(submittedApplication.status).toBe("SUBMITTED");
+    expect(submittedApplication.formVersionId).toBe(publishedFormVersionId);
+    expect(submittedApplication.submittedAt).not.toBeNull();
+    expect(snapshot.applicationId).toBe(submittedApplication.id);
+    expect(snapshot.formVersionId).toBe(submittedApplication.formVersionId);
   });
 
   it("E5EE-REC-01..08: creates a DRAFT, submits once, and preserves history", async () => {
@@ -169,7 +262,9 @@ describe.sequential("E5-E recommendation and direction", () => {
       service.submitRecommendation(admission(), updatedDraft.id),
     );
     expect(submitted.lifecycle).toBe("SUBMITTED");
-    expect(submitted.evidenceManifest).toHaveProperty("applicationSnapshotId");
+    expect(submitted.evidenceManifest.applicationSnapshotId).toBe(
+      applicationSnapshotId,
+    );
     await expect(
       runWithTenantContext(admission(), () =>
         service.submitRecommendation(admission(), draft.id),
@@ -233,7 +328,8 @@ describe.sequential("E5-E recommendation and direction", () => {
   });
 
   it("E5EE-SOD-01 and PRIV-01..06: same effective actor is denied and family has no internal surface", async () => {
-    const otherApplicationId = await createSubmittedApplication();
+    const otherApplicationId = (await createSubmittedApplication(sodStudentId))
+      .applicationId;
     const draft = await runWithTenantContext(admission(), () =>
       service.createDraft(admission(), otherApplicationId, {
         foundation: "Fundamento SoD sintético.",
@@ -268,7 +364,9 @@ describe.sequential("E5-E recommendation and direction", () => {
   });
 
   it("E5EE-CON-02: twenty decisions fence to one final disposition", async () => {
-    const concurrentApplicationId = await createSubmittedApplication();
+    const concurrentApplicationId = (
+      await createSubmittedApplication(concurrencyStudentId)
+    ).applicationId;
     const draft = await runWithTenantContext(admission(), () =>
       service.createDraft(admission(), concurrentApplicationId, {
         foundation: "Fundamento de concurrencia sintético.",
@@ -313,7 +411,6 @@ describe.sequential("E5-E recommendation and direction", () => {
   }
 
   afterAll(async () => {
-    await migrationPool.query("DELETE FROM tenants WHERE id = $1", [tenantId]);
     await prisma.$disconnect();
     await migrationPool.end();
   });
