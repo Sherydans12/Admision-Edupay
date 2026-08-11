@@ -151,8 +151,9 @@ Cobertura principal: `BL-015`, `BL-016`, `BL-017`: email mediante adapter seguro
 Migration 13, dominio transaccional con capability checks, API HTTP,
 worker outbox, portal familiar con `ForbiddenError`, dashboard aislado,
 aislamiento RLS de las tablas de comunicación, y smoke fresh 0→13 /
-incremental 12→13 pasaron localmente. La evidencia ejecutable y los
-límites se documentan en
+incremental 12→13 pasaron localmente y en GitHub Actions run `31544577879`
+(job `validate`, conclusion `success`). La evidencia ejecutable y los límites
+se documentan en
 [`07-e5g-communications-projections-evidence.md`](07-e5g-communications-projections-evidence.md).
 No se iniciaron E5-H, E5-I, handoff, EduPay ni G5.
 

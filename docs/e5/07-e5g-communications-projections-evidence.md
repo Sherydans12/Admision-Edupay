@@ -71,8 +71,26 @@ Spec files E5-G relevantes:
 
 ### Validación GitHub Actions
 
-_Pendiente de CI run exitoso sobre el HEAD de hardening. Se actualizará
-con run ID, job ID y conclusion una vez completado._
+| Verificación | Resultado |
+|---|---|
+| HEAD validado | `761decb16573be529d42c671fc47d48fa7aaf04` |
+| Run | `31544577879` |
+| Job | `validate` / `93954217562` |
+| Conclusion | `success` |
+| `pnpm format:check` | ✅ PASS |
+| `pnpm lint` | ✅ PASS |
+| `pnpm typecheck` | ✅ PASS |
+| `pnpm test` | ✅ 332/332 |
+| `pnpm build` | ✅ PASS |
+| secret scan | ✅ PASS (269 archivos) |
+| dependency audit | ✅ PASS (0 vulnerabilidades) |
+| `pnpm test:rls` | ✅ 33/33 |
+| `FRESH_0_TO_12` | ✅ PASS |
+| `INCREMENTAL_11_TO_12` | ✅ PASS |
+| `E5F_DB_SEALS` | ✅ PASS |
+| `FRESH_0_TO_13` | ✅ PASS |
+| `INCREMENTAL_12_TO_13` | ✅ PASS |
+| `E5G_DB_SEALS` | ✅ PASS |
 
 ## Cobertura de criterios de aceptación
 
