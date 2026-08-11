@@ -77,3 +77,17 @@ jobs:
 
       - name: Prove tenant isolation with PostgreSQL RLS
         run: pnpm test:rls
+
+      - name: Prepare isolated E5-E migration smoke database
+        run: |
+          cp .env.example .env
+          docker compose up -d --wait postgres
+
+      - name: Prove E5-E fresh and incremental migration upgrade
+        run: pnpm e5e:migration:smoke
+
+      - name: Remove isolated E5-E migration smoke database
+        if: always()
+        run: |
+          docker compose down --volumes --remove-orphans
+          rm -f .env

@@ -193,7 +193,7 @@ try {
           'admission_recommendations_tenant_fkey','admission_recommendations_application_fkey','admission_recommendations_current_version_fkey',
           'admission_recommendation_versions_tenant_fkey','admission_recommendation_versions_recommendation_fkey','admission_recommendation_versions_application_fkey','admission_recommendation_versions_previous_same_root_fkey','admission_recommendation_versions_version_check','admission_recommendation_versions_lifecycle_check','admission_recommendation_versions_previous_not_self_check',
           'direction_decisions_tenant_fkey','direction_decisions_application_fkey','direction_decisions_current_version_fkey',
-          'direction_decision_versions_tenant_fkey','direction_decision_versions_decision_fkey','direction_decision_versions_application_fkey','direction_decision_versions_recommendation_fkey','direction_decision_versions_previous_same_root_fkey','direction_decision_versions_version_check','direction_decision_versions_disposition_check','direction_decision_versions_previous_not_self_check')`,
+          'direction_decision_versions_tenant_fkey','direction_decision_versions_decision_fkey','direction_decision_versions_application_fkey','direction_decision_versions_recommendation_fkey','direction_decision_versions_previous_same_root_fkey','direction_decision_versions_version_check','direction_decision_versions_disposition_check','direction_decision_versions_previous_not_self_check'))`,
         )
       ).stdout.trim();
       if (seals !== "4|3|4|2|21")
