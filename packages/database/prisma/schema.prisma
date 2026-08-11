@@ -73,6 +73,24 @@ enum ApplicationStatus {
   SUBMITTED
 }
 
+enum AdmissionRecommendationOption {
+  RECOMENDAR_ADMISION
+  NO_RECOMENDAR_ADMISION
+  DEVOLVER_A_REVISION
+}
+
+enum RecommendationVersionLifecycle {
+  DRAFT
+  SUBMITTED
+}
+
+enum DirectionDisposition {
+  APROBADO
+  LISTA_DE_ESPERA
+  RECHAZADO
+  DEVUELTO_A_REVISION
+}
+
 enum ActivityDefinitionKind {
   GUARDIAN_INTERVIEW
   DIAGNOSTIC_EVALUATION
@@ -288,6 +306,10 @@ model Tenant {
   activityRescheduleRequests ActivityRescheduleRequest[]
   activityAttempts ActivityAttempt[]
   activityResults ActivityResult[]
+  admissionRecommendations AdmissionRecommendation[]
+  admissionRecommendationVersions AdmissionRecommendationVersion[]
+  directionDecisions DirectionDecision[]
+  directionDecisionVersions DirectionDecisionVersion[]
   auditEvents        AuditEvent[]
 
   @@map("tenants")
@@ -534,7 +556,7 @@ model AdmissionOffering {
   @@map("admission_offerings")
 }
 
-/// E5-A stops at DRAFT. Submission and snapshots belong to E5-B.
+/// Tenant-owned admission case. E5-E consumes the immutable submission.
 model Application {
   id              String            @id @default(uuid()) @db.Uuid
   tenantId        String            @map("tenant_id") @db.Uuid
@@ -565,6 +587,10 @@ model Application {
   documentSubmissions DocumentSubmission[]
   activities ApplicationActivity[]
   assistanceSession AssistanceSession? @relation("ApplicationAssistance", fields: [tenantId, assistanceSessionId], references: [tenantId, id], onDelete: Restrict)
+  admissionRecommendation AdmissionRecommendation?
+  admissionRecommendationVersions AdmissionRecommendationVersion[]
+  directionDecision DirectionDecision?
+  directionDecisionVersions DirectionDecisionVersion[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, formVersionId])
@@ -572,6 +598,104 @@ model Application {
   @@index([tenantId, familyProfileId, status, updatedAt])
   @@index([tenantId, studentId, status])
   @@map("applications")
+}
+
+/// Stable E5-E recommendation root: exactly one per application.
+model AdmissionRecommendation {
+  id               String   @id @default(uuid()) @db.Uuid
+  tenantId         String   @map("tenant_id") @db.Uuid
+  applicationId    String   @map("application_id") @db.Uuid
+  currentVersionId String?  @map("current_version_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application      Application @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+  versions         AdmissionRecommendationVersion[] @relation("RecommendationVersions")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, applicationId])
+  @@unique([tenantId, id, applicationId], map: "admission_recommendations_root_application_key")
+  @@index([tenantId, applicationId, currentVersionId])
+  @@map("admission_recommendations")
+}
+
+/// Immutable recommendation history. Only DRAFT may be edited before submit.
+model AdmissionRecommendationVersion {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  recommendationId  String   @map("recommendation_id") @db.Uuid
+  applicationId     String   @map("application_id") @db.Uuid
+  versionNumber     Int      @map("version_number")
+  previousVersionId String?  @map("previous_version_id") @db.Uuid
+  option            AdmissionRecommendationOption
+  foundation        String   @db.VarChar(2000)
+  lifecycle         RecommendationVersionLifecycle @default(DRAFT)
+  createdBy         String   @map("created_by") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  submittedBy       String?  @map("submitted_by") @db.Uuid
+  submittedAt       DateTime? @map("submitted_at") @db.Timestamptz(3)
+  evidenceManifest  Json     @map("evidence_manifest")
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  recommendation    AdmissionRecommendation @relation("RecommendationVersions", fields: [tenantId, recommendationId, applicationId], references: [tenantId, id, applicationId], onDelete: Restrict, map: "admission_recommendation_versions_recommendation_fkey")
+  application       Application @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict, map: "admission_recommendation_versions_application_fkey")
+  previousVersion   AdmissionRecommendationVersion? @relation("RecommendationHistory", fields: [tenantId, recommendationId, previousVersionId], references: [tenantId, recommendationId, id], onDelete: Restrict, map: "admission_recommendation_versions_previous_same_root_fkey")
+  nextVersions      AdmissionRecommendationVersion[] @relation("RecommendationHistory")
+  directionDecisions DirectionDecisionVersion[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, recommendationId, id], map: "admission_recommendation_versions_root_id_key")
+  @@unique([tenantId, recommendationId, versionNumber])
+  @@unique([tenantId, applicationId, id], map: "admission_recommendation_versions_application_id_key")
+  @@index([tenantId, applicationId, lifecycle])
+  @@map("admission_recommendation_versions")
+}
+
+/// Stable E5-E direction decision root: exactly one per application.
+model DirectionDecision {
+  id                String   @id @default(uuid()) @db.Uuid
+  tenantId          String   @map("tenant_id") @db.Uuid
+  applicationId     String   @map("application_id") @db.Uuid
+  currentVersionId  String?  @map("current_version_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application       Application @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+  versions          DirectionDecisionVersion[] @relation("DirectionDecisionVersions")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, applicationId])
+  @@unique([tenantId, id, applicationId], map: "direction_decisions_root_application_key")
+  @@index([tenantId, applicationId, currentVersionId])
+  @@map("direction_decisions")
+}
+
+/// Immutable direction history. E5-F/E5-G consume its facts later.
+model DirectionDecisionVersion {
+  id                       String   @id @default(uuid()) @db.Uuid
+  tenantId                String   @map("tenant_id") @db.Uuid
+  directionDecisionId     String   @map("direction_decision_id") @db.Uuid
+  applicationId           String   @map("application_id") @db.Uuid
+  versionNumber           Int      @map("version_number")
+  previousVersionId       String?  @map("previous_version_id") @db.Uuid
+  recommendationVersionId String   @map("recommendation_version_id") @db.Uuid
+  disposition             DirectionDisposition
+  foundation              String?  @db.VarChar(2000)
+  reason                  String?  @db.VarChar(2000)
+  decidedBy               String   @map("decided_by") @db.Uuid
+  decidedAt               DateTime @map("decided_at") @db.Timestamptz(3)
+  evidenceManifest        Json     @map("evidence_manifest")
+  tenant                  Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  decision                DirectionDecision @relation("DirectionDecisionVersions", fields: [tenantId, directionDecisionId, applicationId], references: [tenantId, id, applicationId], onDelete: Restrict, map: "direction_decision_versions_decision_fkey")
+  application             Application @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict, map: "direction_decision_versions_application_fkey")
+  recommendationVersion   AdmissionRecommendationVersion @relation(fields: [tenantId, applicationId, recommendationVersionId], references: [tenantId, applicationId, id], onDelete: Restrict, map: "direction_decision_versions_recommendation_fkey")
+  previousVersion         DirectionDecisionVersion? @relation("DirectionDecisionHistory", fields: [tenantId, directionDecisionId, previousVersionId], references: [tenantId, directionDecisionId, id], onDelete: Restrict, map: "direction_decision_versions_previous_same_root_fkey")
+  nextVersions            DirectionDecisionVersion[] @relation("DirectionDecisionHistory")
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, directionDecisionId, id], map: "direction_decision_versions_root_id_key")
+  @@unique([tenantId, directionDecisionId, versionNumber])
+  @@index([tenantId, applicationId, recommendationVersionId])
+  @@map("direction_decision_versions")
 }
 
 /// Stable tenant-owned activity configuration root.
