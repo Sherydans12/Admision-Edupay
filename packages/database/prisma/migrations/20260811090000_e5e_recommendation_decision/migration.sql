@@ -17,6 +17,8 @@ CREATE TABLE "admission_recommendations" (
   "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "admission_recommendations_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "admission_recommendations_root_application_key"
+    UNIQUE ("tenant_id", "id", "application_id"),
   CONSTRAINT "admission_recommendations_tenant_fkey"
     FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "admission_recommendations_application_fkey"
@@ -26,8 +28,6 @@ CREATE UNIQUE INDEX "admission_recommendations_tenant_id_key"
   ON "admission_recommendations"("tenant_id", "id");
 CREATE UNIQUE INDEX "admission_recommendations_application_id_key"
   ON "admission_recommendations"("tenant_id", "application_id");
-CREATE UNIQUE INDEX "admission_recommendations_root_application_key"
-  ON "admission_recommendations"("tenant_id", "id", "application_id");
 CREATE INDEX "admission_recommendations_application_current_idx"
   ON "admission_recommendations"("tenant_id", "application_id", "current_version_id");
 
@@ -47,6 +47,10 @@ CREATE TABLE "admission_recommendation_versions" (
   "submitted_at" TIMESTAMPTZ(3),
   "evidence_manifest" JSONB NOT NULL,
   CONSTRAINT "admission_recommendation_versions_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "admission_recommendation_versions_root_id_key"
+    UNIQUE ("tenant_id", "recommendation_id", "id"),
+  CONSTRAINT "admission_recommendation_versions_application_id_key"
+    UNIQUE ("tenant_id", "application_id", "id"),
   CONSTRAINT "admission_recommendation_versions_tenant_fkey"
     FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "admission_recommendation_versions_recommendation_fkey"
@@ -54,9 +58,6 @@ CREATE TABLE "admission_recommendation_versions" (
     REFERENCES "admission_recommendations"("tenant_id", "id", "application_id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "admission_recommendation_versions_application_fkey"
     FOREIGN KEY ("tenant_id", "application_id") REFERENCES "applications"("tenant_id", "id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "admission_recommendation_versions_previous_same_root_fkey"
-    FOREIGN KEY ("tenant_id", "recommendation_id", "previous_version_id")
-    REFERENCES "admission_recommendation_versions"("tenant_id", "recommendation_id", "id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "admission_recommendation_versions_version_check"
     CHECK ("version_number" > 0 AND length(btrim("foundation")) > 0),
   CONSTRAINT "admission_recommendation_versions_lifecycle_check"
@@ -67,14 +68,16 @@ CREATE TABLE "admission_recommendation_versions" (
 );
 CREATE UNIQUE INDEX "admission_recommendation_versions_tenant_id_key"
   ON "admission_recommendation_versions"("tenant_id", "id");
-CREATE UNIQUE INDEX "admission_recommendation_versions_root_id_key"
-  ON "admission_recommendation_versions"("tenant_id", "recommendation_id", "id");
 CREATE UNIQUE INDEX "admission_recommendation_versions_number_key"
   ON "admission_recommendation_versions"("tenant_id", "recommendation_id", "version_number");
-CREATE UNIQUE INDEX "admission_recommendation_versions_application_id_key"
-  ON "admission_recommendation_versions"("tenant_id", "application_id", "id");
 CREATE INDEX "admission_recommendation_versions_application_lifecycle_idx"
   ON "admission_recommendation_versions"("tenant_id", "application_id", "lifecycle");
+
+ALTER TABLE "admission_recommendation_versions"
+  ADD CONSTRAINT "admission_recommendation_versions_previous_same_root_fkey"
+  FOREIGN KEY ("tenant_id", "recommendation_id", "previous_version_id")
+  REFERENCES "admission_recommendation_versions"("tenant_id", "recommendation_id", "id")
+  ON DELETE RESTRICT ON UPDATE CASCADE;
 
 ALTER TABLE "admission_recommendations"
   ADD CONSTRAINT "admission_recommendations_current_version_fkey"
@@ -90,6 +93,8 @@ CREATE TABLE "direction_decisions" (
   "created_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMPTZ(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "direction_decisions_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "direction_decisions_root_application_key"
+    UNIQUE ("tenant_id", "id", "application_id"),
   CONSTRAINT "direction_decisions_tenant_fkey"
     FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "direction_decisions_application_fkey"
@@ -99,8 +104,6 @@ CREATE UNIQUE INDEX "direction_decisions_tenant_id_key"
   ON "direction_decisions"("tenant_id", "id");
 CREATE UNIQUE INDEX "direction_decisions_application_id_key"
   ON "direction_decisions"("tenant_id", "application_id");
-CREATE UNIQUE INDEX "direction_decisions_root_application_key"
-  ON "direction_decisions"("tenant_id", "id", "application_id");
 CREATE INDEX "direction_decisions_application_current_idx"
   ON "direction_decisions"("tenant_id", "application_id", "current_version_id");
 
@@ -119,6 +122,8 @@ CREATE TABLE "direction_decision_versions" (
   "decided_at" TIMESTAMPTZ(3) NOT NULL,
   "evidence_manifest" JSONB NOT NULL,
   CONSTRAINT "direction_decision_versions_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "direction_decision_versions_root_id_key"
+    UNIQUE ("tenant_id", "direction_decision_id", "id"),
   CONSTRAINT "direction_decision_versions_tenant_fkey"
     FOREIGN KEY ("tenant_id") REFERENCES "tenants"("id") ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "direction_decision_versions_decision_fkey"
@@ -129,9 +134,6 @@ CREATE TABLE "direction_decision_versions" (
   CONSTRAINT "direction_decision_versions_recommendation_fkey"
     FOREIGN KEY ("tenant_id", "application_id", "recommendation_version_id")
     REFERENCES "admission_recommendation_versions"("tenant_id", "application_id", "id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "direction_decision_versions_previous_same_root_fkey"
-    FOREIGN KEY ("tenant_id", "direction_decision_id", "previous_version_id")
-    REFERENCES "direction_decision_versions"("tenant_id", "direction_decision_id", "id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "direction_decision_versions_version_check"
     CHECK ("version_number" > 0 AND ("foundation" IS NULL OR length(btrim("foundation")) > 0)
       AND ("reason" IS NULL OR length(btrim("reason")) > 0)),
@@ -143,12 +145,16 @@ CREATE TABLE "direction_decision_versions" (
 );
 CREATE UNIQUE INDEX "direction_decision_versions_tenant_id_key"
   ON "direction_decision_versions"("tenant_id", "id");
-CREATE UNIQUE INDEX "direction_decision_versions_root_id_key"
-  ON "direction_decision_versions"("tenant_id", "direction_decision_id", "id");
 CREATE UNIQUE INDEX "direction_decision_versions_number_key"
   ON "direction_decision_versions"("tenant_id", "direction_decision_id", "version_number");
 CREATE INDEX "direction_decision_versions_application_recommendation_idx"
   ON "direction_decision_versions"("tenant_id", "application_id", "recommendation_version_id");
+
+ALTER TABLE "direction_decision_versions"
+  ADD CONSTRAINT "direction_decision_versions_previous_same_root_fkey"
+  FOREIGN KEY ("tenant_id", "direction_decision_id", "previous_version_id")
+  REFERENCES "direction_decision_versions"("tenant_id", "direction_decision_id", "id")
+  ON DELETE RESTRICT ON UPDATE CASCADE;
 
 ALTER TABLE "direction_decisions"
   ADD CONSTRAINT "direction_decisions_current_version_fkey"
