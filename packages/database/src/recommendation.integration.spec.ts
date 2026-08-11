@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  CapacityOfferService,
   ForbiddenError,
   PERMISSIONS,
   RecommendationService,
@@ -18,6 +19,7 @@ const migrationPool = new Pool({
   connectionTimeoutMillis: 5_000,
 });
 const service = new RecommendationService(prisma);
+const capacityService = new CapacityOfferService(prisma);
 const tenantId = randomUUID();
 const admissionUserId = randomUUID();
 const directionUserId = randomUUID();
@@ -55,6 +57,7 @@ const admission = () =>
 const direction = (actorId = directionUserId) =>
   context(actorId, [
     PERMISSIONS.APPLICATION_DECIDE,
+    PERMISSIONS.CAPACITY_MANAGE,
     PERMISSIONS.RESTRICTED_READ,
   ]);
 
@@ -280,7 +283,7 @@ describe.sequential("E5-E recommendation and direction", () => {
     ).rejects.toThrow();
   });
 
-  it("E5EE-DEC-01..08: returns to review and records final decisions without downstream rows", async () => {
+  it("E5EE-DEC-01..08: returns to review and records non-capacity final decisions", async () => {
     const currentRecommendationId = await awaitCurrentRecommendationId();
     const returned = await runWithTenantContext(direction(), () =>
       service.recordDirectionDecision(direction(), applicationId, {
@@ -364,6 +367,11 @@ describe.sequential("E5-E recommendation and direction", () => {
   });
 
   it("E5EE-CON-02: twenty decisions fence to one final disposition", async () => {
+    await runWithTenantContext(direction(), () =>
+      capacityService.createCapacity(direction(), offeringId, {
+        configuredCapacity: 1,
+      }),
+    );
     const concurrentApplicationId = (
       await createSubmittedApplication(concurrencyStudentId)
     ).applicationId;
@@ -401,6 +409,17 @@ describe.sequential("E5-E recommendation and direction", () => {
       ),
     );
     expect(versions).toBe(1);
+    const effects = await runWithTenantContext(direction(), () =>
+      withTenantTransaction(prisma, async (transaction) => ({
+        offers: await transaction.admissionOffer.count({
+          where: { applicationId: concurrentApplicationId },
+        }),
+        reservations: await transaction.seatReservation.count({
+          where: { applicationId: concurrentApplicationId },
+        }),
+      })),
+    );
+    expect(effects).toEqual({ offers: 1, reservations: 1 });
   });
 
   async function awaitCurrentRecommendationId(): Promise<string> {
