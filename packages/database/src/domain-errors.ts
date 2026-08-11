@@ -44,3 +44,23 @@ export class ActivityConflictError extends Error {
     this.name = "ActivityConflictError";
   }
 }
+
+export type RecommendationConflictCode =
+  | "RECOMMENDATION_VERSION_CHANGED"
+  | "RECOMMENDATION_NOT_SUBMITTED"
+  | "DECISION_ALREADY_FINAL"
+  | "CASE_RETURNED_TO_REVIEW";
+
+export class RecommendationConflictError extends Error {
+  constructor(readonly code: RecommendationConflictCode) {
+    super(code);
+    this.name = "RecommendationConflictError";
+  }
+}
+
+export class RecommendationValidationError extends Error {
+  constructor(message = "Invalid recommendation or decision input") {
+    super(message);
+    this.name = "RecommendationValidationError";
+  }
+}

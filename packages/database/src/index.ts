@@ -42,7 +42,24 @@ export {
   type StudentDto,
   type StudentInput,
 } from "./intake.js";
-export { ActivityConflictError } from "./domain-errors.js";
+export {
+  ActivityConflictError,
+  RecommendationConflictError,
+  RecommendationValidationError,
+  type RecommendationConflictCode,
+} from "./domain-errors.js";
+export {
+  DIRECTION_DISPOSITIONS,
+  RECOMMENDATION_OPTIONS,
+  RecommendationService,
+  type DirectionDecisionInput,
+  type DirectionDecisionVersionDto,
+  type DirectionDisposition,
+  type RecommendationDraftInput,
+  type RecommendationOption,
+  type RecommendationVersionDto,
+  type RecommendationWorkspaceDto,
+} from "./recommendation.js";
 export { PrismaClient } from "./generated/prisma/client.js";
 export {
   FORM_CONDITION_OPERATORS,

@@ -12,6 +12,8 @@ import {
   IntakeDuplicateError,
   IntakeNotFoundError,
   IntakeValidationError,
+  RecommendationConflictError,
+  RecommendationValidationError,
 } from "@admission/database";
 import { getCorrelationId } from "./correlation-context.js";
 import { StructuredLogger } from "./structured-logger.js";
@@ -33,7 +35,11 @@ export interface PublicErrorResponse {
     | "ACTIVITY_ALREADY_SCHEDULED"
     | "ACTIVITY_NO_SHOW_TOO_EARLY"
     | "ACTIVITY_CLOSED"
-    | "NORMAL_RESCHEDULE_LIMIT_REQUIRES_REVIEW";
+    | "NORMAL_RESCHEDULE_LIMIT_REQUIRES_REVIEW"
+    | "RECOMMENDATION_VERSION_CHANGED"
+    | "RECOMMENDATION_NOT_SUBMITTED"
+    | "DECISION_ALREADY_FINAL"
+    | "CASE_RETURNED_TO_REVIEW";
 }
 
 @Catch()
@@ -57,7 +63,9 @@ export class GlobalErrorFilter implements ExceptionFilter {
         ? { code: exception.code }
         : exception instanceof ActivityConflictError
           ? { code: exception.code }
-          : {}),
+          : exception instanceof RecommendationConflictError
+            ? { code: exception.code }
+            : {}),
     });
   }
 }
@@ -67,9 +75,13 @@ function exceptionStatus(exception: unknown): number {
   if (exception instanceof ForbiddenError) return HttpStatus.FORBIDDEN;
   if (exception instanceof IntakeConflictError) return HttpStatus.CONFLICT;
   if (exception instanceof ActivityConflictError) return HttpStatus.CONFLICT;
+  if (exception instanceof RecommendationConflictError)
+    return HttpStatus.CONFLICT;
   if (exception instanceof IntakeDuplicateError) return HttpStatus.CONFLICT;
   if (exception instanceof IntakeNotFoundError) return HttpStatus.NOT_FOUND;
   if (exception instanceof IntakeValidationError) return HttpStatus.BAD_REQUEST;
+  if (exception instanceof RecommendationValidationError)
+    return HttpStatus.BAD_REQUEST;
   return HttpStatus.INTERNAL_SERVER_ERROR;
 }
 
