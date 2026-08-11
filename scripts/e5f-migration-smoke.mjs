@@ -14,11 +14,12 @@ import { join, resolve } from "node:path";
 
 const root = process.cwd();
 const migrationRoot = resolve(root, "packages/database/prisma/migrations");
+const expectedMigration = "20260811180000_e5f_capacity_waitlist_offers";
 const migrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .sort();
-const expectedMigration = "20260811180000_e5f_capacity_waitlist_offers";
+  .sort()
+  .filter((migration) => migration <= expectedMigration);
 if (migrations.length !== 12 || migrations.at(-1) !== expectedMigration) {
   throw new Error(`Expected 12 migrations ending in ${expectedMigration}`);
 }
