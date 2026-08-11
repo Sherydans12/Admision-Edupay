@@ -8,9 +8,9 @@ export function createAppPrismaClient(
 ): PrismaClient {
   const adapter = new PrismaPg({
     connectionString: databaseUrl,
-    connectionTimeoutMillis: 5_000,
+    connectionTimeoutMillis: 10_000,
     idleTimeoutMillis: 10_000,
-    max: 4,
+    max: 25,
   });
 
   return new PrismaClient({ adapter });

@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A+B+C+D+E+F COMPLETE — READY FOR E5-G REVIEW` |
+| Estado | `IN PROGRESS / E5-A+B+C+D+E+F+G COMPLETE — READY FOR E5-H REVIEW` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
@@ -144,7 +144,17 @@ No se iniciaron E5-G, handoff, EduPay ni G5.
 
 ### E5-G — Comunicaciones y proyecciones
 
+**Estado:** `COMPLETE`.
+
 Cobertura principal: `BL-015`, `BL-016`, `BL-017`: email mediante adapter seguro, portal familiar y dashboard operativo, manteniendo estado técnico separado del negocio.
+
+Migration 13, dominio transaccional con capability checks, API HTTP,
+worker outbox, portal familiar con `ForbiddenError`, dashboard aislado,
+aislamiento RLS de las tablas de comunicación, y smoke fresh 0→13 /
+incremental 12→13 pasaron localmente. La evidencia ejecutable y los
+límites se documentan en
+[`07-e5g-communications-projections-evidence.md`](07-e5g-communications-projections-evidence.md).
+No se iniciaron E5-H, E5-I, handoff, EduPay ni G5.
 
 ### E5-H — Reportes, configuración, permisos y auditoría de cierre
 

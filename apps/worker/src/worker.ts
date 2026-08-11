@@ -1,4 +1,6 @@
 import {
+  COMMUNICATION_SEND_TOPIC,
+  CommunicationService,
   CapacityOfferService,
   DOCUMENT_PROCESS_TOPIC,
   DocumentService,
@@ -313,6 +315,147 @@ export class OfferExpiryWorker {
           );
         }
         this.logger.error("OFFER_EXPIRY_JOB_FAILED", safeErrorCode, {
+          jobId: message.id,
+        });
+      }
+      return true;
+    });
+  }
+
+  private waitForPoll(): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, this.pollIntervalMs));
+  }
+}
+
+function parseCommunicationPayload(value: unknown): {
+  communicationId: string;
+  correlationId: string;
+} {
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("communicationId" in value) ||
+    !("correlationId" in value) ||
+    typeof value.communicationId !== "string" ||
+    typeof value.correlationId !== "string"
+  ) {
+    throw new Error("INVALID_COMMUNICATION_JOB_PAYLOAD");
+  }
+  return {
+    communicationId: value.communicationId,
+    correlationId: value.correlationId,
+  };
+}
+
+export class CommunicationWorker {
+  private stopping = false;
+  private readonly logger = new StructuredLogger("admission-worker");
+  private readonly baseBackoffMs: number;
+  private readonly maxAttempts: number;
+  private readonly now: () => Date;
+  private readonly outboxLeaseMs: number | undefined;
+
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly communications: CommunicationService,
+    private readonly pollIntervalMs = 1_000,
+    options: DocumentWorkerOptions = {},
+  ) {
+    if (!Number.isInteger(pollIntervalMs) || pollIntervalMs < 50) {
+      throw new TypeError("Worker polling interval must be at least 50ms");
+    }
+    this.baseBackoffMs =
+      options.baseBackoffMs ?? DEFAULT_DOCUMENT_JOB_BASE_BACKOFF_MS;
+    this.maxAttempts = options.maxAttempts ?? DEFAULT_DOCUMENT_JOB_MAX_ATTEMPTS;
+    this.now = options.now ?? (() => new Date());
+    this.outboxLeaseMs = options.outboxLeaseMs;
+  }
+
+  stop(): void {
+    this.stopping = true;
+  }
+
+  async run(): Promise<void> {
+    this.logger.info("COMMUNICATION_WORKER_STARTED", "READY");
+    while (!this.stopping) {
+      const processed = await this.pollOnce();
+      if (!processed && !this.stopping) await this.waitForPoll();
+    }
+    this.logger.info("COMMUNICATION_WORKER_STOPPED", "SUCCESS");
+  }
+
+  async pollOnce(): Promise<boolean> {
+    const tenantIds = await listActiveTenantIdsForTrustedWorker(this.prisma);
+    for (const tenantId of tenantIds) {
+      if (this.stopping) return false;
+      if (await this.processTenant(tenantId)) return true;
+    }
+    return false;
+  }
+
+  private async processTenant(tenantId: string): Promise<boolean> {
+    const baseContext: TenantExecutionContext = {
+      actorId: WORKER_ACTOR_ID,
+      capabilities: [],
+      contextOrigin: "trusted_job",
+      correlationId: `communication-worker:${tenantId}`,
+      effectiveActorId: WORKER_ACTOR_ID,
+      purpose: "communication.send",
+      source: "trusted_job",
+      tenantId,
+    };
+    return runWithTenantContext(baseContext, async () => {
+      const outbox = new OutboxService(this.prisma, {
+        ...(this.outboxLeaseMs === undefined
+          ? {}
+          : { leaseMs: this.outboxLeaseMs }),
+      });
+      const message = await outbox.claimNext(this.now(), [
+        COMMUNICATION_SEND_TOPIC,
+      ]);
+      if (message === undefined) return false;
+      if (message.claimedAt === null) {
+        throw new Error("CLAIMED_COMMUNICATION_JOB_WITHOUT_LEASE");
+      }
+      try {
+        const payload = parseCommunicationPayload(message.payload);
+        const context = {
+          ...baseContext,
+          correlationId: payload.correlationId,
+        };
+        await runWithTenantContext(context, () =>
+          this.communications.processOutboxSend({
+            communicationId: payload.communicationId,
+          }),
+        );
+        await outbox.markSent(message.id, message.claimedAt);
+        this.logger.info("COMMUNICATION_JOB_PROCESSED", "SUCCESS", {
+          communicationId: payload.communicationId,
+        });
+      } catch (error) {
+        const permanent =
+          error instanceof Error &&
+          error.message === "INVALID_COMMUNICATION_JOB_PAYLOAD";
+        const safeErrorCode = permanent
+          ? "INVALID_COMMUNICATION_JOB_PAYLOAD"
+          : "COMMUNICATION_SEND_FAILED";
+        if (permanent || message.attempts >= this.maxAttempts) {
+          await outbox.markFailed(message.id, message.claimedAt, safeErrorCode);
+        } else {
+          const exponent = Math.max(0, message.attempts - 1);
+          const backoffMs = Math.min(
+            this.baseBackoffMs * 2 ** exponent,
+            24 * 60 * 60 * 1_000,
+          );
+          await outbox.requeueAfterFailure(
+            message.id,
+            message.claimedAt,
+            safeErrorCode,
+            new Date(this.now().getTime() + backoffMs),
+          );
+        }
+        this.logger.error("COMMUNICATION_JOB_FAILED", safeErrorCode, {
+          error: error instanceof Error ? error.stack : String(error),
           jobId: message.id,
         });
       }

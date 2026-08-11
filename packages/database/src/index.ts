@@ -197,6 +197,7 @@ export {
   assertTenantContext,
   FamilyContextMissingError,
   getRequiredTenantContext,
+  getTenantContext,
   getRequiredFamilyContext,
   PlatformContextTenantError,
   runWithFamilyContext,
@@ -214,3 +215,35 @@ export {
   withPlatformAuditTransaction,
   withTenantTransaction,
 } from "./tenant-transaction.js";
+export {
+  DevelopmentEmailAdapter,
+  type EmailAdapter,
+  type SendEmailInput,
+  type SendEmailResult,
+} from "./email-adapter.js";
+export {
+  COMMUNICATION_SEND_TOPIC,
+  CommunicationService,
+  type ConfirmCommunicationInput,
+  type PrepareActivityAppointmentInput,
+  type PrepareDecisionCommunicationInput,
+  type PrepareDocumentCorrectionInput,
+  type PrepareOfferCommunicationInput,
+  type PrepareOfferReminderInput,
+  type ProcessOutboxSendInput,
+  type RecordDeliveryEvidenceInput,
+  type RecordManualContactInput,
+  type RetryCommunicationInput,
+} from "./communications.js";
+export {
+  FamilyApplicationProjectionService,
+  type FamilyActivityProjection,
+  type FamilyApplicationProjection,
+  type FamilyDocumentProjection,
+  type FamilyHistoryEventProjection,
+  type FamilyOfferProjection,
+} from "./family-projection.js";
+export {
+  OperationalDashboardService,
+  type OperationalDashboardMetrics,
+} from "./dashboard.js";

@@ -24,6 +24,12 @@ import { RecommendationController } from "./recommendation.controller.js";
 import { ApiRecommendationService } from "./recommendation.service.js";
 import { CapacityOfferController } from "./capacity-offer.controller.js";
 import { ApiCapacityOfferService } from "./capacity-offer.service.js";
+import { CommunicationsController } from "./communications.controller.js";
+import { ApiCommunicationsService } from "./communications.service.js";
+import { FamilyPortalController } from "./family-portal.controller.js";
+import { ApiFamilyPortalService } from "./family-portal.service.js";
+import { DashboardController } from "./dashboard.controller.js";
+import { ApiOperationalDashboardService } from "./dashboard.service.js";
 
 const prismaProvider = {
   provide: PrismaClient,
@@ -49,6 +55,9 @@ const sessionProvider = {
     ActivityController,
     RecommendationController,
     CapacityOfferController,
+    CommunicationsController,
+    FamilyPortalController,
+    DashboardController,
   ],
   providers: [
     prismaProvider,
@@ -60,6 +69,9 @@ const sessionProvider = {
     ApiActivityService,
     ApiRecommendationService,
     ApiCapacityOfferService,
+    ApiCommunicationsService,
+    ApiFamilyPortalService,
+    ApiOperationalDashboardService,
     HealthService,
     RequestContextService,
   ],

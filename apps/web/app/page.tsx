@@ -20,6 +20,10 @@ import {
   FamilyAdmissionWorkspace,
   StaffCapacityOfferWorkspace,
 } from "./capacity-offer-workflows";
+import {
+  StaffCommunicationsWorkspace,
+  StaffDashboardWorkspace,
+} from "./communications-dashboard-workflows";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
@@ -44,6 +48,8 @@ type AdminSection =
   | "offering"
   | "activities";
 type StaffSection =
+  | "dashboard"
+  | "communications"
   | "review"
   | "assistance"
   | "activities"
@@ -951,6 +957,8 @@ function StaffView({
   tenantId: string;
 }) {
   const sections: { key: StaffSection; label: string }[] = [
+    { key: "dashboard", label: "Dashboard operativo" },
+    { key: "communications", label: "Comunicaciones" },
     { key: "review", label: "Revisión documental" },
     { key: "assistance", label: "Postulación asistida" },
     { key: "activities", label: "Agenda y actividades" },
@@ -995,7 +1003,15 @@ function StaffView({
           </div>
           <span className="badge badge-synthetic">Auditado</span>
         </div>
-        {staffSection === "review" ? (
+        {staffSection === "dashboard" ? (
+          <StaffDashboardWorkspace apiBase={API_BASE} tenantId={tenantId} />
+        ) : staffSection === "communications" ? (
+          <StaffCommunicationsWorkspace
+            apiBase={API_BASE}
+            applicationId=""
+            tenantId={tenantId}
+          />
+        ) : staffSection === "review" ? (
           <StaffDocumentWorkspace apiBase={API_BASE} tenantId={tenantId} />
         ) : staffSection === "assistance" ? (
           <AssistedApplicationWorkspace

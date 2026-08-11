@@ -86,7 +86,10 @@ jobs:
       - name: Prove E5-F fresh and incremental migration upgrade
         run: pnpm e5f:migration:smoke
 
-      - name: Remove isolated E5-F migration smoke database
+      - name: Prove E5-G fresh and incremental migration upgrade
+        run: pnpm e5g:migration:smoke
+
+      - name: Remove isolated migration smoke database
         if: always()
         run: |
           docker compose down --volumes --remove-orphans

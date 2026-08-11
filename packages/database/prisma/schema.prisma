@@ -267,6 +267,46 @@ enum AssistanceAuthorizationMethod {
   IN_PERSON_CONFIRMED
 }
 
+enum CommunicationPurpose {
+  ADMISSION_APPROVED
+  ADMISSION_REJECTED
+  WAITLIST_STATUS
+  OFFER_AVAILABLE
+  DOCUMENT_CORRECTION
+  APPOINTMENT_SCHEDULED
+  APPOINTMENT_RESCHEDULED
+  OFFER_REMINDER
+}
+
+enum CommunicationAudience {
+  FAMILY
+  STAFF
+}
+
+enum CommunicationLifecycle {
+  PREPARED
+  CONFIRMED
+  SENT
+  DELIVERED
+  FAILED
+}
+
+enum CommunicationAttemptStatus {
+  SENT
+  FAILED
+  DELIVERED
+}
+
+enum OperationalTaskType {
+  COMMUNICATION_FAILED
+}
+
+enum OperationalTaskStatus {
+  PENDING
+  IN_PROGRESS
+  RESOLVED
+}
+
 /// Identidad global de control-plane; no representa onboarding funcional.
 model PlatformUser {
   id                         String                      @id @default(uuid()) @db.Uuid
@@ -350,6 +390,10 @@ model Tenant {
   admissionOfferVersions          AdmissionOfferVersion[]
   offerAcceptances                OfferAcceptance[]
   applicationWithdrawals          ApplicationWithdrawal[]
+  communications                  Communication[]
+  communicationAttempts           CommunicationAttempt[]
+  operationalTasks                OperationalTask[]
+  manualContacts                  ManualContact[]
   auditEvents                     AuditEvent[]
 
   @@map("tenants")
@@ -640,6 +684,9 @@ model Application {
   admissionOffers                 AdmissionOffer[]
   offerAcceptances                OfferAcceptance[]
   withdrawals                     ApplicationWithdrawal[]
+  communications                  Communication[]
+  operationalTasks                OperationalTask[]
+  manualContacts                  ManualContact[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, id, formVersionId])
@@ -741,6 +788,7 @@ model DirectionDecisionVersion {
   previousVersion         DirectionDecisionVersion?      @relation("DirectionDecisionHistory", fields: [tenantId, directionDecisionId, previousVersionId], references: [tenantId, directionDecisionId, id], onDelete: Restrict, map: "direction_decision_versions_previous_same_root_fkey")
   nextVersions            DirectionDecisionVersion[]     @relation("DirectionDecisionHistory")
   waitlistEntries         WaitlistEntry[]
+  communications          Communication[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, directionDecisionId, id], map: "direction_decision_versions_root_id_key")
@@ -894,6 +942,7 @@ model AdmissionOfferVersion {
   nextVersions      AdmissionOfferVersion[]       @relation("AdmissionOfferHistory")
   acceptances       OfferAcceptance[]
   withdrawals       ApplicationWithdrawal[]
+  communications    Communication[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, offerId, id], map: "admission_offer_versions_root_id_key")
@@ -1062,6 +1111,7 @@ model ActivityAppointment {
   rescheduleRequests    ActivityRescheduleRequest[]
   fulfilledRequests     ActivityRescheduleRequest[] @relation("FulfilledAppointment")
   attempts              ActivityAttempt[]
+  communications        Communication[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, applicationActivityId, id], map: "activity_appointments_activity_id_key")
@@ -1230,6 +1280,7 @@ model DocumentSubmission {
   currentDocumentVersion   DocumentVersion?           @relation("CurrentDocumentVersion", fields: [tenantId, currentDocumentVersionId], references: [tenantId, id], onDelete: Restrict)
   versions                 DocumentVersion[]          @relation("SubmissionVersions")
   reviews                  DocumentReview[]
+  communications           Communication[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, applicationId, documentRequirementId])
@@ -1482,4 +1533,106 @@ model AuditEvent {
   @@index([tenantId, occurredAt])
   @@index([tenantId, resourceType, resourceId])
   @@map("audit_events")
+}
+
+/// Communication record. Prepared on events/decisions, sent after human confirmation.
+model Communication {
+  id                         String                    @id @default(uuid()) @db.Uuid
+  tenantId                   String                    @map("tenant_id") @db.Uuid
+  applicationId              String                    @map("application_id") @db.Uuid
+  purpose                    CommunicationPurpose
+  audience                   CommunicationAudience     @default(FAMILY)
+  templateKey                String                    @map("template_key") @db.VarChar(120)
+  templateVersion            Int                       @map("template_version")
+  lifecycle                  CommunicationLifecycle    @default(PREPARED)
+  createdAt                  DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  preparedAt                 DateTime                  @default(now()) @map("prepared_at") @db.Timestamptz(3)
+  confirmedAt                DateTime?                 @map("confirmed_at") @db.Timestamptz(3)
+  confirmedBy                String?                   @map("confirmed_by") @db.Uuid
+  recipientEmail             String                    @map("recipient_email") @db.VarChar(320)
+  subject                    String                    @db.VarChar(240)
+  body                       String                    @db.VarChar(4000)
+  payloadSnapshot            Json                      @map("payload_snapshot")
+  directionDecisionVersionId String?                   @map("direction_decision_version_id") @db.Uuid
+  offerVersionId             String?                   @map("offer_version_id") @db.Uuid
+  documentSubmissionId       String?                   @map("document_submission_id") @db.Uuid
+  activityAppointmentId      String?                   @map("activity_appointment_id") @db.Uuid
+  versionNumber              Int                       @default(1) @map("version_number")
+  tenant                     Tenant                    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application                Application               @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+  directionDecisionVersion   DirectionDecisionVersion? @relation(fields: [tenantId, applicationId, directionDecisionVersionId], references: [tenantId, applicationId, id], onDelete: Restrict)
+  offerVersion               AdmissionOfferVersion?    @relation(fields: [tenantId, offerVersionId], references: [tenantId, id], onDelete: Restrict)
+  documentSubmission         DocumentSubmission?       @relation(fields: [tenantId, documentSubmissionId], references: [tenantId, id], onDelete: Restrict)
+  activityAppointment        ActivityAppointment?      @relation(fields: [tenantId, activityAppointmentId], references: [tenantId, id], onDelete: Restrict)
+  attempts                   CommunicationAttempt[]
+  operationalTasks           OperationalTask[]
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, applicationId, id], map: "communications_application_id_key")
+  @@index([tenantId, applicationId, purpose, lifecycle])
+  @@map("communications")
+}
+
+/// Append-only communication delivery attempts.
+model CommunicationAttempt {
+  id                 String                     @id @default(uuid()) @db.Uuid
+  tenantId           String                     @map("tenant_id") @db.Uuid
+  communicationId    String                     @map("communication_id") @db.Uuid
+  sequence           Int
+  provider           String                     @db.VarChar(80)
+  technicalStatus    CommunicationAttemptStatus @map("technical_status")
+  providerReference  String?                    @map("provider_reference") @db.VarChar(160)
+  attemptedAt        DateTime                   @map("attempted_at") @db.Timestamptz(3)
+  completedAt        DateTime?                  @map("completed_at") @db.Timestamptz(3)
+  sanitizedErrorCode String?                    @map("sanitized_error_code") @db.VarChar(120)
+  deliveryEvidence   Json?                      @map("delivery_evidence")
+  tenant             Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  communication      Communication              @relation(fields: [tenantId, communicationId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, communicationId, sequence])
+  @@index([tenantId, communicationId, attemptedAt])
+  @@map("communication_attempts")
+}
+
+/// Internal operational task created when email delivery fails.
+model OperationalTask {
+  id              String                @id @default(uuid()) @db.Uuid
+  tenantId        String                @map("tenant_id") @db.Uuid
+  applicationId   String                @map("application_id") @db.Uuid
+  communicationId String?               @map("communication_id") @db.Uuid
+  type            OperationalTaskType
+  status          OperationalTaskStatus @default(PENDING)
+  title           String                @db.VarChar(240)
+  description     String                @db.VarChar(1000)
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  resolvedAt      DateTime?             @map("resolved_at") @db.Timestamptz(3)
+  resolvedBy      String?               @map("resolved_by") @db.Uuid
+  tenant          Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application     Application           @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+  communication   Communication?        @relation(fields: [tenantId, communicationId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, communicationId, type], map: "operational_tasks_comm_type_key")
+  @@index([tenantId, status, createdAt])
+  @@map("operational_tasks")
+}
+
+/// Manual contact log for telephone or direct operational interactions.
+model ManualContact {
+  id            String      @id @default(uuid()) @db.Uuid
+  tenantId      String      @map("tenant_id") @db.Uuid
+  applicationId String      @map("application_id") @db.Uuid
+  actorId       String      @map("actor_id") @db.Uuid
+  purpose       String      @db.VarChar(120)
+  contactedAt   DateTime    @map("contacted_at") @db.Timestamptz(3)
+  outcome       String      @db.VarChar(120)
+  notes         String?     @db.VarChar(1000)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant        Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application   Application @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@index([tenantId, applicationId, contactedAt])
+  @@map("manual_contacts")
 }

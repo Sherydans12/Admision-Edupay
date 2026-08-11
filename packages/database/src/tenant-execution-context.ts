@@ -223,6 +223,10 @@ export function runWithFamilyContext<T>(
   return familyContextStorage.run(Object.freeze(frozenContext), operation);
 }
 
+export function getTenantContext(): Readonly<TenantExecutionContext> | undefined {
+  return tenantContextStorage.getStore();
+}
+
 export function getRequiredTenantContext(): Readonly<TenantExecutionContext> {
   const context = tenantContextStorage.getStore();
 
