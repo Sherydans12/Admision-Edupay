@@ -44,10 +44,29 @@ export {
 } from "./intake.js";
 export {
   ActivityConflictError,
+  CapacityOfferConflictError,
+  CapacityOfferValidationError,
   RecommendationConflictError,
   RecommendationValidationError,
+  type CapacityOfferConflictCode,
   type RecommendationConflictCode,
 } from "./domain-errors.js";
+export {
+  CapacityOfferService,
+  DEFAULT_OFFER_VALIDITY_BUSINESS_DAYS,
+  OFFER_EXPIRY_TOPIC,
+  applyDirectionDispositionEffects,
+  type CapacityAdjustmentInput,
+  type CapacityDto,
+  type CapacityInput,
+  type FamilyAdmissionProjectionDto,
+  type OfferDto,
+  type OfferVersionCommandInput,
+  type OfferVersionDto,
+  type PromoteWaitlistInput,
+  type ReopenOfferInput,
+  type WaitlistEntryDto,
+} from "./capacity-offer.js";
 export {
   DIRECTION_DISPOSITIONS,
   RECOMMENDATION_OPTIONS,

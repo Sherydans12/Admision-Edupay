@@ -140,7 +140,7 @@ export interface ApplicationDto {
   formVersionId: string | null;
   id: string;
   offering: OfferingDto;
-  status: "DRAFT" | "SUBMITTED";
+  status: "DRAFT" | "SUBMITTED" | "WITHDRAWN";
   student: StudentDto;
   submittedAt: string | null;
   updatedAt: string;

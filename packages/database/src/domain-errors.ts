@@ -64,3 +64,36 @@ export class RecommendationValidationError extends Error {
     this.name = "RecommendationValidationError";
   }
 }
+
+export type CapacityOfferConflictCode =
+  | "CAPACITY_ALREADY_CONFIGURED"
+  | "CAPACITY_NOT_CONFIGURED"
+  | "CAPACITY_VERSION_CHANGED"
+  | "CAPACITY_BELOW_CONSUMED_SEATS"
+  | "NO_ADMISSION_SEAT_AVAILABLE"
+  | "RESERVATION_ALREADY_EXISTS"
+  | "WAITLIST_ENTRY_VERSION_CHANGED"
+  | "WAITLIST_ENTRY_NOT_ACTIVE"
+  | "WAITLIST_ENTRY_NOT_FIRST"
+  | "OFFER_VERSION_CHANGED"
+  | "OFFER_NOT_ACTIVE"
+  | "OFFER_NOT_EXPIRED"
+  | "OFFER_ALREADY_ACCEPTED"
+  | "OFFER_EXPIRED"
+  | "APPLICATION_WITHDRAWN";
+
+export class CapacityOfferConflictError extends Error {
+  constructor(readonly code: CapacityOfferConflictCode) {
+    super(code);
+    this.name = "CapacityOfferConflictError";
+  }
+}
+
+export class CapacityOfferValidationError extends Error {
+  constructor(
+    message = "Invalid capacity, waitlist, offer or withdrawal input",
+  ) {
+    super(message);
+    this.name = "CapacityOfferValidationError";
+  }
+}

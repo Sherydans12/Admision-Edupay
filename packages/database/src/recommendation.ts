@@ -1,4 +1,5 @@
 import { authorizeOrThrow, ForbiddenError } from "./authorization.js";
+import { applyDirectionDispositionEffects } from "./capacity-offer.js";
 import {
   IntakeNotFoundError,
   RecommendationConflictError,
@@ -17,6 +18,10 @@ import type {
 } from "./generated/prisma/client.js";
 import type { TenantExecutionContext } from "./tenant-execution-context.js";
 import { withTenantTransaction } from "./tenant-transaction.js";
+import {
+  DevelopmentBusinessCalendar,
+  type BusinessCalendar,
+} from "./documents.js";
 
 export const RECOMMENDATION_OPTIONS = [
   "RECOMENDAR_ADMISION",
@@ -510,7 +515,10 @@ async function readWorkspace(
 }
 
 export class RecommendationService {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly calendar: BusinessCalendar = new DevelopmentBusinessCalendar(),
+  ) {}
 
   async getRecommendationWorkspace(
     context: TenantExecutionContext,
@@ -869,6 +877,14 @@ export class RecommendationService {
             previous.disposition,
           )
         ) {
+          if (
+            previous.disposition === input.disposition &&
+            previous.recommendationVersionId === currentRecommendation.id &&
+            previous.foundation === foundation &&
+            previous.reason === reason
+          ) {
+            return mapDecisionVersion(previous);
+          }
           throw new RecommendationConflictError("DECISION_ALREADY_FINAL");
         }
         if (
@@ -910,6 +926,14 @@ export class RecommendationService {
       await transaction.directionDecision.update({
         data: { currentVersionId: version.id },
         where: { id: root.id },
+      });
+      await applyDirectionDispositionEffects(transaction, context, {
+        applicationId,
+        calendar: this.calendar,
+        decisionVersionId: version.id,
+        disposition: version.disposition,
+        offeringId: application.offeringId,
+        occurredAt: version.decidedAt,
       });
       await recordAudit(transaction, context, {
         action: "DIRECTION_DECISION_RECORDED",

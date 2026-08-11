@@ -16,6 +16,7 @@ export const PERMISSIONS = {
   APPLICATION_RECOMMEND: "application.recommend",
   APPLICATION_SUBMIT: "application.submit",
   APPLICATION_WRITE: "application.write",
+  CAPACITY_READ: "capacity.read",
   CAPACITY_MANAGE: "capacity.manage",
   DOCUMENT_EXEMPT: "document.exempt",
   DOCUMENT_READ: "document.read",
@@ -30,11 +31,14 @@ export const PERMISSIONS = {
   FORM_PUBLISH: "form.publish",
   FORM_READ: "form.read",
   OFFERING_PUBLIC_READ: "offering.public.read",
+  OFFER_READ: "offer.read",
+  OFFER_REOPEN: "offer.reopen",
   PLATFORM_SUPPORT_ELEVATE: "platform.support.elevate",
   RESTRICTED_READ: "restricted.read",
   STUDENT_READ: "student.read",
   STUDENT_WRITE: "student.write",
   WAITLIST_PROMOTE: "waitlist.promote",
+  WAITLIST_READ: "waitlist.read",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
