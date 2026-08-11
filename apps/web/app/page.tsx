@@ -12,6 +12,10 @@ import {
   FamilyActivityWorkspace,
   StaffActivityWorkspace,
 } from "./activity-workflows";
+import {
+  StaffDirectionWorkspace,
+  StaffRecommendationWorkspace,
+} from "./recommendation-workflows";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
@@ -29,7 +33,8 @@ type AdminSection =
   | "process"
   | "offering"
   | "activities";
-type StaffSection = "review" | "assistance" | "activities";
+type StaffSection =
+  "review" | "assistance" | "activities" | "recommendation" | "direction";
 
 interface Offering {
   academicYear: string;
@@ -918,6 +923,8 @@ function StaffView({
     { key: "review", label: "Revisión documental" },
     { key: "assistance", label: "Postulación asistida" },
     { key: "activities", label: "Agenda y actividades" },
+    { key: "recommendation", label: "Recomendación interna" },
+    { key: "direction", label: "Disposición de Dirección" },
   ];
   return (
     <div className="content-grid">
@@ -963,8 +970,15 @@ function StaffView({
             apiBase={API_BASE}
             tenantId={tenantId}
           />
-        ) : (
+        ) : staffSection === "activities" ? (
           <StaffActivityWorkspace apiBase={API_BASE} tenantId={tenantId} />
+        ) : staffSection === "recommendation" ? (
+          <StaffRecommendationWorkspace
+            apiBase={API_BASE}
+            tenantId={tenantId}
+          />
+        ) : (
+          <StaffDirectionWorkspace apiBase={API_BASE} tenantId={tenantId} />
         )}
       </section>
     </div>

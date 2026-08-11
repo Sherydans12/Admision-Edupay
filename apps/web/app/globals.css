@@ -904,6 +904,72 @@ h3 {
   background: #fff0ed;
   color: #8a2e21;
 }
+.readiness-copy-warning {
+  background: #fff9ed;
+  color: #7d4c0b;
+}
+.recommendation-workspace {
+  display: grid;
+  gap: 1rem;
+}
+.recommendation-options {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.recommendation-options .choice-card {
+  min-height: 3.5rem;
+}
+.internal-foundation {
+  margin-bottom: 0;
+  padding: 0.85rem;
+  border-left: 0.25rem solid var(--teal);
+  background: #f2f6f6;
+  white-space: pre-wrap;
+}
+.restricted-copy {
+  margin-bottom: 0;
+  padding: 0.75rem;
+  border: 1px dashed #b7c9cd;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.effect-card {
+  padding: 0.85rem;
+  border: 1px solid #bedcd4;
+  border-radius: 0.65rem;
+  background: #eaf5f2;
+  color: #34505a;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.history-list {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #3e5761;
+  font-size: 0.84rem;
+}
+.confirmation-dialog-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(10, 28, 34, 0.62);
+}
+.confirmation-dialog-card {
+  width: min(32rem, 100%);
+  padding: 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 0.85rem;
+  background: white;
+  box-shadow: 0 1.2rem 3rem rgba(13, 36, 43, 0.24);
+}
+.confirmation-dialog-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
 .control-group,
 .scope-grid {
   display: grid;
@@ -1018,7 +1084,8 @@ h3 {
   .document-upload,
   .control-group,
   .scope-grid,
-  .activity-action-row {
+  .activity-action-row,
+  .recommendation-options {
     grid-template-columns: 1fr;
     flex-direction: column;
   }
