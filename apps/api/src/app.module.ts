@@ -2,10 +2,11 @@ import { Module } from "@nestjs/common";
 
 import {
   createAppPrismaClient,
-  NoopAuditSink,
   NoopSecurityEventSink,
+  PrismaAuditSink,
   PrismaClient,
   SessionService,
+  SupportElevationService,
 } from "@admission/database";
 
 import { HealthController } from "./health.controller.js";
@@ -30,6 +31,12 @@ import { FamilyPortalController } from "./family-portal.controller.js";
 import { ApiFamilyPortalService } from "./family-portal.service.js";
 import { DashboardController } from "./dashboard.controller.js";
 import { ApiOperationalDashboardService } from "./dashboard.service.js";
+import { ReportingAdminController } from "./reporting-admin.controller.js";
+import {
+  ApiAuditReadService,
+  ApiReportingService,
+  ApiRoleAssignmentAdminService,
+} from "./reporting-admin.service.js";
 
 const prismaProvider = {
   provide: PrismaClient,
@@ -38,12 +45,25 @@ const prismaProvider = {
 
 const sessionProvider = {
   provide: SessionService,
-  useFactory: (prisma: PrismaClient) =>
+  useFactory: (prisma: PrismaClient, auditSink: PrismaAuditSink) =>
     new SessionService(prisma, {
-      auditSink: new NoopAuditSink(),
+      auditSink,
       securityEvents: new NoopSecurityEventSink(),
     }),
+  inject: [PrismaClient, PrismaAuditSink],
+};
+
+const auditSinkProvider = {
+  provide: PrismaAuditSink,
+  useFactory: (prisma: PrismaClient) => new PrismaAuditSink(prisma),
   inject: [PrismaClient],
+};
+
+const supportElevationProvider = {
+  provide: SupportElevationService,
+  useFactory: (prisma: PrismaClient, auditSink: PrismaAuditSink) =>
+    new SupportElevationService(prisma, auditSink, new NoopSecurityEventSink()),
+  inject: [PrismaClient, PrismaAuditSink],
 };
 
 @Module({
@@ -58,10 +78,13 @@ const sessionProvider = {
     CommunicationsController,
     FamilyPortalController,
     DashboardController,
+    ReportingAdminController,
   ],
   providers: [
     prismaProvider,
+    auditSinkProvider,
     sessionProvider,
+    supportElevationProvider,
     ApiIntakeService,
     ApiFormService,
     ApiDocumentService,
@@ -72,6 +95,9 @@ const sessionProvider = {
     ApiCommunicationsService,
     ApiFamilyPortalService,
     ApiOperationalDashboardService,
+    ApiReportingService,
+    ApiRoleAssignmentAdminService,
+    ApiAuditReadService,
     HealthService,
     RequestContextService,
   ],

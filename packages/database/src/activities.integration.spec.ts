@@ -400,6 +400,29 @@ describe.sequential("E5-D activities domain", () => {
       }),
     );
     expect(completed.results.at(-1)?.result).toBe("FAVORABLE");
+    const readContext = staffContext();
+    const sensitiveRead = await runWithTenantContext(readContext, () =>
+      service.getStaffActivity(readContext, diagnosticActivityId),
+    );
+    expect(sensitiveRead.results.at(-1)?.result).toBe("FAVORABLE");
+    const sensitiveReadAudit = await runWithTenantContext(readContext, () =>
+      withTenantTransaction(prisma, (transaction) =>
+        transaction.auditEvent.findFirst({
+          where: {
+            action: "ACTIVITY_SENSITIVE_RESULTS_READ",
+            correlationId: readContext.correlationId,
+            resourceId: diagnosticActivityId,
+            tenantId,
+          },
+        }),
+      ),
+    );
+    expect(sensitiveReadAudit).toMatchObject({
+      actorId: staffUserId,
+      effectiveActorId: staffUserId,
+      purpose: "E5D_TEST",
+      result: "SUCCESS",
+    });
     const wrongExecutor = {
       ...staffContext(),
       actorId: otherStaffUserId,

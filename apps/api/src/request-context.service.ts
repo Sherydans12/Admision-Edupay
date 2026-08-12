@@ -1,13 +1,16 @@
 import {
   buildSessionCookieOptions,
   ForbiddenError,
+  getElevationContext,
   getCorrelationId,
   InMemoryCsrfService,
   PERMISSIONS,
   PrismaClient,
   resolveEffectiveTenantContext,
   SessionService,
+  SupportElevationService,
   type FamilyExecutionContext,
+  type PlatformExecutionContext,
   type PermissionKey,
   type TenantExecutionContext,
 } from "@admission/database";
@@ -56,7 +59,52 @@ export class RequestContextService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly sessions: SessionService,
+    private readonly supportElevations: SupportElevationService,
   ) {}
+
+  async requirePlatformContext(
+    request: RequestLike,
+    purpose: string,
+  ): Promise<PlatformExecutionContext> {
+    const session = await this.requireUser(request);
+    const configuredIds = new Set(
+      (process.env.ADMISSION_PLATFORM_SUPPORT_USER_IDS ?? "")
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean),
+    );
+    if (
+      process.env.NODE_ENV === "production" ||
+      !configuredIds.has(session.userId)
+    ) {
+      throw new ForbiddenError();
+    }
+    return {
+      actorId: session.userId,
+      correlationId: getCorrelationId() ?? "unbound-request",
+      effectiveActorId: session.userId,
+      globalCapabilities: [
+        PERMISSIONS.PLATFORM_SUPPORT_ELEVATE,
+        PERMISSIONS.REPORT_READ,
+        PERMISSIONS.REPORT_EXPORT,
+        PERMISSIONS.AUDIT_READ,
+        PERMISSIONS.RESTRICTED_READ,
+        PERMISSIONS.ROLE_ASSIGNMENT_READ,
+        PERMISSIONS.ADMISSION_CONFIG_READ,
+        PERMISSIONS.APPLICATION_READ,
+        PERMISSIONS.DOCUMENT_READ,
+        PERMISSIONS.ACTIVITY_READ,
+        PERMISSIONS.CAPACITY_READ,
+        PERMISSIONS.WAITLIST_READ,
+        PERMISSIONS.OFFER_READ,
+        PERMISSIONS.COMMUNICATION_READ,
+        PERMISSIONS.DASHBOARD_READ,
+      ],
+      globalSuperadmin: true,
+      purpose,
+      source: "authenticated_request",
+    };
+  }
 
   async requireUser(request: RequestLike) {
     const token = readCookie(
@@ -188,7 +236,28 @@ export class RequestContextService {
       purpose,
       requestedTenantCandidate: tenantId,
     });
-    if (resolved.decision === "DENY") throw new ForbiddenError();
-    return resolved.context;
+    if (resolved.decision === "ALLOW") return resolved.context;
+
+    const elevationId = firstHeader(request, "x-support-elevation-id");
+    if (
+      elevationId === undefined ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+        elevationId,
+      )
+    ) {
+      throw new ForbiddenError();
+    }
+    const platformContext = await this.requirePlatformContext(
+      request,
+      "platform.support",
+    );
+    const elevation =
+      await this.supportElevations.resolveActiveSupportElevation({
+        actorId: session.userId,
+        elevationId,
+        targetTenantId: tenantId,
+      });
+    if (elevation === undefined) throw new ForbiddenError();
+    return getElevationContext(platformContext, elevation);
   }
 }

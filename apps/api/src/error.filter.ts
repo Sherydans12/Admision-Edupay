@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import {
   ActivityConflictError,
+  AccessAdminValidationError,
   CapacityOfferConflictError,
   CapacityOfferValidationError,
   ForbiddenError,
@@ -16,6 +17,9 @@ import {
   IntakeValidationError,
   RecommendationConflictError,
   RecommendationValidationError,
+  ReportExportLimitExceededError,
+  ReportValidationError,
+  RoleAssignmentChangedError,
 } from "@admission/database";
 import { getCorrelationId } from "./correlation-context.js";
 import { StructuredLogger } from "./structured-logger.js";
@@ -56,7 +60,9 @@ export interface PublicErrorResponse {
     | "OFFER_NOT_EXPIRED"
     | "OFFER_ALREADY_ACCEPTED"
     | "OFFER_EXPIRED"
-    | "APPLICATION_WITHDRAWN";
+    | "APPLICATION_WITHDRAWN"
+    | "REPORT_EXPORT_LIMIT_EXCEEDED"
+    | "ROLE_ASSIGNMENT_CHANGED";
 }
 
 @Catch()
@@ -84,7 +90,11 @@ export class GlobalErrorFilter implements ExceptionFilter {
             ? { code: exception.code }
             : exception instanceof CapacityOfferConflictError
               ? { code: exception.code }
-              : {}),
+              : exception instanceof ReportExportLimitExceededError
+                ? { code: exception.code }
+                : exception instanceof RoleAssignmentChangedError
+                  ? { code: exception.code }
+                  : {}),
     });
   }
 }
@@ -98,12 +108,19 @@ function exceptionStatus(exception: unknown): number {
     return HttpStatus.CONFLICT;
   if (exception instanceof CapacityOfferConflictError)
     return HttpStatus.CONFLICT;
+  if (exception instanceof ReportExportLimitExceededError)
+    return HttpStatus.CONFLICT;
+  if (exception instanceof RoleAssignmentChangedError)
+    return HttpStatus.CONFLICT;
   if (exception instanceof IntakeDuplicateError) return HttpStatus.CONFLICT;
   if (exception instanceof IntakeNotFoundError) return HttpStatus.NOT_FOUND;
   if (exception instanceof IntakeValidationError) return HttpStatus.BAD_REQUEST;
   if (exception instanceof RecommendationValidationError)
     return HttpStatus.BAD_REQUEST;
   if (exception instanceof CapacityOfferValidationError)
+    return HttpStatus.BAD_REQUEST;
+  if (exception instanceof ReportValidationError) return HttpStatus.BAD_REQUEST;
+  if (exception instanceof AccessAdminValidationError)
     return HttpStatus.BAD_REQUEST;
   return HttpStatus.INTERNAL_SERVER_ERROR;
 }

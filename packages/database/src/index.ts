@@ -116,6 +116,8 @@ export {
   type AuditEvent,
   type AuditSink,
 } from "./audit.js";
+export { sanitizeAuditMetadata } from "./audit-metadata.js";
+export { PrismaAuditSink } from "./prisma-audit-sink.js";
 export {
   buildSessionCookieOptions,
   createOpaqueSessionCookie,
@@ -247,3 +249,28 @@ export {
   OperationalDashboardService,
   type OperationalDashboardMetrics,
 } from "./dashboard.js";
+export {
+  REPORT_CATALOG,
+  REPORT_KEYS,
+  ReportingService,
+  ReportExportLimitExceededError,
+  ReportValidationError,
+  neutralizeCsvFormula,
+  serializeCsv,
+  type GeneratedReportCsv,
+  type ReportColumnDefinition,
+  type ReportDefinition,
+  type ReportFilterKey,
+  type ReportFilters,
+  type ReportKey,
+} from "./reporting.js";
+export {
+  AccessAdminValidationError,
+  AuditReadService,
+  RoleAssignmentAdminService,
+  RoleAssignmentChangedError,
+  validateRoleAssignmentScopes,
+  type AuditReadFilters,
+  type MembershipAccessDto,
+  type RoleAssignmentDto,
+} from "./access-admin.js";

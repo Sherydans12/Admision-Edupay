@@ -1002,6 +1002,13 @@ export class ActivityService {
         context,
         application,
       );
+      if (canViewResults) {
+        await recordActivityAudit(transaction, context, {
+          action: "ACTIVITY_SENSITIVE_RESULTS_READ",
+          resourceId: application.id,
+          resourceType: "Application",
+        });
+      }
       return activities.map((activity) =>
         mapStaffActivity(activity, canViewResults),
       );
@@ -1028,6 +1035,13 @@ export class ActivityService {
         context,
         activity.application,
       );
+      if (canViewResults) {
+        await recordActivityAudit(transaction, context, {
+          action: "ACTIVITY_SENSITIVE_RESULTS_READ",
+          resourceId: activity.id,
+          resourceType: "ApplicationActivity",
+        });
+      }
       return mapStaffActivity(activity, canViewResults);
     });
   }
