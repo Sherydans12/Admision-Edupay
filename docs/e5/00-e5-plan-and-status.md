@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A+B+C+D+E+F+G COMPLETE — READY FOR E5-H REVIEW` |
+| Estado | `IN PROGRESS / E5-A+B+C+D+E+F+G+H COMPLETE — READY FOR E5-I REVIEW` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
@@ -161,6 +161,16 @@ No se iniciaron E5-H, E5-I, handoff, EduPay ni G5.
 ### E5-H — Reportes, configuración, permisos y auditoría de cierre
 
 Cobertura principal: `BL-018`, cierre de `BL-019`, `BL-020`, `BL-021`, exportaciones minimizadas y trazabilidad completa.
+
+**Estado:** `COMPLETE`.
+
+Migration 14, catálogo cerrado de siete reportes, CSV minimizado y endurecido,
+administración P0 de RoleAssignment, self-elevation reutilizada, consulta y sink
+durable de auditoría, cierre de configuración y superficies accesibles pasaron
+377/377 tests, 40/40 RLS y GitHub Actions run `31552081281` (job
+`93976724073`, `success`). La evidencia y límites se documentan en
+[`08-e5h-reports-permissions-audit-evidence.md`](08-e5h-reports-permissions-audit-evidence.md).
+E5-I no se inició y G5 permanece `NO APROBADA`.
 
 ### E5-I — Borde funcional EduPay y paquete G5
 

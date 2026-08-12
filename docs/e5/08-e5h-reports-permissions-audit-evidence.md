@@ -8,7 +8,7 @@
 | Entry HEAD | `9d44a46d24fc7a791d43efd91be236d9f35568f8` |
 | Rama | `feat/e5-mvp` |
 | PR | `#8`, `OPEN`, `DRAFT`, sin merge |
-| Estado local | `COMPLETE`; validación GitHub pendiente de registrar |
+| Estado | `COMPLETE` |
 | Datos | Sólo sintéticos/non-production |
 | Schema change | `YES`, migration 14 |
 
@@ -245,6 +245,7 @@ en desktop y viewport móvil 390×844. El detector manual de interfaz devolvió
 | `FRESH_0_TO_14` | PASS |
 | `INCREMENTAL_13_TO_14` | PASS |
 | `E5H_AUDIT_SEALS` | PASS |
+| GitHub Actions sobre `2fcfcf7ca4ff16d99e5a9c4cb5eb51ac2bc22807` | run `31552081281`, job `93976724073`, `success` |
 
 El primer intento de la cadena completa de smokes históricos alcanzó el timeout
 de 15 minutos porque `e4:deploy:smoke` quedó esperando que Docker Desktop
@@ -253,8 +254,9 @@ incluso a `docker version`. No se forzó ni amplió la eliminación. E5-H fresh,
 incremental y seals ya habían pasado en una ejecución aislada anterior. Los
 smokes E4/E5-C..G conservan además su evidencia verde en el HEAD E5-G definitivo
 `9d44a46d24fc7a791d43efd91be236d9f35568f8`, run `31545007981`, job
-`93955501044`. GitHub Actions del HEAD E5-H debe revalidar la cadena antes del
-cierre final.
+`93955501044`. GitHub Actions run `31552081281` revalidó en un runner limpio la
+suite completa, RLS y los smokes E5-F, E5-G y E5-H; migration 14 pasó fresh
+0→14, incremental 13→14 y `E5H_AUDIT_SEALS`.
 
 ## Trazabilidad
 
@@ -292,6 +294,5 @@ institucional.
   resolverán antes de producción/G5;
 - `BL-023..BL-028`, E5-I, handoff técnico y EduPay no fueron implementados.
 
-La compuerta sólo puede pasar a E5-H `COMPLETE` cuando GitHub Actions valide el
-HEAD final. E5-I permanece `NOT_STARTED` y G5 `NO APROBADA`; no se declara
-`READY FOR G5`.
+E5-H queda `COMPLETE`. E5-I permanece `NOT_STARTED` y G5 `NO APROBADA`; no se
+declara `READY FOR G5`.
