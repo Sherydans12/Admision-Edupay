@@ -73,9 +73,9 @@ Spec files E5-G relevantes:
 
 | Verificación | Resultado |
 |---|---|
-| HEAD validado | `761decb16573be529d42c671fc47d48fa7aaf04` |
-| Run | `31544577879` |
-| Job | `validate` / `93954217562` |
+| HEAD validado | `9d44a46d24fc7a791d43efd91be236d9f35568f8` |
+| Run | `31545007981` |
+| Job | `validate` / `93955501044` |
 | Conclusion | `success` |
 | `pnpm format:check` | ✅ PASS |
 | `pnpm lint` | ✅ PASS |
