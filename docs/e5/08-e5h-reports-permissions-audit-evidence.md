@@ -229,10 +229,10 @@ en desktop y viewport móvil 390×844. El detector manual de interfaz devolvió
 | Control | Resultado |
 | --- | --- |
 | E5-H unit CSV/catalog/metadata | 13/13 PASS |
-| E5-H DB reporting/RBAC/audit | 13/13 PASS |
-| E5-H HTTP Nest/PostgreSQL | 19/19 PASS |
+| E5-H DB reporting/RBAC/audit (incl. E5H-AUD-PAGE-01..10) | 23/23 PASS |
+| E5-H HTTP Nest/PostgreSQL (incl. E5H-HTTP-21) | 20/20 PASS |
 | E5-H RLS específico | 7/7 PASS |
-| `pnpm test` | 377/377, 30 files, PASS |
+| `pnpm test` | 388/388, 30 files, PASS |
 | `pnpm test:rls` | 40/40, 4 files, PASS |
 | `pnpm format:check` | PASS |
 | `pnpm lint` | PASS |
@@ -277,7 +277,49 @@ suite completa, RLS y los smokes E5-F, E5-G y E5-H; migration 14 pasó fresh
 | E2E-019 | `COVERED` | lectura sensible no amplía acceso |
 | E2E-020 | `COVERED` | deny inicial + self-elevation temporal |
 | E2E-021 | `COVERED` | export autorizado minimizado/auditado |
-| E2E-022 | `COVERED` | Secretaría denegada sin archivo |
+| AC-022 | `COVERED` | Secretaría denegada sin archivo |
+
+## Audit scoped pagination hardening
+
+### Defecto
+En la versión inicial, `AuditReadService.listEvents()` aplicaba un overfetch fijo de `Math.min(limit * 5, 500)` registros `AuditEvent`, filtraba los scopes autorizados (`eventMatchesScope()`) en memoria sobre esa muestra acotada, aplicaba `slice(0, limit)` y asignaba `nextCursor = null` cuando `visible.length < limit`.
+
+Cuando en la base de datos existían más de `5 * limit` eventos recientes que NO coincidían con el scope autorizado (por ejemplo, pertenecientes a otros recursos del mismo tenant) y menos de `limit` eventos visibles dentro de ese batch raw inicial pero con eventos autorizados adicionales posteriores, el servicio indicaba falsamente fin de historial (`nextCursor = null`).
+
+### Escenario reproducible
+- `limit = 10`
+- 60 eventos no autorizados/no visibles por scope (`appHidden`) al inicio de la secuencia ordenada
+- 15 eventos autorizados/visibles por scope (`appVisible`) posteriores
+- Resultado anterior: `items.length = 0` o `< 10` con `nextCursor = null` a pesar de existir 15 eventos autorizados en la base de datos.
+
+### Algoritmo final
+Se implementó un escaneo paginado controlado por batches sobre PostgreSQL dentro de la transacción de tenant (`withTenantTransaction`):
+1. Se consulta la base de datos por batches ordenados establemente por `[occurredAt DESC, id DESC]` con `take: BATCH_SIZE` (`Math.max(limit * 5, 100)`).
+2. Se aplica `eventMatchesScope(context, event)` sobre cada batch reteniendo sólo eventos visibles.
+3. Se avanza el cursor raw (`currentRawCursor = batch[batch.length - 1].id`) y se consulta el siguiente batch de la BD mientras `visibleEvents.length <= limit` y existan más registros raw en PostgreSQL (`batch.length === BATCH_SIZE`).
+4. Se detiene el escaneo únicamente cuando:
+   - a) Se acumularon `limit + 1` (o más) eventos visibles (proporcionando los `limit` elementos de la página actual y confirmando evidencia real para `nextCursor`), o
+   - b) PostgreSQL confirma el agotamiento real de los eventos en el rango filtrado (`batch.length < BATCH_SIZE`).
+5. La respuesta retorna `items = visibleEvents.slice(0, limit)` y `nextCursor = items.at(-1)?.id` si `visibleEvents.length > limit`; si se demostró agotamiento total de la BD, `nextCursor = null`.
+
+### Propiedades verificadas
+- **Ausencia de falso EOF**: `nextCursor` sólo es `null` cuando PostgreSQL confirma agotamiento real del conjunto filtrado base.
+- **Ausencia de duplicados y omisiones**: Las páginas reconstruyen secuencialmente el 100% de los eventos autorizados sin huecos ni repeticiones.
+- **Estabilidad de orden**: `[occurredAt DESC, id DESC]` preserva determinismo total ante marcas de tiempo idénticas.
+- **Aislamiento y scoping**: Scopes `application:<id>`, `offering:<id>`, `process:<id>`, `campus:<id>`, elevaciones de soporte y aislamiento multi-tenant se mantienen estrictamente sin ampliación de acceso.
+
+### Tests incorporados
+- **`E5H-AUD-PAGE-01`**: `> 5 * limit` eventos no visibles antes de visibles no produce falso `nextCursor = null`.
+- **`E5H-AUD-PAGE-02`**: Primera página + segunda página reconstruyen todos los eventos autorizados sin duplicados ni omisiones.
+- **`E5H-AUD-PAGE-03`**: Eventos ocultos intercalados entre eventos visibles mantienen la continuidad.
+- **`E5H-AUD-PAGE-04`**: Dos o más eventos con mismo `occurredAt` mantienen orden estable por `id DESC`.
+- **`E5H-AUD-PAGE-05`**: Scope `application:<id>` sólo muestra dicho recurso/metadata compatible.
+- **`E5H-AUD-PAGE-06`**: Scope `offering`/`process`/`campus` mantiene semántica existente.
+- **`E5H-AUD-PAGE-07`**: Support elevation usa únicamente sus scopes y no amplía acceso.
+- **`E5H-AUD-PAGE-08`**: Tenant A no observa `AuditEvent` de tenant B.
+- **`E5H-AUD-PAGE-09`**: Al agotarse realmente el dataset autorizado: `nextCursor = null`.
+- **`E5H-AUD-PAGE-10`**: Cursor inválido/controlado conserva respuesta segura existente.
+- **`E5H-HTTP-21`**: Recorrido HTTP real Nest/PostgreSQL de 3 páginas sobre distribución sparse de scopes (`limit=4`, 10 visibles sobre 60 totales).
 
 ## Diferidos, supuestos y compuerta
 
