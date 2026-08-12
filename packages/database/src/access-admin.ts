@@ -428,54 +428,88 @@ export class AuditReadService {
         "Audit date range exceeds the technical limit",
       );
     }
-    const events = await withTenantTransaction(this.prisma, (transaction) =>
-      transaction.auditEvent.findMany({
-        ...(filters.cursor === undefined
-          ? {}
-          : { cursor: { id: filters.cursor }, skip: 1 }),
-        orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
-        take: Math.min(filters.limit * 5, 500),
-        where: {
-          ...(filters.action === undefined ? {} : { action: filters.action }),
-          occurredAt: { gte: filters.dateFrom, lte: filters.dateTo },
-          ...(filters.purpose === undefined
+    return await withTenantTransaction(this.prisma, async (transaction) => {
+      const visibleEvents: Array<
+        Awaited<ReturnType<typeof transaction.auditEvent.findMany>>[number]
+      > = [];
+      let currentRawCursor: string | undefined = filters.cursor;
+      let hasMoreRaw = true;
+
+      const BATCH_SIZE = Math.max(filters.limit * 5, 100);
+
+      while (visibleEvents.length <= filters.limit && hasMoreRaw) {
+        const batch = await transaction.auditEvent.findMany({
+          ...(currentRawCursor === undefined
             ? {}
-            : { purpose: filters.purpose }),
-          ...(filters.resourceId === undefined
-            ? {}
-            : { resourceId: filters.resourceId }),
-          ...(filters.resourceType === undefined
-            ? {}
-            : { resourceType: filters.resourceType }),
-          scope: "TENANT",
-          tenantId: context.tenantId,
-        },
-      }),
-    );
-    const visible = events
-      .filter((event) => eventMatchesScope(context, event))
-      .slice(0, filters.limit);
-    return {
-      items: visible.map((event) => ({
-        action: event.action,
-        actorId: event.actorId,
-        correlationId: event.correlationId,
-        effectiveActorId: event.effectiveActorId,
-        id: event.id,
-        metadata: sanitizeAuditMetadata(
-          typeof event.metadata === "object" && event.metadata !== null
-            ? (event.metadata as Record<string, unknown>)
-            : undefined,
-        ),
-        occurredAt: event.occurredAt.toISOString(),
-        purpose: event.purpose,
-        reasonCode: event.reasonCode,
-        resourceId: event.resourceId,
-        resourceType: event.resourceType,
-        result: event.result,
-      })),
-      nextCursor:
-        visible.length === filters.limit ? (visible.at(-1)?.id ?? null) : null,
-    };
+            : { cursor: { id: currentRawCursor }, skip: 1 }),
+          orderBy: [{ occurredAt: "desc" }, { id: "desc" }],
+          take: BATCH_SIZE,
+          where: {
+            ...(filters.action === undefined ? {} : { action: filters.action }),
+            occurredAt: { gte: filters.dateFrom, lte: filters.dateTo },
+            ...(filters.purpose === undefined
+              ? {}
+              : { purpose: filters.purpose }),
+            ...(filters.resourceId === undefined
+              ? {}
+              : { resourceId: filters.resourceId }),
+            ...(filters.resourceType === undefined
+              ? {}
+              : { resourceType: filters.resourceType }),
+            scope: "TENANT",
+            tenantId: context.tenantId,
+          },
+        });
+
+        if (batch.length === 0) {
+          hasMoreRaw = false;
+          break;
+        }
+
+        for (const event of batch) {
+          if (eventMatchesScope(context, event)) {
+            visibleEvents.push(event);
+          }
+        }
+
+        const lastBatchItem = batch[batch.length - 1];
+        if (lastBatchItem !== undefined) {
+          currentRawCursor = lastBatchItem.id;
+        }
+
+        if (batch.length < BATCH_SIZE) {
+          hasMoreRaw = false;
+        }
+      }
+
+      const visible = visibleEvents.slice(0, filters.limit);
+      const hasMoreVisible = visibleEvents.length > filters.limit;
+      const lastVisibleItem = visible[visible.length - 1];
+
+      return {
+        items: visible.map((event) => ({
+          action: event.action,
+          actorId: event.actorId,
+          correlationId: event.correlationId,
+          effectiveActorId: event.effectiveActorId,
+          id: event.id,
+          metadata: sanitizeAuditMetadata(
+            typeof event.metadata === "object" && event.metadata !== null
+              ? (event.metadata as Record<string, unknown>)
+              : undefined,
+          ),
+          occurredAt: event.occurredAt.toISOString(),
+          purpose: event.purpose,
+          reasonCode: event.reasonCode,
+          resourceId: event.resourceId,
+          resourceType: event.resourceType,
+          result: event.result,
+        })),
+        nextCursor:
+          hasMoreVisible && lastVisibleItem !== undefined
+            ? lastVisibleItem.id
+            : null,
+      };
+    });
   }
 }

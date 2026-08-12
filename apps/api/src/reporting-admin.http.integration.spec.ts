@@ -640,5 +640,181 @@ describe.sequential(
       expect([reports.status, access.status]).toEqual([403, 403]);
       expect(applicationA).not.toBe("");
     });
+
+    it("E5H-HTTP-21: multi-page pagination over sparse scope distribution via real HTTP", async () => {
+      const scopedUser = randomUUID();
+      await migrationPool.query(
+        "INSERT INTO platform_users (id, email_normalized) VALUES ($1,$2)",
+        [scopedUser, `e5h-http-scoped-${scopedUser}@example.invalid`],
+      );
+      const scopedToken = (await sessions.issueSession(scopedUser)).token;
+      const scopedMembershipId = randomUUID();
+      const appVisibleId = randomUUID();
+      const appHiddenId = randomUUID();
+      const baseDate = new Date();
+
+      await runWithTenantContext(context(tenantA, managerUser, ["*"]), () =>
+        withTenantTransaction(prisma, async (tx) => {
+          await tx.membership.create({
+            data: {
+              id: scopedMembershipId,
+              startsAt: new Date(0),
+              tenantId: tenantA,
+              userId: scopedUser,
+            },
+          });
+          await tx.roleAssignment.create({
+            data: {
+              membershipId: scopedMembershipId,
+              permissions: [PERMISSIONS.AUDIT_READ],
+              roleKey: "synthetic-scoped-auditor",
+              scopes: [`application:${appVisibleId}`],
+              startsAt: new Date(0),
+              tenantId: tenantA,
+            },
+          });
+
+          for (let i = 0; i < 25; i++) {
+            await tx.auditEvent.create({
+              data: {
+                action: "HTTP_HIDDEN_1",
+                actorId: managerUser,
+                correlationId: `c-http-hid1-${i}`,
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${appHiddenId}`] },
+                occurredAt: new Date(baseDate.getTime() - i * 1000),
+                purpose: "E5H_HTTP_SPARSE",
+                resourceId: appHiddenId,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+          }
+          for (let i = 0; i < 5; i++) {
+            await tx.auditEvent.create({
+              data: {
+                action: "HTTP_VISIBLE_1",
+                actorId: managerUser,
+                correlationId: `c-http-vis1-${i}`,
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${appVisibleId}`] },
+                occurredAt: new Date(baseDate.getTime() - (25 + i) * 1000),
+                purpose: "E5H_HTTP_SPARSE",
+                resourceId: appVisibleId,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+          }
+          for (let i = 0; i < 25; i++) {
+            await tx.auditEvent.create({
+              data: {
+                action: "HTTP_HIDDEN_2",
+                actorId: managerUser,
+                correlationId: `c-http-hid2-${i}`,
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${appHiddenId}`] },
+                occurredAt: new Date(baseDate.getTime() - (30 + i) * 1000),
+                purpose: "E5H_HTTP_SPARSE",
+                resourceId: appHiddenId,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+          }
+          for (let i = 0; i < 5; i++) {
+            await tx.auditEvent.create({
+              data: {
+                action: "HTTP_VISIBLE_2",
+                actorId: managerUser,
+                correlationId: `c-http-vis2-${i}`,
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${appVisibleId}`] },
+                occurredAt: new Date(baseDate.getTime() - (55 + i) * 1000),
+                purpose: "E5H_HTTP_SPARSE",
+                resourceId: appVisibleId,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+          }
+        }),
+      );
+
+      const queryPage1 = new URLSearchParams({
+        dateFrom: new Date(baseDate.getTime() - 86_400_000).toISOString(),
+        dateTo: new Date(baseDate.getTime() + 86_400_000).toISOString(),
+        limit: "4",
+        purpose: "E5H_HTTP_SPARSE",
+      });
+
+      const res1 = await fetch(
+        `${baseUrl}/admin/tenants/${tenantA}/audit-events?${queryPage1}`,
+        { headers: cookie(scopedToken) },
+      );
+      expect(res1.status).toBe(200);
+      const body1 = (await res1.json()) as {
+        items: Array<{ id: string }>;
+        nextCursor: string | null;
+      };
+      expect(body1.items.length).toBe(4);
+      expect(body1.nextCursor).not.toBeNull();
+
+      const queryPage2 = new URLSearchParams({
+        cursor: body1.nextCursor ?? "",
+        dateFrom: new Date(baseDate.getTime() - 86_400_000).toISOString(),
+        dateTo: new Date(baseDate.getTime() + 86_400_000).toISOString(),
+        limit: "4",
+        purpose: "E5H_HTTP_SPARSE",
+      });
+
+      const res2 = await fetch(
+        `${baseUrl}/admin/tenants/${tenantA}/audit-events?${queryPage2}`,
+        { headers: cookie(scopedToken) },
+      );
+      expect(res2.status).toBe(200);
+      const body2 = (await res2.json()) as {
+        items: Array<{ id: string }>;
+        nextCursor: string | null;
+      };
+      expect(body2.items.length).toBe(4);
+      expect(body2.nextCursor).not.toBeNull();
+
+      const queryPage3 = new URLSearchParams({
+        cursor: body2.nextCursor ?? "",
+        dateFrom: new Date(baseDate.getTime() - 86_400_000).toISOString(),
+        dateTo: new Date(baseDate.getTime() + 86_400_000).toISOString(),
+        limit: "4",
+        purpose: "E5H_HTTP_SPARSE",
+      });
+
+      const res3 = await fetch(
+        `${baseUrl}/admin/tenants/${tenantA}/audit-events?${queryPage3}`,
+        { headers: cookie(scopedToken) },
+      );
+      expect(res3.status).toBe(200);
+      const body3 = (await res3.json()) as {
+        items: Array<{ id: string }>;
+        nextCursor: string | null;
+      };
+      expect(body3.items.length).toBe(2);
+      expect(body3.nextCursor).toBeNull();
+
+      const allFetchedIds = [
+        ...body1.items.map((i) => i.id),
+        ...body2.items.map((i) => i.id),
+        ...body3.items.map((i) => i.id),
+      ];
+      expect(allFetchedIds.length).toBe(10);
+      expect(new Set(allFetchedIds).size).toBe(10);
+    });
   },
 );

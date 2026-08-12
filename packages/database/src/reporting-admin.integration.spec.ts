@@ -20,6 +20,7 @@ import {
 } from "./reporting.js";
 import { resolveEffectiveTenantContext } from "./tenant-resolution.js";
 import {
+  createVerifiedSupportElevation,
   runWithTenantContext,
   type TenantExecutionContext,
 } from "./tenant-execution-context.js";
@@ -607,6 +608,704 @@ describe.sequential(
         ),
       ).toBe(true);
       expect(JSON.stringify(result.items)).not.toContain("password");
+    });
+
+    describe("Audit pagination completeness hardening (E5H-AUD-PAGE-01..10)", () => {
+      it("E5H-AUD-PAGE-01: > 5 * limit non-visible events before visible events does not cause false nextCursor=null", async () => {
+        const service = new AuditReadService(prisma);
+        const appHiddenId = randomUUID();
+        const appVisibleId = randomUUID();
+        const baseDate = new Date();
+
+        await runWithTenantContext(context(), () =>
+          withTenantTransaction(prisma, async (tx) => {
+            for (let i = 0; i < 60; i++) {
+              await tx.auditEvent.create({
+                data: {
+                  action: "APPLICATION_UPDATED",
+                  actorId: managerUser,
+                  correlationId: `e5h-page1-hid-${i}`,
+                  effectiveActorId: managerUser,
+                  metadata: { resourceScopes: [`application:${appHiddenId}`] },
+                  occurredAt: new Date(baseDate.getTime() - i * 1000),
+                  purpose: "E5H_AUD_PAGE_01",
+                  resourceId: appHiddenId,
+                  resourceType: "Application",
+                  result: "SUCCESS",
+                  scope: "TENANT",
+                  tenantId: tenantA,
+                },
+              });
+            }
+            for (let i = 0; i < 15; i++) {
+              await tx.auditEvent.create({
+                data: {
+                  action: "APPLICATION_SUBMITTED",
+                  actorId: managerUser,
+                  correlationId: `e5h-page1-vis-${i}`,
+                  effectiveActorId: managerUser,
+                  metadata: { resourceScopes: [`application:${appVisibleId}`] },
+                  occurredAt: new Date(baseDate.getTime() - (60 + i) * 1000),
+                  purpose: "E5H_AUD_PAGE_01",
+                  resourceId: appVisibleId,
+                  resourceType: "Application",
+                  result: "SUCCESS",
+                  scope: "TENANT",
+                  tenantId: tenantA,
+                },
+              });
+            }
+          }),
+        );
+
+        const ctx = context({ scopes: [`application:${appVisibleId}`] });
+        const result = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            dateFrom: new Date(baseDate.getTime() - 86_400_000),
+            dateTo: new Date(baseDate.getTime() + 86_400_000),
+            limit: 10,
+            purpose: "E5H_AUD_PAGE_01",
+          }),
+        );
+
+        expect(result.items.length).toBe(10);
+        expect(result.nextCursor).not.toBeNull();
+        expect(typeof result.nextCursor).toBe("string");
+      });
+
+      it("E5H-AUD-PAGE-02: page 1 + page 2 reconstruct all authorized events without duplicates or omissions", async () => {
+        const service = new AuditReadService(prisma);
+        const appVisibleId = randomUUID();
+        const appHiddenId = randomUUID();
+        const baseDate = new Date();
+
+        await runWithTenantContext(context(), () =>
+          withTenantTransaction(prisma, async (tx) => {
+            for (let i = 0; i < 50; i++) {
+              await tx.auditEvent.create({
+                data: {
+                  action: "APPLICATION_DRAFTED",
+                  actorId: managerUser,
+                  correlationId: `e5h-page2-hid-${i}`,
+                  effectiveActorId: managerUser,
+                  metadata: { resourceScopes: [`application:${appHiddenId}`] },
+                  occurredAt: new Date(baseDate.getTime() - i * 1000),
+                  purpose: "E5H_AUD_PAGE_02",
+                  resourceId: appHiddenId,
+                  resourceType: "Application",
+                  result: "SUCCESS",
+                  scope: "TENANT",
+                  tenantId: tenantA,
+                },
+              });
+            }
+            for (let i = 0; i < 15; i++) {
+              await tx.auditEvent.create({
+                data: {
+                  action: "APPLICATION_SUBMITTED",
+                  actorId: managerUser,
+                  correlationId: `e5h-page2-vis-${i}`,
+                  effectiveActorId: managerUser,
+                  metadata: { resourceScopes: [`application:${appVisibleId}`] },
+                  occurredAt: new Date(baseDate.getTime() - (50 + i) * 1000),
+                  purpose: "E5H_AUD_PAGE_02",
+                  resourceId: appVisibleId,
+                  resourceType: "Application",
+                  result: "SUCCESS",
+                  scope: "TENANT",
+                  tenantId: tenantA,
+                },
+              });
+            }
+          }),
+        );
+
+        const ctx = context({ scopes: [`application:${appVisibleId}`] });
+        const page1 = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            dateFrom: new Date(baseDate.getTime() - 86_400_000),
+            dateTo: new Date(baseDate.getTime() + 86_400_000),
+            limit: 10,
+            purpose: "E5H_AUD_PAGE_02",
+          }),
+        );
+
+        expect(page1.items.length).toBe(10);
+        expect(page1.nextCursor).not.toBeNull();
+
+        const page2 = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            cursor: page1.nextCursor ?? "",
+            dateFrom: new Date(baseDate.getTime() - 86_400_000),
+            dateTo: new Date(baseDate.getTime() + 86_400_000),
+            limit: 10,
+            purpose: "E5H_AUD_PAGE_02",
+          }),
+        );
+
+        expect(page2.items.length).toBe(5);
+        expect(page2.nextCursor).toBeNull();
+
+        const allIds = [
+          ...page1.items.map((i) => i.id),
+          ...page2.items.map((i) => i.id),
+        ];
+        const uniqueIds = new Set(allIds);
+        expect(uniqueIds.size).toBe(15);
+      });
+
+      it("E5H-AUD-PAGE-03: hidden events between two visible events do not break continuity", async () => {
+        const service = new AuditReadService(prisma);
+        const visId = randomUUID();
+        const hidId = randomUUID();
+        const baseDate = new Date();
+
+        await runWithTenantContext(context(), () =>
+          withTenantTransaction(prisma, async (tx) => {
+            await tx.auditEvent.create({
+              data: {
+                action: "V1",
+                actorId: managerUser,
+                correlationId: "c-v1",
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${visId}`] },
+                occurredAt: new Date(baseDate.getTime() - 1000),
+                purpose: "E5H_AUD_PAGE_03",
+                resourceId: visId,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+            for (let i = 0; i < 10; i++) {
+              await tx.auditEvent.create({
+                data: {
+                  action: `H_${i}`,
+                  actorId: managerUser,
+                  correlationId: `c-h-${i}`,
+                  effectiveActorId: managerUser,
+                  metadata: { resourceScopes: [`application:${hidId}`] },
+                  occurredAt: new Date(baseDate.getTime() - (2000 + i * 10)),
+                  purpose: "E5H_AUD_PAGE_03",
+                  resourceId: hidId,
+                  resourceType: "Application",
+                  result: "SUCCESS",
+                  scope: "TENANT",
+                  tenantId: tenantA,
+                },
+              });
+            }
+            await tx.auditEvent.create({
+              data: {
+                action: "V2",
+                actorId: managerUser,
+                correlationId: "c-v2",
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${visId}`] },
+                occurredAt: new Date(baseDate.getTime() - 3000),
+                purpose: "E5H_AUD_PAGE_03",
+                resourceId: visId,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+            for (let i = 10; i < 20; i++) {
+              await tx.auditEvent.create({
+                data: {
+                  action: `H_${i}`,
+                  actorId: managerUser,
+                  correlationId: `c-h-${i}`,
+                  effectiveActorId: managerUser,
+                  metadata: { resourceScopes: [`application:${hidId}`] },
+                  occurredAt: new Date(baseDate.getTime() - (4000 + i * 10)),
+                  purpose: "E5H_AUD_PAGE_03",
+                  resourceId: hidId,
+                  resourceType: "Application",
+                  result: "SUCCESS",
+                  scope: "TENANT",
+                  tenantId: tenantA,
+                },
+              });
+            }
+            await tx.auditEvent.create({
+              data: {
+                action: "V3",
+                actorId: managerUser,
+                correlationId: "c-v3",
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${visId}`] },
+                occurredAt: new Date(baseDate.getTime() - 5000),
+                purpose: "E5H_AUD_PAGE_03",
+                resourceId: visId,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+          }),
+        );
+
+        const ctx = context({ scopes: [`application:${visId}`] });
+        const p1 = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            dateFrom: new Date(baseDate.getTime() - 86_400_000),
+            dateTo: new Date(baseDate.getTime() + 86_400_000),
+            limit: 2,
+            purpose: "E5H_AUD_PAGE_03",
+          }),
+        );
+        expect(p1.items.map((i) => i.action)).toEqual(["V1", "V2"]);
+        expect(p1.nextCursor).toBe(p1.items[1]?.id);
+
+        const p2 = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            cursor: p1.nextCursor ?? "",
+            dateFrom: new Date(baseDate.getTime() - 86_400_000),
+            dateTo: new Date(baseDate.getTime() + 86_400_000),
+            limit: 2,
+            purpose: "E5H_AUD_PAGE_03",
+          }),
+        );
+        expect(p2.items.map((i) => i.action)).toEqual(["V3"]);
+        expect(p2.nextCursor).toBeNull();
+      });
+
+      it("E5H-AUD-PAGE-04: two or more events with same occurredAt maintain stable order by id", async () => {
+        const service = new AuditReadService(prisma);
+        const visId = randomUUID();
+        const sameDate = new Date();
+
+        await runWithTenantContext(context(), () =>
+          withTenantTransaction(prisma, async (tx) => {
+            for (let i = 0; i < 5; i++) {
+              await tx.auditEvent.create({
+                data: {
+                  action: `SAME_TIME_${i}`,
+                  actorId: managerUser,
+                  correlationId: `c-same-${i}`,
+                  effectiveActorId: managerUser,
+                  metadata: { resourceScopes: [`application:${visId}`] },
+                  occurredAt: sameDate,
+                  purpose: "E5H_AUD_PAGE_04",
+                  resourceId: visId,
+                  resourceType: "Application",
+                  result: "SUCCESS",
+                  scope: "TENANT",
+                  tenantId: tenantA,
+                },
+              });
+            }
+          }),
+        );
+
+        const ctx = context({ scopes: [`application:${visId}`] });
+        const p1 = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            dateFrom: new Date(sameDate.getTime() - 1000),
+            dateTo: new Date(sameDate.getTime() + 1000),
+            limit: 2,
+            purpose: "E5H_AUD_PAGE_04",
+          }),
+        );
+
+        expect(p1.items.length).toBe(2);
+        const p1Item0 = p1.items[0];
+        const p1Item1 = p1.items[1];
+        expect(
+          p1Item0 !== undefined &&
+            p1Item1 !== undefined &&
+            p1Item0.id.localeCompare(p1Item1.id) > 0,
+        ).toBe(true);
+
+        const p2 = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            cursor: p1.nextCursor ?? "",
+            dateFrom: new Date(sameDate.getTime() - 1000),
+            dateTo: new Date(sameDate.getTime() + 1000),
+            limit: 2,
+            purpose: "E5H_AUD_PAGE_04",
+          }),
+        );
+
+        expect(p2.items.length).toBe(2);
+        const p2Item0 = p2.items[0];
+        const p2Item1 = p2.items[1];
+        expect(
+          p2Item0 !== undefined &&
+            p2Item1 !== undefined &&
+            p2Item0.id.localeCompare(p2Item1.id) > 0,
+        ).toBe(true);
+
+        const p3 = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            cursor: p2.nextCursor ?? "",
+            dateFrom: new Date(sameDate.getTime() - 1000),
+            dateTo: new Date(sameDate.getTime() + 1000),
+            limit: 2,
+            purpose: "E5H_AUD_PAGE_04",
+          }),
+        );
+
+        expect(p3.items.length).toBe(1);
+        expect(p3.nextCursor).toBeNull();
+
+        const allIds = [
+          ...p1.items.map((i) => i.id),
+          ...p2.items.map((i) => i.id),
+          ...p3.items.map((i) => i.id),
+        ];
+        expect(new Set(allIds).size).toBe(5);
+        const sortedIds = [...allIds].sort((a, b) => b.localeCompare(a));
+        expect(allIds).toEqual(sortedIds);
+      });
+
+      it("E5H-AUD-PAGE-05: scope application:<id> only shows that resource/metadata compatible events", async () => {
+        const service = new AuditReadService(prisma);
+        const appTarget = randomUUID();
+        const appOther = randomUUID();
+        const now = new Date();
+
+        await runWithTenantContext(context(), () =>
+          withTenantTransaction(prisma, async (tx) => {
+            await tx.auditEvent.create({
+              data: {
+                action: "TARGET_APP_EVENT",
+                actorId: managerUser,
+                correlationId: "c-app-tgt",
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${appTarget}`] },
+                occurredAt: now,
+                purpose: "E5H_AUD_PAGE_05",
+                resourceId: appTarget,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+            await tx.auditEvent.create({
+              data: {
+                action: "OTHER_APP_EVENT",
+                actorId: managerUser,
+                correlationId: "c-app-oth",
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${appOther}`] },
+                occurredAt: now,
+                purpose: "E5H_AUD_PAGE_05",
+                resourceId: appOther,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+          }),
+        );
+
+        const ctx = context({ scopes: [`application:${appTarget}`] });
+        const res = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            dateFrom: new Date(now.getTime() - 1000),
+            dateTo: new Date(now.getTime() + 1000),
+            limit: 10,
+            purpose: "E5H_AUD_PAGE_05",
+          }),
+        );
+
+        expect(res.items.length).toBe(1);
+        expect(res.items[0]?.action).toBe("TARGET_APP_EVENT");
+      });
+
+      it("E5H-AUD-PAGE-06: scope offering/process/campus maintains existing semantics", async () => {
+        const service = new AuditReadService(prisma);
+        const offeringId = randomUUID();
+        const processId = randomUUID();
+        const campusId = randomUUID();
+        const otherOfferingId = randomUUID();
+        const now = new Date();
+
+        await runWithTenantContext(context(), () =>
+          withTenantTransaction(prisma, async (tx) => {
+            await tx.auditEvent.create({
+              data: {
+                action: "OFFERING_EVENT",
+                actorId: managerUser,
+                correlationId: "c-off",
+                effectiveActorId: managerUser,
+                occurredAt: now,
+                purpose: "E5H_AUD_PAGE_06",
+                resourceId: offeringId,
+                resourceType: "AdmissionOffering",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+            await tx.auditEvent.create({
+              data: {
+                action: "PROCESS_EVENT",
+                actorId: managerUser,
+                correlationId: "c-prc",
+                effectiveActorId: managerUser,
+                occurredAt: now,
+                purpose: "E5H_AUD_PAGE_06",
+                resourceId: processId,
+                resourceType: "AdmissionProcess",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+            await tx.auditEvent.create({
+              data: {
+                action: "CAMPUS_EVENT",
+                actorId: managerUser,
+                correlationId: "c-cmp",
+                effectiveActorId: managerUser,
+                occurredAt: now,
+                purpose: "E5H_AUD_PAGE_06",
+                resourceId: campusId,
+                resourceType: "Campus",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+            await tx.auditEvent.create({
+              data: {
+                action: "OTHER_OFFERING_EVENT",
+                actorId: managerUser,
+                correlationId: "c-off-oth",
+                effectiveActorId: managerUser,
+                occurredAt: now,
+                purpose: "E5H_AUD_PAGE_06",
+                resourceId: otherOfferingId,
+                resourceType: "AdmissionOffering",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+          }),
+        );
+
+        const ctx = context({
+          scopes: [
+            `offering:${offeringId}`,
+            `process:${processId}`,
+            `campus:${campusId}`,
+          ],
+        });
+        const res = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            dateFrom: new Date(now.getTime() - 1000),
+            dateTo: new Date(now.getTime() + 1000),
+            limit: 10,
+            purpose: "E5H_AUD_PAGE_06",
+          }),
+        );
+
+        const actions = res.items.map((i) => i.action).sort();
+        expect(actions).toEqual([
+          "CAMPUS_EVENT",
+          "OFFERING_EVENT",
+          "PROCESS_EVENT",
+        ]);
+      });
+
+      it("E5H-AUD-PAGE-07: support elevation uses strictly its scopes and does not widen access", async () => {
+        const service = new AuditReadService(prisma);
+        const elevApp = randomUUID();
+        const otherApp = randomUUID();
+        const now = new Date();
+
+        await runWithTenantContext(context(), () =>
+          withTenantTransaction(prisma, async (tx) => {
+            await tx.auditEvent.create({
+              data: {
+                action: "ELEV_EVENT",
+                actorId: managerUser,
+                correlationId: "c-elev",
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${elevApp}`] },
+                occurredAt: now,
+                purpose: "E5H_AUD_PAGE_07",
+                resourceId: elevApp,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+            await tx.auditEvent.create({
+              data: {
+                action: "OTHER_EVENT",
+                actorId: managerUser,
+                correlationId: "c-oth-elev",
+                effectiveActorId: managerUser,
+                metadata: { resourceScopes: [`application:${otherApp}`] },
+                occurredAt: now,
+                purpose: "E5H_AUD_PAGE_07",
+                resourceId: otherApp,
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantA,
+              },
+            });
+          }),
+        );
+
+        const elevCtx: TenantExecutionContext = {
+          ...context({ scopes: ["*"] }),
+          supportElevation: createVerifiedSupportElevation({
+            categories: ["restricted"],
+            expiresAt: new Date(now.getTime() + 60_000),
+            id: randomUUID(),
+            purpose: "E5H_AUD_PAGE_07",
+            scopes: [`application:${elevApp}`],
+            tenantId: tenantA,
+          }),
+        };
+
+        const res = await runWithTenantContext(elevCtx, () =>
+          service.listEvents({
+            dateFrom: new Date(now.getTime() - 1000),
+            dateTo: new Date(now.getTime() + 1000),
+            limit: 10,
+            purpose: "E5H_AUD_PAGE_07",
+          }),
+        );
+
+        expect(res.items.length).toBe(1);
+        expect(res.items[0]?.action).toBe("ELEV_EVENT");
+
+        const unprivilegedElevCtx: TenantExecutionContext = {
+          ...context({ scopes: ["*"] }),
+          supportElevation: createVerifiedSupportElevation({
+            categories: ["general"],
+            expiresAt: new Date(now.getTime() + 60_000),
+            id: randomUUID(),
+            purpose: "E5H_AUD_PAGE_07",
+            scopes: [`application:${elevApp}`],
+            tenantId: tenantA,
+          }),
+        };
+
+        await expect(
+          runWithTenantContext(unprivilegedElevCtx, () =>
+            service.listEvents({
+              dateFrom: new Date(now.getTime() - 1000),
+              dateTo: new Date(now.getTime() + 1000),
+              limit: 10,
+              purpose: "E5H_AUD_PAGE_07",
+            }),
+          ),
+        ).rejects.toThrow(ForbiddenError);
+      });
+
+      it("E5H-AUD-PAGE-08: tenant A continues to not observe AuditEvent of tenant B", async () => {
+        const service = new AuditReadService(prisma);
+        const now = new Date();
+
+        await runWithTenantContext(context({ tenantId: tenantB }), () =>
+          withTenantTransaction(prisma, async (tx) => {
+            await tx.auditEvent.create({
+              data: {
+                action: "TENANT_B_EVENT",
+                actorId: foreignManagerUser,
+                correlationId: "c-tb",
+                effectiveActorId: foreignManagerUser,
+                occurredAt: now,
+                purpose: "E5H_AUD_PAGE_08",
+                resourceId: randomUUID(),
+                resourceType: "Application",
+                result: "SUCCESS",
+                scope: "TENANT",
+                tenantId: tenantB,
+              },
+            });
+          }),
+        );
+
+        const resA = await runWithTenantContext(
+          context({ tenantId: tenantA }),
+          () =>
+            service.listEvents({
+              dateFrom: new Date(now.getTime() - 1000),
+              dateTo: new Date(now.getTime() + 1000),
+              limit: 10,
+              purpose: "E5H_AUD_PAGE_08",
+            }),
+        );
+
+        expect(resA.items.some((i) => i.action === "TENANT_B_EVENT")).toBe(
+          false,
+        );
+      });
+
+      it("E5H-AUD-PAGE-09: when authorized dataset is genuinely exhausted, nextCursor = null", async () => {
+        const service = new AuditReadService(prisma);
+        const visId = randomUUID();
+        const now = new Date();
+
+        await runWithTenantContext(context(), () =>
+          withTenantTransaction(prisma, async (tx) => {
+            for (let i = 0; i < 3; i++) {
+              await tx.auditEvent.create({
+                data: {
+                  action: `EXHAUST_${i}`,
+                  actorId: managerUser,
+                  correlationId: `c-exh-${i}`,
+                  effectiveActorId: managerUser,
+                  metadata: { resourceScopes: [`application:${visId}`] },
+                  occurredAt: new Date(now.getTime() - i * 1000),
+                  purpose: "E5H_AUD_PAGE_09",
+                  resourceId: visId,
+                  resourceType: "Application",
+                  result: "SUCCESS",
+                  scope: "TENANT",
+                  tenantId: tenantA,
+                },
+              });
+            }
+          }),
+        );
+
+        const ctx = context({ scopes: [`application:${visId}`] });
+        const res = await runWithTenantContext(ctx, () =>
+          service.listEvents({
+            dateFrom: new Date(now.getTime() - 10_000),
+            dateTo: new Date(now.getTime() + 10_000),
+            limit: 10,
+            purpose: "E5H_AUD_PAGE_09",
+          }),
+        );
+
+        expect(res.items.length).toBe(3);
+        expect(res.nextCursor).toBeNull();
+      });
+
+      it("E5H-AUD-PAGE-10: invalid/controlled cursor preserves safe response behavior", async () => {
+        const service = new AuditReadService(prisma);
+        const invalidCursor = randomUUID();
+        const now = new Date();
+
+        const res = await runWithTenantContext(context(), () =>
+          service.listEvents({
+            cursor: invalidCursor,
+            dateFrom: new Date(now.getTime() - 10_000),
+            dateTo: new Date(now.getTime() + 10_000),
+            limit: 10,
+          }),
+        );
+        expect(res.items).toEqual([]);
+        expect(res.nextCursor).toBeNull();
+      });
     });
   },
 );
