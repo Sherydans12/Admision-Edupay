@@ -24,6 +24,12 @@ import {
   StaffCommunicationsWorkspace,
   StaffDashboardWorkspace,
 } from "./communications-dashboard-workflows";
+import {
+  AdminAccessWorkspace,
+  AuditWorkspace,
+  PlatformSupportWorkspace,
+  StaffReportsWorkspace,
+} from "./reporting-admin-workflows";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
@@ -39,6 +45,8 @@ type FamilySection =
   | "admission"
   | "form";
 type AdminSection =
+  | "access"
+  | "audit"
   | "forms"
   | "documents"
   | "campus"
@@ -46,8 +54,10 @@ type AdminSection =
   | "courseLevel"
   | "process"
   | "offering"
-  | "activities";
+  | "activities"
+  | "support";
 type StaffSection =
+  | "audit"
   | "dashboard"
   | "communications"
   | "review"
@@ -55,7 +65,8 @@ type StaffSection =
   | "activities"
   | "recommendation"
   | "direction"
-  | "capacityOffers";
+  | "capacityOffers"
+  | "reports";
 
 interface Offering {
   academicYear: string;
@@ -880,6 +891,8 @@ function AdminView({
   tenantId: string;
 }) {
   const sections: { key: AdminSection; label: string }[] = [
+    { key: "access", label: "Accesos" },
+    { key: "audit", label: "Auditoría" },
     { key: "forms", label: "Formularios" },
     { key: "documents", label: "Documentos" },
     { key: "activities", label: "Actividades" },
@@ -888,6 +901,7 @@ function AdminView({
     { key: "courseLevel", label: "Curso" },
     { key: "process", label: "Proceso" },
     { key: "offering", label: "Oferta" },
+    { key: "support", label: "Soporte global" },
   ];
   return (
     <div className="content-grid">
@@ -935,6 +949,12 @@ function AdminView({
           <AdminDocumentRequirements apiBase={API_BASE} tenantId={tenantId} />
         ) : adminSection === "activities" ? (
           <AdminActivityWorkspace apiBase={API_BASE} tenantId={tenantId} />
+        ) : adminSection === "access" ? (
+          <AdminAccessWorkspace apiBase={API_BASE} tenantId={tenantId} />
+        ) : adminSection === "audit" ? (
+          <AuditWorkspace apiBase={API_BASE} tenantId={tenantId} />
+        ) : adminSection === "support" ? (
+          <PlatformSupportWorkspace apiBase={API_BASE} tenantId={tenantId} />
         ) : (
           <AdminForm
             adminSection={adminSection}
@@ -965,6 +985,8 @@ function StaffView({
     { key: "recommendation", label: "Recomendación interna" },
     { key: "direction", label: "Disposición de Dirección" },
     { key: "capacityOffers", label: "Cupos, espera y ofertas" },
+    { key: "reports", label: "Reportes" },
+    { key: "audit", label: "Auditoría" },
   ];
   return (
     <div className="content-grid">
@@ -1027,6 +1049,10 @@ function StaffView({
           />
         ) : staffSection === "capacityOffers" ? (
           <StaffCapacityOfferWorkspace apiBase={API_BASE} tenantId={tenantId} />
+        ) : staffSection === "reports" ? (
+          <StaffReportsWorkspace apiBase={API_BASE} tenantId={tenantId} />
+        ) : staffSection === "audit" ? (
+          <AuditWorkspace apiBase={API_BASE} tenantId={tenantId} />
         ) : (
           <StaffDirectionWorkspace apiBase={API_BASE} tenantId={tenantId} />
         )}
@@ -1040,7 +1066,10 @@ function AdminForm({
   configuration,
   onSubmit,
 }: {
-  adminSection: Exclude<AdminSection, "forms" | "documents">;
+  adminSection: Exclude<
+    AdminSection,
+    "access" | "audit" | "forms" | "documents" | "activities" | "support"
+  >;
   configuration: Configuration | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {

@@ -89,6 +89,9 @@ jobs:
       - name: Prove E5-G fresh and incremental migration upgrade
         run: pnpm e5g:migration:smoke
 
+      - name: Prove E5-H fresh and incremental migration upgrade
+        run: pnpm e5h:migration:smoke
+
       - name: Remove isolated migration smoke database
         if: always()
         run: |

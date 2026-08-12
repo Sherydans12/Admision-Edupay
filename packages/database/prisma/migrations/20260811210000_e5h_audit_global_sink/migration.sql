@@ -17,4 +17,3 @@ ALTER TABLE "audit_events"
       'ALL_USER_SESSIONS_REVOKED'
     )
   );
-

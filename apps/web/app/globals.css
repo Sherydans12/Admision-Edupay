@@ -1078,6 +1078,44 @@ h3 {
 .lookup-bar .field {
   flex: 1;
 }
+.workflow-stack {
+  display: grid;
+  gap: 1rem;
+}
+.table-shell {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: white;
+}
+.data-table {
+  width: 100%;
+  min-width: 46rem;
+  border-collapse: collapse;
+  text-align: left;
+}
+.data-table th,
+.data-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.data-table th {
+  background: #f2f6f6;
+  color: #34505a;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+}
+.data-table small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.table-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
 @media (max-width: 800px) {
   .topbar,
   .hero-card {

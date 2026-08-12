@@ -22,6 +22,7 @@
     "e5e:migration:smoke": "node scripts/e5e-migration-smoke.mjs",
     "e5f:migration:smoke": "node scripts/e5f-migration-smoke.mjs",
     "e5g:migration:smoke": "node scripts/e5g-migration-smoke.mjs",
+    "e5h:migration:smoke": "node scripts/e5h-migration-smoke.mjs",
     "db:up": "docker compose up -d postgres",
     "dev:api": "pnpm --filter @admission/api dev",
     "dev:web": "pnpm --filter @admission/web dev",
@@ -31,8 +32,8 @@
     "lint": "eslint . --max-warnings=0",
     "security:secrets": "node scripts/security-scan.mjs",
     "security:deps": "pnpm audit --audit-level=high",
-    "test": "vitest run --exclude packages/database/src/tenant-rls.integration.spec.ts --exclude packages/database/src/capacity-offer.rls.integration.spec.ts --exclude packages/database/src/communications.rls.integration.spec.ts",
-    "test:rls": "vitest run packages/database/src/tenant-rls.integration.spec.ts packages/database/src/capacity-offer.rls.integration.spec.ts packages/database/src/communications.rls.integration.spec.ts",
+    "test": "vitest run --exclude packages/database/src/tenant-rls.integration.spec.ts --exclude packages/database/src/capacity-offer.rls.integration.spec.ts --exclude packages/database/src/communications.rls.integration.spec.ts --exclude packages/database/src/reporting-admin.rls.integration.spec.ts",
+    "test:rls": "vitest run packages/database/src/tenant-rls.integration.spec.ts packages/database/src/capacity-offer.rls.integration.spec.ts packages/database/src/communications.rls.integration.spec.ts packages/database/src/reporting-admin.rls.integration.spec.ts",
     "typecheck": "pnpm --recursive --if-present run typecheck"
   },
   "devDependencies": {
