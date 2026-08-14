@@ -33,7 +33,7 @@ explícito hacia la futura etapa E7/G7 y continúan sin resolver.
 | Área | Evidencia revisable | Estado de consolidación |
 | --- | --- | --- |
 | Multitenancy/RLS | E4 tenant/RLS docs; E5-A..H evidence; `pnpm test:rls` histórico y E5-I `46/46` | Evidencia disponible; revisar alcance completo |
-| Authorization/permissions | E4 identity/authorization; E5-E/H; capability `application.handoff.request`; HND-10..14, HND-21 | Evidencia disponible |
+| Authorization/permissions | E4 identity/authorization; E5-E/H; capability `application.handoff.request`; HND-10..14, HND-21, HND-25..29; E5I-HTTP-05..06 | Evidencia disponible |
 | Sessions/CSRF | E4 identity/session; HTTP suites E5-D/G/H; HND-20 | Evidencia disponible |
 | Self-elevation | E4 identity; E5-H audit/permissions; HND-13..14 | Evidencia disponible |
 | Audit/Security Events | E4 operational foundation; E5-H; HND-15..16 | Evidencia disponible |
@@ -41,7 +41,7 @@ explícito hacia la futura etapa E7/G7 y continúan sin resolver.
 | Concurrency | E4 concurrency; E5-F capacity; E5-I HND-04 20-way | Evidencia disponible por dominio |
 | Jobs/outbox/email failures | E4 operational; E5-C/E5-G evidence | Evidencia histórica; no se modifica aquí |
 | Reports/exports | E5-H evidence | Evidencia histórica; no se modifica aquí |
-| Migration evidence | E5-F/G/H evidence; E5-I fresh/incremental/seals | E5-I PASS local; CI final pendiente en este paquete |
+| Migration evidence | E5-F/G/H evidence; E5-I fresh/incremental/seals; CI `31831860375` / job `94869182718` | E5-I PASS; Migration 15 intacta en el hardening |
 | Backup/recovery | [E4 recovery evidence](../e4/08-recovery-evidence.md) y E4 status | Evidencia existente; no se altera |
 | Accessibility/responsive | [E3 accessibility](../e3/08-accessibility-responsive.md) y E5 UI evidence | Evidencia existente; revisar aceptación final |
 | Operation/health/deploy/recovery | E4 operational/deployment/recovery docs | Evidencia existente; no equivale a autorización productiva |

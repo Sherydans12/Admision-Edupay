@@ -4,14 +4,14 @@
 
 | Campo | Valor |
 | --- | --- |
-| Base SHA | `a1dc99e2b3c8c999f29e09b9a818183eb359c62f` |
-| Final SHA | `c8fa6cadec7155393afc77aa91a78d5aae0f3239` |
+| Base SHA | `d1cbbf5008548ac46080ae718d70f36f3e5a963d` |
+| Final technical SHA | `46afcc3bd073d7d87f4a6027b882c2fcc57eaf3e` |
 | Rama | `feat/e5-mvp` |
 | PR | `#8 — OPEN / DRAFT / NO MERGE` |
-| Schema change | `YES` |
+| Schema change in this hardening | `NO` — Migration 15 permanece intacta; no existe Migration 16 |
 | Migration | `packages/database/prisma/migrations/20260814090000_e5i_functional_handoff/migration.sql` |
-| CI run | `31773421598` |
-| CI job | `validate / 94683807800 / success` |
+| CI run for final technical SHA | `31831860375` |
+| CI job | `validate / 94869182718 / success` |
 | Datos | Sintéticos/non-production únicamente |
 
 Este documento distingue hechos verificados, decisiones aprobadas, supuestos de
@@ -42,6 +42,33 @@ registrar el handoff sólo después de aceptación y recibe el mismo aviso.
 No se implementó matrícula, obligación, pago, tabla compartida, escritura en
 EduPay, payload, endpoint, webhook, adapter, autenticación sistema-sistema,
 retry, reconciliation ni lifecycle técnico externo.
+
+## Application-scoped authorization hardening
+
+El defecto corregido era una inconsistencia de scoping: `FunctionalHandoff`
+validaba `offering`, `process` y `campus`, pero omitía
+`application:<applicationId>`. Por ello una capability válida con scope exacto
+de aplicación producía un falso `403`.
+
+La corrección agrega `application:${application.id}` a la misma lista server-side
+que ya reconoce los scopes de offering, process y campus. No cambia capability,
+tenant semantics, sensitivity, aceptación, idempotencia, auditoría ni la
+precondición de negocio.
+
+| Regresión | Resultado |
+| --- | --- |
+| HND-25 — actor tenant normal con application exacta | `PASS` — `REQUESTED`, una fila durable |
+| HND-26 — application de otro caso | `PASS` — `ForbiddenError`, cero filas |
+| HND-27 — SupportElevation con application exacta | `PASS` — `REQUESTED`, una fila durable |
+| HND-28 — SupportElevation con application de otro caso | `PASS` — `ForbiddenError`, cero filas |
+| HND-29 — offering, process, campus y `*` | `PASS` — semántica existente preservada |
+| E5I-HTTP-05 — POST real con application exacta | `PASS` — `201 REQUESTED` |
+| E5I-HTTP-06 — POST real con application de otro caso | `PASS` — `403`, cero handoff |
+
+La autorización sigue siendo exacta por aplicación; no amplía acceso entre
+aplicaciones, tenants ni familias. Capability omission, family context,
+Superadmin Global sin elevation y cross-tenant permanecen denegados. No se
+modificó ninguna migración ni se creó una dependencia ejecutable con EduPay.
 
 ## Criterios de aceptación
 
@@ -89,17 +116,18 @@ datos; no se implementa idempotencia externa.
 
 ## Tests E5-I
 
-- Suite funcional PostgreSQL: 24/24 (`HND-01..HND-24`).
-- Suite HTTP real Nest/PostgreSQL: 4/4 (`HND-18..HND-21`).
+- Suite funcional PostgreSQL: 29/29 (`HND-01..HND-29`).
+- Suite HTTP real Nest/PostgreSQL: 6/6 (`E5I-HTTP-05..06`, `HND-18..HND-21`).
 - Suite RLS nueva: 6/6 (`RLS-01..RLS-06`).
 - Suite RLS conjunta: 46/46; las 40 históricas se conservan y E5-I agrega 6.
+- Suite general CI: 423/423 tests, 32 archivos.
 - Migration smoke: `FRESH_0_TO_15=PASS`, `INCREMENTAL_14_TO_15=PASS`,
   `E5I_HANDOFF_SEALS=PASS`.
 - Control negativo de runtime/config: `E5I_NO_EXTERNAL_INTEGRATION=PASS`.
 
-La ejecución local de `pnpm test` fue intentada con ventana ampliada y agotó
-el timeout del runner sin conclusión ni aserción fallida observable; por ello no
-se declara PASS local de la suite general. `pnpm test:rls` sí terminó 46/46.
+La ejecución local de `pnpm test` agotó el timeout del runner sin aserción
+fallida observable; la misma suite terminó `423/423` en el CI final del SHA
+técnico. `pnpm test:rls` terminó `46/46` localmente y en CI.
 
 ## Exclusiones de integración
 
