@@ -92,6 +92,12 @@ jobs:
       - name: Prove E5-H fresh and incremental migration upgrade
         run: pnpm e5h:migration:smoke
 
+      - name: Prove E5-I fresh and incremental migration upgrade
+        run: pnpm e5i:migration:smoke
+
+      - name: Verify E5-I has no executable external integration
+        run: pnpm e5i:boundary:check
+
       - name: Remove isolated migration smoke database
         if: always()
         run: |
