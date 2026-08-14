@@ -48,6 +48,15 @@ interface Offer {
   origin: "NORMAL" | "WAITLIST";
 }
 
+interface FunctionalHandoff {
+  applicationId: string;
+  createdAt: string;
+  id: string;
+  offerAcceptanceId: string;
+  requestedAt: string;
+  status: "REQUESTED";
+}
+
 interface FamilyProjection {
   applicationId: string;
   applicationStatus: string;
@@ -296,6 +305,12 @@ export function FamilyAdmissionWorkspace({
             Aceptar registra tu decisión expresa. No equivale por sí sola a
             matrícula, obligación ni pago.
           </p>
+          {projection.offer.current.lifecycle === "ACCEPTED" ? (
+            <p className="readiness-copy readiness-copy-ready">
+              Oferta aceptada. La institución continuará con el próximo paso;
+              esta aceptación no equivale a matrícula ni pago.
+            </p>
+          ) : null}
           {projection.offer.current.lifecycle === "ACTIVE" ? (
             <div className="flow-actions">
               <button
@@ -384,6 +399,7 @@ export function StaffCapacityOfferWorkspace({
   const [capacity, setCapacity] = useState<Capacity | null>(null);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [offer, setOffer] = useState<Offer | null>(null);
+  const [handoff, setHandoff] = useState<FunctionalHandoff | null>(null);
   const [newCapacity, setNewCapacity] = useState("0");
   const [reason, setReason] = useState("");
   const [reopenReason, setReopenReason] = useState("");
@@ -510,6 +526,29 @@ export function StaffCapacityOfferWorkspace({
         requestError instanceof ApiError && requestError.status === 409
           ? "La oferta o capacidad cambió. Actualiza antes de reabrir."
           : "No se pudo reabrir la oferta.",
+      );
+    }
+  }
+
+  async function requestHandoff() {
+    if (!offer) return;
+    try {
+      const result = await mutate<FunctionalHandoff>(
+        apiBase,
+        `/staff/tenants/${tenantId}/applications/${applicationId}/handoff`,
+        "POST",
+        {},
+      );
+      setHandoff(result);
+      setNotice(
+        "Handoff solicitado. Este estado no confirma matrícula ni pago.",
+      );
+      setError("");
+    } catch (requestError) {
+      setError(
+        requestError instanceof ApiError && requestError.status === 409
+          ? "El handoff sólo se habilita después de una aceptación expresa vigente."
+          : "No se pudo registrar el handoff funcional.",
       );
     }
   }
@@ -667,6 +706,31 @@ export function StaffCapacityOfferWorkspace({
                   Reabrir con nueva vigencia
                 </button>
               </div>
+            ) : null}
+            {offer.current.lifecycle === "ACCEPTED" ? (
+              <div className="reopen-row">
+                <div>
+                  <strong>Frontera funcional</strong>
+                  <p className="muted">
+                    Sólo registra la solicitud local de Admisión; no crea
+                    matrícula, obligación ni pago.
+                  </p>
+                </div>
+                <button
+                  className="button button-primary"
+                  onClick={() => void requestHandoff()}
+                >
+                  Registrar handoff funcional
+                </button>
+              </div>
+            ) : null}
+            {handoff ? (
+              <p
+                aria-live="polite"
+                className="readiness-copy readiness-copy-ready"
+              >
+                Handoff solicitado. Este estado no confirma matrícula ni pago.
+              </p>
             ) : null}
             <details className="offer-history">
               <summary>Historia de vigencias</summary>

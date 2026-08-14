@@ -97,3 +97,12 @@ export class CapacityOfferValidationError extends Error {
     this.name = "CapacityOfferValidationError";
   }
 }
+
+export type FunctionalHandoffConflictCode = "HANDOFF_NOT_ENABLED";
+
+export class FunctionalHandoffConflictError extends Error {
+  constructor(readonly code: FunctionalHandoffConflictCode) {
+    super(code);
+    this.name = "FunctionalHandoffConflictError";
+  }
+}

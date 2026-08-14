@@ -10,6 +10,7 @@ import {
   AccessAdminValidationError,
   CapacityOfferConflictError,
   CapacityOfferValidationError,
+  FunctionalHandoffConflictError,
   ForbiddenError,
   IntakeConflictError,
   IntakeDuplicateError,
@@ -61,6 +62,7 @@ export interface PublicErrorResponse {
     | "OFFER_ALREADY_ACCEPTED"
     | "OFFER_EXPIRED"
     | "APPLICATION_WITHDRAWN"
+    | "HANDOFF_NOT_ENABLED"
     | "REPORT_EXPORT_LIMIT_EXCEEDED"
     | "ROLE_ASSIGNMENT_CHANGED";
 }
@@ -90,11 +92,13 @@ export class GlobalErrorFilter implements ExceptionFilter {
             ? { code: exception.code }
             : exception instanceof CapacityOfferConflictError
               ? { code: exception.code }
-              : exception instanceof ReportExportLimitExceededError
+              : exception instanceof FunctionalHandoffConflictError
                 ? { code: exception.code }
-                : exception instanceof RoleAssignmentChangedError
+                : exception instanceof ReportExportLimitExceededError
                   ? { code: exception.code }
-                  : {}),
+                  : exception instanceof RoleAssignmentChangedError
+                    ? { code: exception.code }
+                    : {}),
     });
   }
 }
@@ -107,6 +111,8 @@ function exceptionStatus(exception: unknown): number {
   if (exception instanceof RecommendationConflictError)
     return HttpStatus.CONFLICT;
   if (exception instanceof CapacityOfferConflictError)
+    return HttpStatus.CONFLICT;
+  if (exception instanceof FunctionalHandoffConflictError)
     return HttpStatus.CONFLICT;
   if (exception instanceof ReportExportLimitExceededError)
     return HttpStatus.CONFLICT;

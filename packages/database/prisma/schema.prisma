@@ -389,6 +389,7 @@ model Tenant {
   admissionOffers                 AdmissionOffer[]
   admissionOfferVersions          AdmissionOfferVersion[]
   offerAcceptances                OfferAcceptance[]
+  integrationHandoffs              IntegrationHandoff[]
   applicationWithdrawals          ApplicationWithdrawal[]
   communications                  Communication[]
   communicationAttempts           CommunicationAttempt[]
@@ -683,6 +684,7 @@ model Application {
   waitlistEntries                 WaitlistEntry[]
   admissionOffers                 AdmissionOffer[]
   offerAcceptances                OfferAcceptance[]
+  integrationHandoffs              IntegrationHandoff[]
   withdrawals                     ApplicationWithdrawal[]
   communications                  Communication[]
   operationalTasks                OperationalTask[]
@@ -970,12 +972,35 @@ model OfferAcceptance {
   offerVersion   AdmissionOfferVersion @relation(fields: [tenantId, offerId, offerVersionId, applicationId, reservationId, offeringId], references: [tenantId, offerId, id, applicationId, reservationId, offeringId], onDelete: Restrict)
   application    Application           @relation(fields: [tenantId, applicationId, offeringId], references: [tenantId, id, offeringId], onDelete: Restrict)
   reservation    SeatReservation       @relation(fields: [tenantId, reservationId, applicationId, offeringId], references: [tenantId, id, applicationId, offeringId], onDelete: Restrict)
+  integrationHandoff IntegrationHandoff?
 
   @@unique([tenantId, id])
   @@unique([tenantId, offerId])
   @@unique([tenantId, offerVersionId])
+  @@unique([tenantId, id, applicationId], map: "offer_acceptances_tenant_id_id_application_id_key")
   @@index([tenantId, applicationId, acceptedAt])
   @@map("offer_acceptances")
+}
+
+/// Durable local fact that Admisión requested the future integration boundary.
+/// It is not receipt by another system, enrollment, an obligation, or a payment.
+model IntegrationHandoff {
+  id                 String          @id @default(uuid()) @db.Uuid
+  tenantId           String          @map("tenant_id") @db.Uuid
+  applicationId      String          @map("application_id") @db.Uuid
+  offerAcceptanceId  String          @map("offer_acceptance_id") @db.Uuid
+  requestedByActorId String          @map("requested_by_actor_id") @db.Uuid
+  requestedAt        DateTime        @map("requested_at") @db.Timestamptz(3)
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant             Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application        Application     @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+  offerAcceptance    OfferAcceptance @relation(fields: [tenantId, offerAcceptanceId, applicationId], references: [tenantId, id, applicationId], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, offerAcceptanceId], map: "integration_handoffs_tenant_offer_acceptance_key")
+  @@unique([tenantId, offerAcceptanceId, applicationId], map: "integration_handoffs_offer_acceptance_application_key")
+  @@index([tenantId, applicationId, createdAt])
+  @@map("integration_handoffs")
 }
 
 /// Immutable evidence of explicit family withdrawal and the affected resources.

@@ -25,6 +25,8 @@ import { RecommendationController } from "./recommendation.controller.js";
 import { ApiRecommendationService } from "./recommendation.service.js";
 import { CapacityOfferController } from "./capacity-offer.controller.js";
 import { ApiCapacityOfferService } from "./capacity-offer.service.js";
+import { FunctionalHandoffController } from "./functional-handoff.controller.js";
+import { ApiFunctionalHandoffService } from "./functional-handoff.service.js";
 import { CommunicationsController } from "./communications.controller.js";
 import { ApiCommunicationsService } from "./communications.service.js";
 import { FamilyPortalController } from "./family-portal.controller.js";
@@ -75,6 +77,7 @@ const supportElevationProvider = {
     ActivityController,
     RecommendationController,
     CapacityOfferController,
+    FunctionalHandoffController,
     CommunicationsController,
     FamilyPortalController,
     DashboardController,
@@ -92,6 +95,7 @@ const supportElevationProvider = {
     ApiActivityService,
     ApiRecommendationService,
     ApiCapacityOfferService,
+    ApiFunctionalHandoffService,
     ApiCommunicationsService,
     ApiFamilyPortalService,
     ApiOperationalDashboardService,

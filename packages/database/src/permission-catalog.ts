@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   ACTIVITY_RESULT_READ: "activity.result.read",
   ACTIVITY_SCHEDULE: "activity.schedule",
   APPLICATION_DECIDE: "application.decide",
+  APPLICATION_HANDOFF_REQUEST: "application.handoff.request",
   APPLICATION_CREATE: "application.create",
   APPLICATION_ASSIST: "application.assist",
   APPLICATION_READ: "application.read",

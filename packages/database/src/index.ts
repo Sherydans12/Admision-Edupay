@@ -46,9 +46,11 @@ export {
   ActivityConflictError,
   CapacityOfferConflictError,
   CapacityOfferValidationError,
+  FunctionalHandoffConflictError,
   RecommendationConflictError,
   RecommendationValidationError,
   type CapacityOfferConflictCode,
+  type FunctionalHandoffConflictCode,
   type RecommendationConflictCode,
 } from "./domain-errors.js";
 export {
@@ -67,6 +69,10 @@ export {
   type ReopenOfferInput,
   type WaitlistEntryDto,
 } from "./capacity-offer.js";
+export {
+  FunctionalHandoffService,
+  type FunctionalHandoffDto,
+} from "./functional-handoff.js";
 export {
   DIRECTION_DISPOSITIONS,
   RECOMMENDATION_OPTIONS,
