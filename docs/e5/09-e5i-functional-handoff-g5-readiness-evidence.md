@@ -5,11 +5,13 @@
 | Campo | Valor |
 | --- | --- |
 | Base SHA | `a1dc99e2b3c8c999f29e09b9a818183eb359c62f` |
-| Final SHA | `PENDING_COMMIT` |
+| Final SHA | `c8fa6cadec7155393afc77aa91a78d5aae0f3239` |
 | Rama | `feat/e5-mvp` |
 | PR | `#8 — OPEN / DRAFT / NO MERGE` |
 | Schema change | `YES` |
 | Migration | `packages/database/prisma/migrations/20260814090000_e5i_functional_handoff/migration.sql` |
+| CI run | `31773421598` |
+| CI job | `validate / 94683807800 / success` |
 | Datos | Sintéticos/non-production únicamente |
 
 Este documento distingue hechos verificados, decisiones aprobadas, supuestos de
