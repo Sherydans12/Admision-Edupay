@@ -7,6 +7,8 @@ aprobación.
 
 **Conclusión:** `TECHNICAL/FUNCTIONAL E5 P0 IMPLEMENTATION COMPLETE`.
 
+`E5 HUMAN REVIEW PASSED`.
+
 `G5 NOT REQUESTED`.
 
 `G5 BLOCKED BY PRE-PILOT LEGAL/PRIVACY AND REAL-DATA AUTHORIZATION`.
@@ -70,15 +72,17 @@ Q-301..Q-309 permanecen `FUTURE_INTEGRATION_PENDING`. Q-310 permanece
 
 ## Resultado de readiness
 
-La evidencia técnica/funcional de E5 P0 puede someterse a revisión humana. Este
-paquete no solicita ni concede G5. La siguiente acción humana es revisar los
-criterios de salida de G4, cerrar los bloqueadores legales/privacidad y emitir
-una autorización explícita separada si correspondiera.
+La evidencia técnica/funcional de E5 P0 fue revisada y el cierre humano de E5
+quedó registrado en
+[el acta de cierre](../approvals/E5-mvp-functional-closure-2026-08-14.md).
+Este paquete no solicita ni concede G5. La siguiente decisión humana separada
+es revisar los criterios de salida de G4, cerrar los bloqueadores
+legales/privacidad y emitir una autorización explícita de G5 si correspondiera.
 
 | Estado | Valor |
 | --- | --- |
-| E5-I | `IMPLEMENTED / CI VALIDATED — READY FOR FINAL REVIEW` |
-| E5 | `IN PROGRESS / E5-I AWAITING HUMAN REVIEW` |
+| E5-I | `COMPLETE / HUMAN REVIEW PASSED` |
+| E5 | `COMPLETE / HUMAN REVIEW PASSED` |
 | G5 | `NO APROBADA / NOT REQUESTED` |
 | REAL DATA | `NOT AUTHORIZED` |
 | PILOT | `NOT AUTHORIZED` |

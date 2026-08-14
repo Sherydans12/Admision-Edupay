@@ -5,7 +5,7 @@
 | Campo | Valor |
 | --- | --- |
 | Etapa | E5 — MVP |
-| Estado | `IN PROGRESS / E5-A..H COMPLETE + E5-I IMPLEMENTED — READY FOR E5-I FINAL REVIEW` |
+| Estado | `COMPLETE / E5-A..I COMPLETE / HUMAN REVIEW PASSED` |
 | Inicio autorizado | `2026-08-08T20:25:00-04:00` |
 | Base | `main` en `8990bed13622c70d42c54263f2abc45c8849fcbd` |
 | Rama | `feat/e5-mvp` |
@@ -133,7 +133,7 @@ comunicaciones permanecen en E5-G. G5 no se inició.
 
 Cobertura principal: `BL-012`, `BL-013`, `BL-014`: reservas, concurrencia de último cupo, waitlist privada, promoción humana, oferta, aceptación, rechazo, expiración y liberación.
 
-**Estado:** `COMPLETE_WITH_COMMUNICATION_E5G`.
+**Estado:** `COMPLETE`.
 
 Migration 12, dominio transaccional, API/worker/UI, concurrencia, privacidad
 familiar, aislamiento de las ocho tablas y smoke fresh 0→12 / incremental
@@ -176,11 +176,13 @@ E5-I no se inició y G5 permanece `NO APROBADA`.
 
 Cobertura principal: `BL-022` únicamente como borde funcional posterior a aceptación. **No** crear integración técnica EduPay ni resolver `Q-301..Q-309`.
 
-**Estado:** `IMPLEMENTED / CI VALIDATED — READY FOR FINAL REVIEW`.
+**Estado:** `COMPLETE / HUMAN REVIEW PASSED`.
 
 La evidencia funcional, de seguridad, concurrencia, migration smoke y exclusión
 de integración está en [`09-e5i-functional-handoff-g5-readiness-evidence.md`](09-e5i-functional-handoff-g5-readiness-evidence.md).
 La consolidación de readiness está en [`10-g5-readiness-package.md`](10-g5-readiness-package.md).
+El cierre humano está registrado en
+[`docs/approvals/E5-mvp-functional-closure-2026-08-14.md`](../approvals/E5-mvp-functional-closure-2026-08-14.md).
 
 Consolidar evidencia P0/AC/E2E, seguridad, accesibilidad, concurrencia, documentos privados, recuperación, operación y riesgos para solicitar G5. C-013 y autorización de datos reales siguen siendo requisitos posteriores obligatorios.
 
