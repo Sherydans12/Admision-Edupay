@@ -30,6 +30,7 @@ const capacityOffers = new CapacityOfferService(prisma);
 interface Scenario {
   acceptanceId: string | null;
   applicationId: string;
+  campusId: string;
   familyUserId: string;
   offerId: string;
   offerVersionId: string;
@@ -269,6 +270,7 @@ async function seedScenario(options: ScenarioOptions = {}): Promise<Scenario> {
       return {
         acceptanceId,
         applicationId: application.id,
+        campusId: campus.id,
         familyUserId,
         offerId: offer.id,
         offerVersionId: offerVersion.id,
@@ -622,5 +624,111 @@ describe.sequential("E5-I functional handoff boundary", () => {
       expect(source).toContain(id);
     }
     expect(source).toContain("Q-310");
+  });
+
+  it("HND-25: exact application scope permits the valid handoff", async () => {
+    const scenario = await seedScenario();
+    const scoped = tenantContext(
+      scenario.tenantId,
+      randomUUID(),
+      [PERMISSIONS.APPLICATION_HANDOFF_REQUEST],
+      [`application:${scenario.applicationId}`],
+    );
+    const result = await request(scenario, scoped);
+    expect(result.status).toBe("REQUESTED");
+    expect(await countHandoffs(scenario)).toBe(1);
+  });
+
+  it("HND-26: another application scope is denied and creates zero rows", async () => {
+    const scenario = await seedScenario();
+    const scoped = tenantContext(
+      scenario.tenantId,
+      randomUUID(),
+      [PERMISSIONS.APPLICATION_HANDOFF_REQUEST],
+      [`application:${randomUUID()}`],
+    );
+    await expect(request(scenario, scoped)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    expect(await countHandoffs(scenario)).toBe(0);
+  });
+
+  it("HND-27: exact application support elevation permits the handoff", async () => {
+    const scenario = await seedScenario();
+    const elevation = {
+      categories: ["internal"],
+      expiresAt: new Date(Date.now() + 60_000),
+      id: randomUUID(),
+      purpose: "platform.support",
+      scopes: [`application:${scenario.applicationId}`],
+      tenantId: scenario.tenantId,
+    };
+    const elevated = {
+      ...tenantContext(
+        scenario.tenantId,
+        randomUUID(),
+        [PERMISSIONS.APPLICATION_HANDOFF_REQUEST],
+        elevation.scopes,
+      ),
+      contextOrigin: "support_elevation" as const,
+      purpose: "platform.support",
+      supportElevation: elevation,
+    } as unknown as TenantExecutionContext;
+    expect((await request(scenario, elevated)).status).toBe("REQUESTED");
+    expect(await countHandoffs(scenario)).toBe(1);
+  });
+
+  it("HND-28: another application support scope is denied", async () => {
+    const scenario = await seedScenario();
+    const elevation = {
+      categories: ["internal"],
+      expiresAt: new Date(Date.now() + 60_000),
+      id: randomUUID(),
+      purpose: "platform.support",
+      scopes: [`application:${randomUUID()}`],
+      tenantId: scenario.tenantId,
+    };
+    const elevated = {
+      ...tenantContext(
+        scenario.tenantId,
+        randomUUID(),
+        [PERMISSIONS.APPLICATION_HANDOFF_REQUEST],
+        elevation.scopes,
+      ),
+      contextOrigin: "support_elevation" as const,
+      purpose: "platform.support",
+      supportElevation: elevation,
+    } as unknown as TenantExecutionContext;
+    await expect(request(scenario, elevated)).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    expect(await countHandoffs(scenario)).toBe(0);
+  });
+
+  it("HND-29: offering, process, campus and wildcard scopes remain valid", async () => {
+    for (const scope of ["offering", "process", "campus", "*"] as const) {
+      const scenario = await seedScenario();
+      const scopeValue =
+        scope === "*"
+          ? "*"
+          : `${scope}:${
+              scope === "offering"
+                ? scenario.offeringId
+                : scope === "process"
+                  ? scenario.processId
+                  : scenario.campusId
+            }`;
+      const result = await request(
+        scenario,
+        tenantContext(
+          scenario.tenantId,
+          randomUUID(),
+          [PERMISSIONS.APPLICATION_HANDOFF_REQUEST],
+          [scopeValue],
+        ),
+      );
+      expect(result.status).toBe("REQUESTED");
+      expect(await countHandoffs(scenario)).toBe(1);
+    }
   });
 });

@@ -30,6 +30,7 @@ let fixture: {
   activeApplicationId: string;
   familyToken: string;
   noPermissionToken: string;
+  applicationScopedToken: string;
   staffToken: string;
   tenantAId: string;
   tenantBId: string;
@@ -54,6 +55,7 @@ async function seedFixture() {
   const tenantBId = randomUUID();
   const staffId = randomUUID();
   const noPermissionId = randomUUID();
+  const applicationScopedId = randomUUID();
   const familyId = randomUUID();
   const globalId = randomUUID();
   const profileId = randomUUID();
@@ -66,7 +68,7 @@ async function seedFixture() {
   );
   await migrationPool.query(
     `INSERT INTO platform_users (id, email_normalized) VALUES
-      ($1, $2), ($3, $4), ($5, $6), ($7, $8)`,
+      ($1, $2), ($3, $4), ($5, $6), ($7, $8), ($9, $10)`,
     [
       staffId,
       `e5i-http-staff-${staffId}@example.invalid`,
@@ -76,6 +78,8 @@ async function seedFixture() {
       `e5i-http-family-${familyId}@example.invalid`,
       globalId,
       `e5i-http-global-${globalId}@example.invalid`,
+      applicationScopedId,
+      `e5i-http-application-${applicationScopedId}@example.invalid`,
     ],
   );
   await migrationPool.query(
@@ -254,6 +258,27 @@ async function seedFixture() {
           tenantId: tenantAId,
         },
       });
+      const applicationScopedMembership = await transaction.membership.create({
+        data: {
+          id: randomUUID(),
+          startsAt: new Date(now.getTime() - 60_000),
+          status: "ACTIVE",
+          tenantId: tenantAId,
+          userId: applicationScopedId,
+        },
+      });
+      await transaction.roleAssignment.create({
+        data: {
+          id: randomUUID(),
+          membershipId: applicationScopedMembership.id,
+          permissions: [PERMISSIONS.APPLICATION_HANDOFF_REQUEST],
+          roleKey: "E5I_HTTP_APPLICATION_SCOPE",
+          scopes: [`application:${ids[0]}`],
+          startsAt: new Date(now.getTime() - 60_000),
+          status: "ACTIVE",
+          tenantId: tenantAId,
+        },
+      });
       await transaction.membership.create({
         data: {
           id: randomUUID(),
@@ -270,14 +295,21 @@ async function seedFixture() {
     auditSink: new InMemoryAuditSink(),
     securityEvents: new InMemorySecurityEventSink(),
   });
-  const [staffSession, noPermissionSession, familySession] = await Promise.all([
+  const [
+    staffSession,
+    noPermissionSession,
+    familySession,
+    applicationScopedSession,
+  ] = await Promise.all([
     sessions.issueSession(staffId),
     sessions.issueSession(noPermissionId),
     sessions.issueSession(familyId),
+    sessions.issueSession(applicationScopedId),
   ]);
   fixture = {
     acceptedApplicationId: applicationIds[0]!,
     activeApplicationId: applicationIds[1]!,
+    applicationScopedToken: applicationScopedSession.token,
     familyToken: familySession.token,
     noPermissionToken: noPermissionSession.token,
     staffToken: staffSession.token,
@@ -349,6 +381,36 @@ describe.sequential("E5-I real Nest/PostgreSQL HTTP boundary", () => {
     // Fixtures remain synthetic and uniquely named; immutable historical rows are not deleted.
     await prisma.$disconnect();
     await migrationPool.end();
+  });
+
+  it("E5I-HTTP-05: exact application scope permits a valid handoff", async () => {
+    const response = await mutation(
+      handoffPath(fixture.acceptedApplicationId),
+      fixture.applicationScopedToken,
+      {},
+      { csrfToken: await csrf(fixture.applicationScopedToken) },
+    );
+    expect(response.status).toBe(201);
+    expect((await response.json()) as { status: string }).toMatchObject({
+      status: "REQUESTED",
+    });
+  });
+
+  it("E5I-HTTP-06: application scope for another case is denied", async () => {
+    const response = await mutation(
+      handoffPath(fixture.activeApplicationId),
+      fixture.applicationScopedToken,
+      {},
+      { csrfToken: await csrf(fixture.applicationScopedToken) },
+    );
+    expect(response.status).toBe(403);
+    const count = await migrationPool.query<{ count: string }>(
+      `SELECT count(*)::text AS count
+       FROM integration_handoffs
+       WHERE tenant_id = $1::uuid AND application_id = $2::uuid`,
+      [fixture.tenantAId, fixture.activeApplicationId],
+    );
+    expect(count.rows[0]?.count).toBe("0");
   });
 
   it("HND-18: authorized HTTP happy path is idempotent", async () => {

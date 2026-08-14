@@ -35,17 +35,20 @@ function effectiveActor(context: TenantExecutionContext): string {
   return context.effectiveActorId ?? context.actorId;
 }
 
-function resourceScopes(resource: HandoffOfferingResource): readonly string[] {
+function resourceScopes(
+  application: HandoffApplicationResource,
+): readonly string[] {
   return [
-    `offering:${resource.id}`,
-    `process:${resource.processId}`,
-    `campus:${resource.campusId}`,
+    `application:${application.id}`,
+    `offering:${application.offering.id}`,
+    `process:${application.offering.processId}`,
+    `campus:${application.offering.campusId}`,
   ];
 }
 
 function assertResourceScope(
   context: TenantExecutionContext,
-  resource: HandoffOfferingResource,
+  application: HandoffApplicationResource,
 ): void {
   const scopes =
     context.contextOrigin === "support_elevation"
@@ -53,7 +56,7 @@ function assertResourceScope(
       : context.scopes;
   if (
     scopes?.includes("*") !== true &&
-    !resourceScopes(resource).some((scope) => scopes?.includes(scope))
+    !resourceScopes(application).some((scope) => scopes?.includes(scope))
   ) {
     throw new ForbiddenError();
   }
@@ -69,7 +72,7 @@ function authorizeHandoff(
     resourceTenantId: application.tenantId,
     sensitivity: SENSITIVITIES.INTERNAL,
   });
-  assertResourceScope(context, application.offering);
+  assertResourceScope(context, application);
 }
 
 function asJson(value: Record<string, unknown>): Prisma.InputJsonValue {
