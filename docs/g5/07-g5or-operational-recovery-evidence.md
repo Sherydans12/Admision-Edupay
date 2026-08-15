@@ -62,5 +62,12 @@ owner humano. Esta etapa no los puede cerrar.
 
 ## CI full regression
 
-`CI_FULL_REGRESSION = PENDING_EXACT_HEAD`. Esta sección se completa únicamente con un run
-completed/success del SHA final publicado; no se usa un run anterior como evidencia.
+`CI_FULL_REGRESSION = PASS` para el HEAD de implementación
+`56e8617eea0fc89159a4da640915452c30a2259f`: GitHub Actions run `31906582334`, job
+`95065277593`, `completed/success`. Se ejecutaron y terminaron `success` los controles
+históricos de foundation, secretos, dependencias, RLS, E5-F..E5-I, boundary E5-I y G5-BR,
+además de `Prove G5-OR operational readiness` y `Prove G5-OR coordinated synthetic
+recovery`. No hubo pasos críticos `skipped`, `cancelled` ni `failure`.
+
+El commit documental que registra este resultado se valida nuevamente en CI sobre su SHA
+exacto; ese run final se informa en el handoff del PR sin convertir el timeout local en PASS.
