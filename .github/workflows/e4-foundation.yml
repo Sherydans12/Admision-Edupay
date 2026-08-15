@@ -98,6 +98,9 @@ jobs:
       - name: Verify E5-I has no executable external integration
         run: pnpm e5i:boundary:check
 
+      - name: Prove G5-BR fresh and incremental migration upgrade
+        run: pnpm g5br:migration:smoke
+
       - name: Remove isolated migration smoke database
         if: always()
         run: |
