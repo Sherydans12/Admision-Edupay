@@ -18,8 +18,12 @@ const allMigrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
   .sort();
+const historicalMigrations = allMigrations.slice(0, 10);
 const expectedMigration = "20260810190000_e5d_activity_boundary_hardening";
-if (allMigrations.length !== 10 || allMigrations.at(-1) !== expectedMigration) {
+if (
+  allMigrations.length < 10 ||
+  historicalMigrations.at(-1) !== expectedMigration
+) {
   throw new Error(`Expected 10 migrations ending in ${expectedMigration}`);
 }
 
@@ -134,9 +138,9 @@ if (!container) throw new Error("Local PostgreSQL container is not running");
 const tempRoot = await mkdtemp(join(tmpdir(), "admission-e5d-migration-"));
 const databases = [];
 try {
-  for (const [label, migrations] of [
-    ["fresh", allMigrations],
-    ["incremental", allMigrations.slice(0, 9)],
+  for (const [label, selectedMigrations] of [
+    ["fresh", historicalMigrations],
+    ["incremental", historicalMigrations.slice(0, 9)],
   ]) {
     const database = `admission_e5d_${label}_${randomUUID().replaceAll("-", "")}`;
     databases.push(database);
@@ -157,14 +161,14 @@ try {
     );
     const first = await createConfig(
       join(tempRoot, label),
-      migrations,
+      selectedMigrations,
       database,
     );
     await deploy(first.config, first.url);
     if (label === "incremental") {
       const second = await createConfig(
         join(tempRoot, `${label}-final`),
-        allMigrations,
+        historicalMigrations,
         database,
       );
       await deploy(second.config, second.url);

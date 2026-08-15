@@ -17,7 +17,8 @@ const migrationRoot = resolve(root, "packages/database/prisma/migrations");
 const migrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .sort();
+  .sort()
+  .slice(0, 11);
 const expectedMigration = "20260811090000_e5e_recommendation_decision";
 if (migrations.length !== 11 || migrations.at(-1) !== expectedMigration) {
   throw new Error(`Expected 11 migrations ending in ${expectedMigration}`);

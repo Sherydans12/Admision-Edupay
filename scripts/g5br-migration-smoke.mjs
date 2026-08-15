@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
 import {
   cp,
   mkdir,
@@ -11,17 +10,17 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { randomUUID } from "node:crypto";
 
 const root = process.cwd();
 const migrationRoot = resolve(root, "packages/database/prisma/migrations");
+const expected = "20260815090000_g5br_account_verification";
 const migrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .sort()
-  .slice(0, 15);
-const expected = "20260814090000_e5i_functional_handoff";
-if (migrations.length !== 15 || migrations.at(-1) !== expected) {
-  throw new Error(`Expected 15 migrations ending in ${expected}`);
+  .sort();
+if (migrations.length !== 16 || migrations.at(-1) !== expected) {
+  throw new Error(`Expected 16 migrations ending in ${expected}`);
 }
 
 function run(command, args, options = {}) {
@@ -39,7 +38,7 @@ function run(command, args, options = {}) {
     child.once("error", reject);
     child.once("exit", (code) =>
       code === 0
-        ? resolvePromise({ stdout, stderr })
+        ? resolvePromise({ stderr, stdout })
         : reject(
             new Error(`${command} exited ${code ?? "unknown"}\n${stderr}`),
           ),
@@ -86,7 +85,7 @@ async function createConfig(tempRoot, selected, database) {
   const config = resolve(
     root,
     "packages/database",
-    `.e5i-migration-${randomUUID()}.config.ts`,
+    `.g5br-migration-${randomUUID()}.config.ts`,
   );
   const envText = await readFile(resolve(root, ".env"), "utf8");
   const line = envText
@@ -129,20 +128,19 @@ async function deploy(config, url) {
 }
 
 const container = (
-  await run("docker", ["compose", "ps", "-q", "postgres"], {
-    capture: true,
-  })
+  await run("docker", ["compose", "ps", "-q", "postgres"], { capture: true })
 ).stdout.trim();
 if (!container) throw new Error("Local PostgreSQL container is not running");
-const tempRoot = await mkdtemp(join(tmpdir(), "admission-e5i-migration-"));
+
+const tempRoot = await mkdtemp(join(tmpdir(), "admission-g5br-migration-"));
 const databases = [];
 const configs = [];
 try {
   for (const [label, selected] of [
     ["fresh", migrations],
-    ["incremental", migrations.slice(0, 14)],
+    ["incremental", migrations.slice(0, 15)],
   ]) {
-    const database = `admission_e5i_${label}_${randomUUID().replaceAll("-", "")}`;
+    const database = `admission_g5br_${label}_${randomUUID().replaceAll("-", "")}`;
     databases.push(database);
     await run("docker", [
       "exec",
@@ -171,6 +169,7 @@ try {
       configs.push(final.config);
       await deploy(final.config, final.url);
     }
+
     const applied = (
       await psql(
         container,
@@ -178,35 +177,37 @@ try {
         "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;",
       )
     ).stdout.trim();
-    if (applied !== "15")
+    if (applied !== "16")
       throw new Error(`${label} applied ${applied} migrations`);
     console.log(
-      `${label === "fresh" ? "FRESH_0_TO_15" : "INCREMENTAL_14_TO_15"}=PASS`,
+      `${label === "fresh" ? "FRESH_0_TO_16" : "INCREMENTAL_15_TO_16"}=PASS`,
     );
+
     if (label === "incremental") {
       const seals = (
         await psql(
           container,
           database,
           `SELECT
-            (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='integration_handoffs'),
-            (SELECT relrowsecurity FROM pg_class WHERE relname='integration_handoffs'),
-            (SELECT relforcerowsecurity FROM pg_class WHERE relname='integration_handoffs'),
-            has_table_privilege('admission_app', 'integration_handoffs', 'SELECT'),
-            has_table_privilege('admission_app', 'integration_handoffs', 'INSERT'),
-            has_table_privilege('admission_app', 'integration_handoffs', 'UPDATE'),
-            has_table_privilege('admission_app', 'integration_handoffs', 'DELETE'),
-            (SELECT count(*) FROM pg_constraint WHERE conrelid='integration_handoffs'::regclass AND contype='f'),
-            (SELECT count(*) FROM pg_indexes WHERE schemaname='public' AND tablename='integration_handoffs' AND indexname IN ('integration_handoffs_tenant_offer_acceptance_key','integration_handoffs_application_created_idx')),
-            (SELECT count(*) FROM pg_trigger WHERE tgname='integration_handoffs_append_only'),
-            (SELECT pg_get_userbyid(relowner)='admission_migrator' FROM pg_class WHERE relname='integration_handoffs');`,
+            (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='account_verification_challenges'),
+            (SELECT relrowsecurity FROM pg_class WHERE relname='account_verification_challenges'),
+            (SELECT relforcerowsecurity FROM pg_class WHERE relname='account_verification_challenges'),
+            has_table_privilege('admission_app', 'account_verification_challenges', 'SELECT'),
+            has_table_privilege('admission_app', 'account_verification_challenges', 'INSERT'),
+            has_table_privilege('admission_app', 'account_verification_challenges', 'UPDATE'),
+            has_table_privilege('admission_app', 'account_verification_challenges', 'DELETE'),
+            (SELECT count(*) FROM pg_constraint WHERE conrelid='account_verification_challenges'::regclass AND contype='f'),
+            (SELECT count(*) FROM pg_indexes WHERE schemaname='public' AND tablename='account_verification_challenges' AND indexname IN ('account_verification_challenges_verifier_hash_key','account_verification_challenges_one_active_per_user_key')),
+            (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='account_verification_challenges' AND column_name IN ('consumed_at','superseded_at','verifier_hash')),
+            (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='account_verification_challenges' AND column_name IN ('token','raw_token')),
+            (SELECT pg_get_userbyid(relowner)='admission_migrator' FROM pg_class WHERE relname='account_verification_challenges');`,
         )
       ).stdout.trim();
-      if (seals !== "1|t|t|t|t|f|f|3|2|1|t") {
-        throw new Error(`E5-I handoff seal mismatch: ${seals}`);
+      if (seals !== "1|f|f|t|t|t|f|1|2|3|0|t") {
+        throw new Error(`G5BR identity seal mismatch: ${seals}`);
       }
       console.log(
-        "E5I_HANDOFF_SEALS=PASS (RLS/FORCE, tenant-safe FKs, uniqueness, append-only grants and guard)",
+        "G5BR_IDENTITY_SEALS=PASS (hashed verifier, uniqueness, one-time fields, FK, grants and global control-plane boundary)",
       );
     }
   }

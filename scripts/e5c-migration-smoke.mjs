@@ -105,14 +105,16 @@ try {
   );
   baseUrl.pathname = `/${databaseName}`;
 
-  const migrations = (await readdir(migrationRoot, { withFileTypes: true }))
+  const allMigrations = (await readdir(migrationRoot, { withFileTypes: true }))
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .sort();
+  const migrations = allMigrations.slice(0, 9);
   const e5cBaseIndex = migrations.indexOf(e5cBaseMigration);
   const hardeningIndex = migrations.indexOf(e5cHardeningMigration);
   const e5dIndex = migrations.indexOf(e5dMigration);
   if (
+    allMigrations.length < 9 ||
     migrations.length !== 9 ||
     e5cBaseIndex !== 6 ||
     hardeningIndex !== 7 ||

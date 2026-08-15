@@ -24,6 +24,7 @@
     "e5g:migration:smoke": "node scripts/e5g-migration-smoke.mjs",
     "e5h:migration:smoke": "node scripts/e5h-migration-smoke.mjs",
     "e5i:migration:smoke": "node scripts/e5i-migration-smoke.mjs",
+    "g5br:migration:smoke": "node scripts/g5br-migration-smoke.mjs",
     "e5i:boundary:check": "node scripts/e5i-boundary-check.mjs",
     "db:up": "docker compose up -d postgres",
     "dev:api": "pnpm --filter @admission/api dev",
