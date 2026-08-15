@@ -33,6 +33,7 @@ function createFixture(): {
   adapter: DevelopmentIdentityEmailAdapter;
   audit: InMemoryAuditSink;
   security: InMemorySecurityEventSink;
+  sessions: SessionService;
   service: AccountRegistrationService;
 } {
   const adapter = new DevelopmentIdentityEmailAdapter();
@@ -56,7 +57,17 @@ function createFixture(): {
       registrationCooldownMs: 0,
     },
   );
-  return { adapter, audit, security, service };
+  return { adapter, audit, security, sessions, service };
+}
+
+async function establishActiveAccount(
+  fixture: ReturnType<typeof createFixture>,
+  email: string,
+): Promise<string> {
+  await fixture.service.register({ email });
+  const challenge = fixture.adapter.deliveries.at(-1)?.challenge ?? "";
+  const result = await fixture.service.verify({ challenge });
+  return result.userId;
 }
 
 async function findUser(email: string) {
@@ -343,5 +354,182 @@ describe.sequential("G5-BR account registration and verification", () => {
     await expect(
       service.register({ email: "new-public@example.invalid" }),
     ).resolves.toBeUndefined();
+  });
+
+  it("G5BR2-REC-01: an ACTIVE account can request passwordless access generically", async () => {
+    const fixture = createFixture();
+    const userId = await establishActiveAccount(
+      fixture,
+      "recovery-request@example.invalid",
+    );
+    const deliveriesBefore = fixture.adapter.deliveries.length;
+
+    await expect(
+      fixture.service.register({ email: "RECOVERY-REQUEST@example.invalid" }),
+    ).resolves.toBeUndefined();
+
+    expect(fixture.adapter.deliveries).toHaveLength(deliveriesBefore + 1);
+    expect((await findUser("recovery-request@example.invalid"))?.id).toBe(
+      userId,
+    );
+    expect((await findUser("recovery-request@example.invalid"))?.status).toBe(
+      "ACTIVE",
+    );
+  });
+
+  it("G5BR2-REC-02: an ACTIVE recovery challenge issues a valid new session", async () => {
+    const fixture = createFixture();
+    const userId = await establishActiveAccount(
+      fixture,
+      "recovery-session@example.invalid",
+    );
+    await fixture.service.register({
+      email: "recovery-session@example.invalid",
+    });
+    const challenge = fixture.adapter.deliveries.at(-1)?.challenge ?? "";
+
+    const result = await fixture.service.verify({ challenge });
+    const resolved = await fixture.sessions.resolveSession(
+      result.session.token,
+      now,
+    );
+
+    expect(result.activated).toBe(false);
+    expect(result.userId).toBe(userId);
+    expect(resolved?.userId).toBe(userId);
+    expect(resolved?.sessionId).toBe(result.session.sessionId);
+  });
+
+  it("G5BR2-REC-03: recovery does not create a second PlatformUser", async () => {
+    const fixture = createFixture();
+    await establishActiveAccount(fixture, "recovery-identity@example.invalid");
+    const before = await prisma.platformUser.count();
+
+    await fixture.service.register({
+      email: "recovery-identity@example.invalid",
+    });
+    await fixture.service.verify({
+      challenge: fixture.adapter.deliveries.at(-1)?.challenge ?? "",
+    });
+
+    expect(await prisma.platformUser.count()).toBe(before);
+  });
+
+  it("G5BR2-REC-04: recovery creates no tenant, membership, role, or family relationship", async () => {
+    const fixture = createFixture();
+    await establishActiveAccount(fixture, "recovery-boundary@example.invalid");
+    await fixture.service.register({
+      email: "recovery-boundary@example.invalid",
+    });
+    await fixture.service.verify({
+      challenge: fixture.adapter.deliveries.at(-1)?.challenge ?? "",
+    });
+
+    expect(await prisma.tenant.count()).toBe(0);
+    expect(await prisma.membership.count()).toBe(0);
+    expect(await prisma.roleAssignment.count()).toBe(0);
+    expect(await prisma.familyProfile.count()).toBe(0);
+    expect(await prisma.student.count()).toBe(0);
+  });
+
+  it("G5BR2-REC-05: an expired recovery challenge cannot restore access", async () => {
+    const fixture = createFixture();
+    await establishActiveAccount(fixture, "recovery-expired@example.invalid");
+    const sessionsBefore = await prisma.platformSession.count();
+    await fixture.service.register({
+      email: "recovery-expired@example.invalid",
+    });
+    const challenge = fixture.adapter.deliveries.at(-1)?.challenge ?? "";
+    now = new Date(baseNow.getTime() + 61_000);
+
+    await expect(fixture.service.verify({ challenge })).rejects.toThrow(
+      "Verification failed",
+    );
+    expect(await prisma.platformSession.count()).toBe(sessionsBefore);
+  });
+
+  it("G5BR2-REC-06: a recovery challenge is single-use", async () => {
+    const fixture = createFixture();
+    await establishActiveAccount(
+      fixture,
+      "recovery-single-use@example.invalid",
+    );
+    await fixture.service.register({
+      email: "recovery-single-use@example.invalid",
+    });
+    const challenge = fixture.adapter.deliveries.at(-1)?.challenge ?? "";
+
+    await expect(fixture.service.verify({ challenge })).resolves.toMatchObject({
+      activated: false,
+    });
+    await expect(fixture.service.verify({ challenge })).rejects.toThrow(
+      "Verification failed",
+    );
+  });
+
+  it("G5BR2-REC-07: replay cannot issue a second recovery session", async () => {
+    const fixture = createFixture();
+    await establishActiveAccount(fixture, "recovery-replay@example.invalid");
+    await fixture.service.register({
+      email: "recovery-replay@example.invalid",
+    });
+    const challenge = fixture.adapter.deliveries.at(-1)?.challenge ?? "";
+
+    await fixture.service.verify({ challenge });
+    const sessionsAfterSuccess = await prisma.platformSession.count();
+    await expect(fixture.service.verify({ challenge })).rejects.toThrow(
+      "Verification failed",
+    );
+
+    expect(await prisma.platformSession.count()).toBe(sessionsAfterSuccess);
+  });
+
+  it("G5BR2-REC-08: existing and nonexistent channels expose no existence result", async () => {
+    const fixture = createFixture();
+    await establishActiveAccount(fixture, "recovery-existing@example.invalid");
+
+    const nonexistent = await fixture.service.register({
+      email: "recovery-nonexistent@example.invalid",
+    });
+    const existing = await fixture.service.register({
+      email: "recovery-existing@example.invalid",
+    });
+
+    expect(nonexistent).toBeUndefined();
+    expect(existing).toBeUndefined();
+  });
+
+  it("G5BR2-REC-09: normalized recovery email cannot create a duplicate identity", async () => {
+    const fixture = createFixture();
+    await establishActiveAccount(
+      fixture,
+      "recovery-normalized@example.invalid",
+    );
+    const before = await prisma.platformUser.count();
+
+    await fixture.service.register({
+      email: "  RECOVERY-NORMALIZED@EXAMPLE.INVALID ",
+    });
+
+    expect(await prisma.platformUser.count()).toBe(before);
+  });
+
+  it("G5BR2-REC-10: passwordless recovery does not assert Q-106 guardian relationship", async () => {
+    const fixture = createFixture();
+    await establishActiveAccount(fixture, "recovery-q106@example.invalid");
+    await fixture.service.register({ email: "recovery-q106@example.invalid" });
+    await fixture.service.verify({
+      challenge: fixture.adapter.deliveries.at(-1)?.challenge ?? "",
+    });
+
+    expect(await prisma.familyProfile.count()).toBe(0);
+    expect(await prisma.student.count()).toBe(0);
+    expect(
+      fixture.audit.events.every(
+        (event) =>
+          event.purpose === "identity.account_registration" ||
+          event.purpose === "identity.session",
+      ),
+    ).toBe(true);
   });
 });

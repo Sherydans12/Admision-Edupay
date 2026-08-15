@@ -211,4 +211,94 @@ describe.sequential("G5-BR public identity HTTP boundary", () => {
     expect(profile.status).toBe(200);
     expect(await prisma.membership.count()).toBe(0);
   });
+
+  it("G5BR2-HTTP-REC-01: an ACTIVE account recovers through a new challenge and session", async () => {
+    await register("http-recovery@example.invalid");
+    const initialChallenge = identityEmail.deliveries.at(-1)?.challenge ?? "";
+    const initial = await post("/auth/verify", { challenge: initialChallenge });
+    const oldCookie = cookieFrom(initial);
+
+    const request = await register("HTTP-RECOVERY@example.invalid");
+    const recoveryChallenge = identityEmail.deliveries.at(-1)?.challenge ?? "";
+    const recovered = await post("/auth/verify", {
+      challenge: recoveryChallenge,
+    });
+    const newCookie = cookieFrom(recovered);
+    const user = await prisma.platformUser.findUnique({
+      where: { emailNormalized: "http-recovery@example.invalid" },
+    });
+
+    expect(request.status).toBe(202);
+    expect(recovered.status).toBe(200);
+    expect(newCookie).not.toBe(oldCookie);
+    expect(user?.status).toBe("ACTIVE");
+    expect(await prisma.platformUser.count()).toBe(1);
+    expect(await prisma.platformSession.count()).toBe(2);
+  });
+
+  it("G5BR2-HTTP-REC-02: ACTIVE and nonexistent recovery requests are publicly equivalent", async () => {
+    await register("http-recovery-existing@example.invalid");
+    await post("/auth/verify", {
+      challenge: identityEmail.deliveries.at(-1)?.challenge ?? "",
+    });
+
+    const existing = await register("HTTP-RECOVERY-EXISTING@example.invalid");
+    const existingBody = (await existing.json()) as Record<string, unknown>;
+    const nonexistent = await register("http-recovery-missing@example.invalid");
+    const nonexistentBody = (await nonexistent.json()) as Record<
+      string,
+      unknown
+    >;
+
+    expect(existing.status).toBe(nonexistent.status);
+    expect(Object.keys(existingBody).sort()).toEqual(
+      Object.keys(nonexistentBody).sort(),
+    );
+    expect(existingBody.message).toBe(nonexistentBody.message);
+    expect(JSON.stringify(existingBody)).not.toContain("PlatformUser");
+    expect(JSON.stringify(nonexistentBody)).not.toContain("PlatformUser");
+  });
+
+  it("G5BR2-HTTP-REC-03: expired recovery challenge does not issue a session", async () => {
+    await register("http-recovery-expired@example.invalid");
+    await post("/auth/verify", {
+      challenge: identityEmail.deliveries.at(-1)?.challenge ?? "",
+    });
+    await register("http-recovery-expired@example.invalid");
+    const challenge = identityEmail.deliveries.at(-1)?.challenge ?? "";
+    await migrationPool.query(
+      `UPDATE account_verification_challenges
+       SET expires_at = $1
+       WHERE verifier_hash = $2`,
+      [
+        new Date("2020-01-01T00:00:00.000Z"),
+        createHash("sha256").update(challenge).digest("hex"),
+      ],
+    );
+    const sessionsBefore = await prisma.platformSession.count();
+
+    const response = await post("/auth/verify", { challenge });
+
+    expect(response.status).toBe(400);
+    expect(response.headers.get("set-cookie")).toBeNull();
+    expect(await prisma.platformSession.count()).toBe(sessionsBefore);
+  });
+
+  it("G5BR2-HTTP-REC-04: replayed recovery challenge cannot issue a second session", async () => {
+    await register("http-recovery-replay@example.invalid");
+    await post("/auth/verify", {
+      challenge: identityEmail.deliveries.at(-1)?.challenge ?? "",
+    });
+    await register("http-recovery-replay@example.invalid");
+    const challenge = identityEmail.deliveries.at(-1)?.challenge ?? "";
+
+    const first = await post("/auth/verify", { challenge });
+    const sessionsAfterSuccess = await prisma.platformSession.count();
+    const replay = await post("/auth/verify", { challenge });
+
+    expect(first.status).toBe(200);
+    expect(replay.status).toBe(400);
+    expect(replay.headers.get("set-cookie")).toBeNull();
+    expect(await prisma.platformSession.count()).toBe(sessionsAfterSuccess);
+  });
 });

@@ -33,11 +33,11 @@ export default function RegisterPage() {
     <main className="public-auth-shell">
       <section className="public-auth-card" aria-labelledby="register-title">
         <p className="eyebrow">Admisión · cuenta de postulante</p>
-        <h1 id="register-title">Crea tu cuenta</h1>
+        <h1 id="register-title">Crea tu cuenta o recupera el acceso</h1>
         <p className="lede">
-          Usa un correo que puedas revisar. La verificación del correo no
-          demuestra identidad civil, parentesco ni facultad legal sobre un
-          estudiante.
+          Usa un correo que puedas revisar para crear tu cuenta o recuperar el
+          acceso. La verificación del correo no demuestra identidad civil,
+          parentesco ni facultad legal sobre un estudiante.
         </p>
         {submitted ? (
           <div className="alert alert-success" role="status">
@@ -57,7 +57,7 @@ export default function RegisterPage() {
               />
             </label>
             <button className="button button-primary" type="submit">
-              Enviar verificación
+              Enviar verificación o acceso
             </button>
             {error ? (
               <p className="alert alert-error" role="alert">
