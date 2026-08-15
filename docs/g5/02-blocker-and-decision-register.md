@@ -58,3 +58,17 @@ Se agrega como residual explícito la política no definida de revocación al re
 `SESSION_REVOCATION_ON_RECOVERY = POLICY_NOT_DEFINED / RESIDUAL`. No se revocan todas las
 sesiones sin una decisión aprobada. El proveedor productivo, operaciones, C-013 y la
 autorización de piloto permanecen abiertos.
+
+## Addendum G5-OR1
+
+`G5-DEC-004`: recovery técnico coordinado sintético (DB + APPROVED/QUARANTINE objects,
+manifest, hashes, RLS y cleanup) queda `CLOSED / TECHNICAL PASS`. Provider, operación
+autorizada fuera de local/CI y `RECOVERY_OWNER = HUMAN_DECISION_REQUIRED` siguen residuales.
+
+`G5-DEC-003`: contrato de señales, evaluación determinista y runbooks quedan
+`CLOSED / TECHNICAL PASS`. `PRODUCTIVE_MONITORING_PROVIDER`,
+`PRODUCTIVE_ALERT_DESTINATION` e `INCIDENT_OWNER` permanecen
+`HUMAN_DECISION_REQUIRED`; por ello G5-EXIT-10 no se marca cerrado.
+
+`G5-DEC-008`: SecurityEvent continúa separado de AuditEvent. Hay candidatos sanitizados
+provider-neutral, pero `SECURITY_EVENT_PRODUCTIVE_SINK = HUMAN_PROVIDER_DECISION_REQUIRED`.

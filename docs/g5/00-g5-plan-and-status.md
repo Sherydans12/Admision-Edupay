@@ -95,3 +95,12 @@ no enumeración y nueva `PlatformSession`. La evidencia está en
 El workflow E4 ahora ejecuta el smoke G5-BR después de E5-I y antes del cleanup. Esto no
 cambia el estado de `G5`, ni resuelve la política de revocación según riesgo, `Q-106`,
 `C-013`, operaciones, autorización de piloto o EduPay.
+
+## Addendum G5-OR1 — operational & recovery readiness
+
+G5-OR1 agrega recovery coordinado sintético DB+objects, contrato de señales sanitizadas,
+smokes reproducibles y runbooks. No introduce schema ni provider. La evidencia técnica
+está en [`07-g5or-operational-recovery-evidence.md`](07-g5or-operational-recovery-evidence.md).
+La propuesta es `G5-EXIT-07 = PASS_WITH_RESIDUAL`; `G5-EXIT-10` conserva
+`BLOCKED / HUMAN_DECISION_REQUIRED` porque provider, destino de alertas y owner permanente
+no están aprobados. `G5 = NO APROBADA / NOT REQUESTED`.
