@@ -219,3 +219,15 @@ inician ni se resuelven aquí.
 
 La siguiente acción humana es aprobar una remediación específica de AC-001 y decidir
 inequívocamente el canal de identidad, manteniendo separada esa decisión de Q-106.
+
+## REMEDIATION_STARTED / see 04
+
+La etapa correctiva autorizada `G5-BR` comenzó después de este diagnóstico histórico.
+El hallazgo `IMPLEMENTATION_GAP_AC001` se conserva: este documento no se reescribe como
+si el recorrido hubiera existido antes. La implementación y la evidencia posterior están
+registradas en [`04-g5br-ac001-remediation-evidence.md`](04-g5br-ac001-remediation-evidence.md).
+
+La remediación seleccionó `EMAIL` únicamente para el canal de AC-001, mediante un
+adapter development/test sin proveedor productivo. Mantiene separadas
+`EMAIL_ACCOUNT_VERIFIED` y `GUARDIAN_RELATIONSHIP_VERIFICATION`; por ello `Q-106` sigue
+siendo `DEFERRED / PILOT PRECONDITION`.

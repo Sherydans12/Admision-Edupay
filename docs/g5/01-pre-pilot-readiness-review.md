@@ -441,3 +441,18 @@ The detailed register is in [`02-blocker-and-decision-register.md`](02-blocker-a
 Do not request or approve G5 from this review. First obtain human decisions/evidence for
 the blocker register, then run a new review or approval gate with the resulting artifacts.
 No remediation is started by G5-A.
+
+## Addendum G5-BR — evidencia posterior de AC-001
+
+El diagnóstico histórico de G5-B se remedia en la etapa acotada `G5-BR`; no se elimina
+ni se reinterpreta como evidencia previa. La nueva evidencia directa está en
+[`04-g5br-ac001-remediation-evidence.md`](04-g5br-ac001-remediation-evidence.md).
+
+`AC-001`, `BL-002` y el inicio de `E2E-001` ahora tienen recorrido público real con
+PostgreSQL/Nest, email de desarrollo/test, anti-enumeration, challenge hash/expiración/
+consumo único, races y no creación de membership. La verificación de email sólo prueba
+control del canal: no prueba identidad civil, parentesco, tutela ni facultad legal.
+
+La propuesta de esta evidencia es reclasificar sólo `G5-EXIT-01/02` a
+`PASS_WITH_RESIDUAL`, después de revisión humana. No se altera aquí `G5-EXIT-07`,
+`G5-EXIT-10`, `G5-EXIT-11` ni `G5-EXIT-12`, y no se solicita G5.

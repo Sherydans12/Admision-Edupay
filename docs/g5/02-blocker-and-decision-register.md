@@ -32,3 +32,17 @@ cuando las fuentes revisadas no identifican un owner suficiente.
 4. Close the operational evidence package and authorized recovery exercise.
 5. Issue, only after those decisions, a separate dated authorization for real data,
    pilot and the exact environment.
+
+## Addendum G5-BR
+
+`G5-DEC-006` conserva la pregunta institucional sobre Q-106 y la condición de piloto.
+La parte técnica de registro y verificación de canal de AC-001 ya tiene evidencia directa
+en [`04-g5br-ac001-remediation-evidence.md`](04-g5br-ac001-remediation-evidence.md):
+email, anti-enumeration, challenge one-time, concurrencia, auditoría minimizada y no
+escalamiento tenant. Esto no resuelve identidad civil, relación guardian/estudiante ni
+la autorización de piloto.
+
+El estado humano de `G5-DEC-006` no se cierra automáticamente. La revisión puede
+considerar `G5-EXIT-01/02 = PASS_WITH_RESIDUAL`, mientras `Q-106 = DEFERRED / PILOT
+PRECONDITION`, `C-013 = LEGAL_VALIDATION_PENDING` y los items operacionales/autorización
+permanecen abiertos.

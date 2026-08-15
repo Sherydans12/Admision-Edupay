@@ -70,3 +70,16 @@ La siguiente acción humana es decidir, fuera de G5-A, cómo cerrar los items de
 [`02-blocker-and-decision-register.md`](02-blocker-and-decision-register.md). G5-A no
 selecciona proveedores, no asigna responsables no definidos, no resuelve C-013/Q-106 ni
 Q-301..Q-309, no modifica código y no autoriza datos, piloto o producción.
+
+## G5-BR — estado de remediación AC-001
+
+La etapa correctiva `G5-BR` fue autorizada específicamente para `BL-002 / FR-ID-001 /
+AC-001` y la entrada de `E2E-001`. Se implementó la migration 16, el recorrido público de
+registro/verificación por email, el adapter de desarrollo/test, la prueba directa y la
+composición start-to-boundary. La evidencia está en
+[`04-g5br-ac001-remediation-evidence.md`](04-g5br-ac001-remediation-evidence.md).
+
+Este addendum no cambia el cierre histórico de E5 ni aprueba G5. El estado actual sigue
+siendo `G5 = NO APROBADA / NOT REQUESTED`, con `Q-106 = DEFERRED / PILOT PRECONDITION`,
+`C-013 = LEGAL_VALIDATION_PENDING` y PR #8 `OPEN / DRAFT / NO MERGE`. La clasificación
+propuesta para `G5-EXIT-01/02` es `PASS_WITH_RESIDUAL`, pendiente de revisión humana.
