@@ -456,3 +456,18 @@ control del canal: no prueba identidad civil, parentesco, tutela ni facultad leg
 La propuesta de esta evidencia es reclasificar sólo `G5-EXIT-01/02` a
 `PASS_WITH_RESIDUAL`, después de revisión humana. No se altera aquí `G5-EXIT-07`,
 `G5-EXIT-10`, `G5-EXIT-11` ni `G5-EXIT-12`, y no se solicita G5.
+
+## Addendum G5-BR2 — recovery passwordless y CI
+
+`G5-BR2` inspeccionó `FR-ID-002`, `UC-FAM-001/002`, E4 session semantics y el runtime
+actual. La evidencia directa permite proponer `FR-ID-002 =
+DIRECTLY_COVERED_BY_PASSWORDLESS_RECOVERY`: una cuenta `ACTIVE` usa el mismo boundary
+anti-enumerativo, recibe un challenge nuevo, lo consume una vez y obtiene una sesión
+opaca válida. `SESSION_REVOCATION_ON_RECOVERY` queda `POLICY_NOT_DEFINED / RESIDUAL`
+porque las fuentes exigen revocar según riesgo, pero no aprueban una regla para revocar
+todas las sesiones.
+
+Los cuatro tests HTTP y diez tests de servicio G5-BR2 pasan con PostgreSQL/Nest reales.
+El smoke de Migration 16 también quedó agregado al workflow real, sin editar Migration 16
+ni crear Migration 17. La clasificación propuesta para `G5-EXIT-01/02` permanece
+`PASS_WITH_RESIDUAL`; `G5` continúa `NO APROBADA / NOT REQUESTED`.

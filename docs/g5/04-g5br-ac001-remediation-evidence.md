@@ -184,3 +184,20 @@ de migrations y no tratar la migration 16 como una modificación de sus contrato
 La propuesta no es un cierre humano. La siguiente acción es revisar este documento, los
 tests y el diff, y decidir si la evidencia satisface `G5-EXIT-01/02` sin convertirla en
 aprobación de G5 ni en resolución de Q-106.
+
+## Addendum G5-BR2 — recovery passwordless
+
+La etapa posterior `G5-BR2` no reabre AC-001. Inspeccionó el caso alternativo de
+`UC-FAM-001` y `UC-FAM-002` para una cuenta ya `ACTIVE` y confirmó que el boundary
+existente también funciona como recuperación passwordless: email normalizado → respuesta
+uniforme → challenge nuevo → verify one-time → nueva `PlatformSession`.
+
+La evidencia directa está en [`05-g5br2-recovery-and-ci-evidence.md`](05-g5br2-recovery-and-ci-evidence.md):
+`G5BR2-REC-01..10` y `G5BR2-HTTP-REC-01..04` pasan con PostgreSQL/Nest reales. La sesión
+opaca se interpreta como el nuevo medio de acceso permitido por E4; no se crea password
+ni otra credencial. Como no existe una política aprobada para revocar todas las sesiones
+al recuperar, queda `SESSION_REVOCATION_ON_RECOVERY = POLICY_NOT_DEFINED / RESIDUAL`.
+
+`FR-ID-002 = DIRECTLY_COVERED_BY_PASSWORDLESS_RECOVERY` queda propuesto, no aprobado
+humanamente. `Q-106` continúa `DEFERRED / PILOT PRECONDITION`; verificar email no prueba
+relación guardian. `G5` continúa `NO APROBADA / NOT REQUESTED`.

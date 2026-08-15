@@ -83,3 +83,15 @@ Este addendum no cambia el cierre histórico de E5 ni aprueba G5. El estado actu
 siendo `G5 = NO APROBADA / NOT REQUESTED`, con `Q-106 = DEFERRED / PILOT PRECONDITION`,
 `C-013 = LEGAL_VALIDATION_PENDING` y PR #8 `OPEN / DRAFT / NO MERGE`. La clasificación
 propuesta para `G5-EXIT-01/02` es `PASS_WITH_RESIDUAL`, pendiente de revisión humana.
+
+## G5-BR2 — recovery y prueba CI de Migration 16
+
+La etapa acotada `G5-BR2` determina que el passwordless existente cubre directamente
+`FR-ID-002`: `PATH A = RECOVERY_ALREADY_PRESENT / DIRECT_EVIDENCE_MISSING`, cerrado con
+tests de servicio y boundary HTTP para cuenta `ACTIVE`, expiración, single-use, replay,
+no enumeración y nueva `PlatformSession`. La evidencia está en
+[`05-g5br2-recovery-and-ci-evidence.md`](05-g5br2-recovery-and-ci-evidence.md).
+
+El workflow E4 ahora ejecuta el smoke G5-BR después de E5-I y antes del cleanup. Esto no
+cambia el estado de `G5`, ni resuelve la política de revocación según riesgo, `Q-106`,
+`C-013`, operaciones, autorización de piloto o EduPay.

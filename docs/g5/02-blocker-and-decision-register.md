@@ -46,3 +46,15 @@ El estado humano de `G5-DEC-006` no se cierra automáticamente. La revisión pue
 considerar `G5-EXIT-01/02 = PASS_WITH_RESIDUAL`, mientras `Q-106 = DEFERRED / PILOT
 PRECONDITION`, `C-013 = LEGAL_VALIDATION_PENDING` y los items operacionales/autorización
 permanecen abiertos.
+
+## Addendum G5-BR2
+
+La evidencia de `G5-BR2` cubre técnicamente la parte de recuperación de acceso de
+`FR-ID-002` mediante el flujo passwordless existente. Esto no cierra `G5-DEC-006`:
+`EMAIL_ACCOUNT_VERIFIED` sigue separado de identidad civil, parentesco, tutela y
+facultad legal (`Q-106`).
+
+Se agrega como residual explícito la política no definida de revocación al recuperar:
+`SESSION_REVOCATION_ON_RECOVERY = POLICY_NOT_DEFINED / RESIDUAL`. No se revocan todas las
+sesiones sin una decisión aprobada. El proveedor productivo, operaciones, C-013 y la
+autorización de piloto permanecen abiertos.
