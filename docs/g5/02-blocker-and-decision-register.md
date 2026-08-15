@@ -72,3 +72,49 @@ autorizada fuera de local/CI y `RECOVERY_OWNER = HUMAN_DECISION_REQUIRED` siguen
 
 `G5-DEC-008`: SecurityEvent continúa separado de AuditEvent. Hay candidatos sanitizados
 provider-neutral, pero `SECURITY_EVENT_PRODUCTIVE_SINK = HUMAN_PROVIDER_DECISION_REQUIRED`.
+
+## Addendum G5-LP1 — canonical operational and legal/privacy status (2026-08-15)
+
+Este addendum actualiza aditivamente el estado posterior a G5-OR1. No cierra los items
+legales ni cambia los estados históricos que no contradigan las decisiones operacionales
+aprobadas más abajo.
+
+### Operational decisions now approved
+
+- `TECHNICAL_INCIDENT_OWNER = BaseLogic / Nicolás`.
+- `RECOVERY_OWNER = BaseLogic / Nicolás`.
+- `MONITORING_MODEL = MANAGED_EXTERNAL`.
+- `PRODUCTIVE_MONITORING_PROVIDER = GRAFANA_CLOUD`.
+- `PRODUCTIVE_ALERT_DESTINATION_PRIMARY = EMAIL`.
+- `PRODUCTIVE_ALERT_DESTINATION_IMMEDIATE = TELEGRAM`.
+- `SECURITY_EVENT_PRODUCTIVE_DESTINATION = GRAFANA_CLOUD OBSERVABILITY STACK`.
+- `SecurityEvent != AuditEvent`.
+- Implementation status: `APPROVED / IMPLEMENTATION_DEFERRED_TO_PREPROD`.
+
+No se implementan Grafana, Telegram, email productivo, object storage productivo ni
+malware provider en G5-LP1.
+
+### Current decision states
+
+- `G5-DEC-001` and `G5-DEC-002` remain `OPEN / BLOCKED`: the factual package is now
+  available in [`09-g5lp1-data-processing-inventory.md`](09-g5lp1-data-processing-inventory.md),
+  [`10-g5lp1-access-export-rights-matrix.md`](10-g5lp1-access-export-rights-matrix.md) and
+  [`11-g5lp1-legal-decision-register.md`](11-g5lp1-legal-decision-register.md), but no
+  legal/privacy approval has been issued.
+- `G5-DEC-003` remains blocking `G5-EXIT-10`: operational technology/destinations are
+  selected, while implementation, productive configuration and evidence are deferred to
+  preprod; `G5-EXIT-10 = BLOCKED / HUMAN_DECISION_REQUIRED`.
+- `G5-DEC-004` records the approved recovery owner above; the technical recovery
+  residual/evidence boundary and authorized exercise requirements remain open.
+- `G5-DEC-006` remains `OPEN / EVIDENCE_GAP / PILOT PRECONDITION`; `Q-106` is not closed.
+- `G5-DEC-007` remains open for productive object storage, malware scanning and email;
+  only the future monitoring/alert selections above are approved.
+- `G5-DEC-008` records the separate SecurityEvent/AuditEvent boundary and future Grafana
+  destination; implementation and retention/access decisions remain deferred.
+- `G5-DEC-005` remains unchanged: no real-data, pilot or production authorization.
+
+### Gate disposition
+
+`G5-EXIT-11 = BLOCKED / LEGAL_DECISIONS_REQUIRED`; `C-013 = INSTITUTIONALLY_VALIDATED /
+LEGAL_VALIDATION_PENDING`; `G5-EXIT-12 = BLOCKED` and unchanged. This register does not
+mark any gate `PASS` and does not authorize G5, real data, pilot or production.

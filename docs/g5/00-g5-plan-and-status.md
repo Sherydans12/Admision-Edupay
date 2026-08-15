@@ -104,3 +104,65 @@ está en [`07-g5or-operational-recovery-evidence.md`](07-g5or-operational-recove
 La propuesta es `G5-EXIT-07 = PASS_WITH_RESIDUAL`; `G5-EXIT-10` conserva
 `BLOCKED / HUMAN_DECISION_REQUIRED` porque provider, destino de alertas y owner permanente
 no están aprobados. `G5 = NO APROBADA / NOT REQUESTED`.
+
+## Addendum G5-LP1 — factual privacy/legal readiness package (2026-08-15)
+
+Este addendum es el estado canónico posterior a G5-OR1 para el paquete documental LP1.
+No reabre ni modifica la evidencia histórica de etapas anteriores y no constituye una
+aprobación de G5.
+
+### Control de entrada verificado
+
+| Control | Resultado |
+| --- | --- |
+| Branch | `feat/e5-mvp` |
+| HEAD | `90b4a700cfa10c13b18d81a8266d6f31d4d319c5` |
+| Working tree al inicio | `clean` |
+| PR #8 | `OPEN / DRAFT / NO MERGE` |
+| Migration 16 | `INTACT` |
+| Migration 17 | `ABSENT` |
+
+### Estado canónico
+
+- `G5-OR1 = COMPLETE / TECHNICALLY ACCEPTED`.
+- `G5-EXIT-07 = PASS_WITH_RESIDUAL`.
+- `G5-EXIT-10 = BLOCKED / HUMAN_DECISION_REQUIRED`.
+- `G5-EXIT-11 = BLOCKED / LEGAL_DECISIONS_REQUIRED`; LP1 no marca `PASS`.
+- `G5-EXIT-12 = BLOCKED` y permanece sin autorización.
+- `C-013 = INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
+- `Q-106 = DEFERRED / PILOT PRECONDITION`.
+
+### Operational decisions approved, implementation deferred
+
+Las siguientes decisiones humanas están registradas para la planificación operativa,
+pero no se implementan ni configuran en G5-LP1:
+
+- `TECHNICAL_INCIDENT_OWNER = BaseLogic / Nicolás`.
+- `RECOVERY_OWNER = BaseLogic / Nicolás`.
+- `MONITORING_MODEL = MANAGED_EXTERNAL`.
+- `PRODUCTIVE_MONITORING_PROVIDER = GRAFANA_CLOUD`.
+- `PRODUCTIVE_ALERT_DESTINATION_PRIMARY = EMAIL`.
+- `PRODUCTIVE_ALERT_DESTINATION_IMMEDIATE = TELEGRAM`.
+- `SECURITY_EVENT_PRODUCTIVE_DESTINATION = GRAFANA_CLOUD OBSERVABILITY STACK`.
+- `SecurityEvent != AuditEvent`.
+- Provider implementation status: `APPROVED / IMPLEMENTATION_DEFERRED_TO_PREPROD`.
+
+El addendum anterior que describía estos puntos como no seleccionados queda superseded
+únicamente para sus valores operacionales actuales; la implementación productiva,
+región, retención y transferencia de datos siguen pendientes.
+
+### LP1 deliverables and boundary
+
+El paquete factual queda en:
+
+- [`09-g5lp1-data-processing-inventory.md`](09-g5lp1-data-processing-inventory.md).
+- [`10-g5lp1-access-export-rights-matrix.md`](10-g5lp1-access-export-rights-matrix.md).
+- [`11-g5lp1-legal-decision-register.md`](11-g5lp1-legal-decision-register.md).
+
+Los documentos inventarían el runtime observado, categorías, finalidades, controles de
+menores/sensibles, acceso/exportación, retención técnica, derechos como gap, proveedores
+y preguntas de decisión. No concluyen licitud, consentimiento, plazos legales,
+cumplimiento ni autorización de datos.
+
+`G5 = NO APROBADA / NOT REQUESTED`; `REAL DATA = NOT AUTHORIZED`; `PILOT = NOT
+AUTHORIZED`; `PRODUCTION = NOT AUTHORIZED`.
