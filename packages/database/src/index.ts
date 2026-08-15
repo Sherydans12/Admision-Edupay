@@ -197,6 +197,13 @@ export {
   type StructuredLogEvent,
 } from "./structured-logger.js";
 export {
+  OPERATIONAL_SIGNAL_CONTRACT,
+  createOperationalSignalCandidate,
+  type OperationalSignalCandidate,
+  type OperationalSignalDefinition,
+  type OperationalSignalId,
+} from "./operational-signals.js";
+export {
   resolveEffectiveTenantContext,
   type TenantResolutionInput,
   type TenantResolutionResult,

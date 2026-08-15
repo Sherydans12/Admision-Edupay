@@ -25,6 +25,8 @@
     "e5h:migration:smoke": "node scripts/e5h-migration-smoke.mjs",
     "e5i:migration:smoke": "node scripts/e5i-migration-smoke.mjs",
     "g5br:migration:smoke": "node scripts/g5br-migration-smoke.mjs",
+    "g5or:operations:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/g5or-operations-smoke.ts",
+    "g5or:recovery:smoke": "node scripts/g5or-recovery-smoke.mjs",
     "e5i:boundary:check": "node scripts/e5i-boundary-check.mjs",
     "db:up": "docker compose up -d postgres",
     "dev:api": "pnpm --filter @admission/api dev",
