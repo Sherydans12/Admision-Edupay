@@ -34,7 +34,7 @@ interface LockedSessionRow {
   session_id: string;
   token_hash: string;
   user_id: string;
-  user_status: "ACTIVE" | "SUSPENDED" | "DISABLED";
+  user_status: "ACTIVE" | "DISABLED" | "PENDING_VERIFICATION" | "SUSPENDED";
 }
 
 function hashToken(token: string): Buffer {

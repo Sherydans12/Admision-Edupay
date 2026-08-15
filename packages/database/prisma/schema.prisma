@@ -8,9 +8,14 @@ datasource db {
 }
 
 enum PlatformUserStatus {
+  PENDING_VERIFICATION
   ACTIVE
   SUSPENDED
   DISABLED
+}
+
+enum AccountVerificationPurpose {
+  ACCOUNT_REGISTRATION
 }
 
 enum TenantStatus {
@@ -307,21 +312,44 @@ enum OperationalTaskStatus {
   RESOLVED
 }
 
-/// Identidad global de control-plane; no representa onboarding funcional.
+/// Identidad global de control-plane; no concede membresía ni autorización tenant.
 model PlatformUser {
   id                         String                      @id @default(uuid()) @db.Uuid
   emailNormalized            String                      @unique @map("email_normalized") @db.VarChar(320)
   status                     PlatformUserStatus          @default(ACTIVE)
+  emailVerifiedAt            DateTime?                   @map("email_verified_at") @db.Timestamptz(3)
   createdAt                  DateTime                    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                  DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(3)
   memberships                Membership[]
   sessions                   PlatformSession[]
+  verificationChallenges    AccountVerificationChallenge[]
   supportElevations          SupportElevation[]
   familyProfile              FamilyProfile?
   activityRescheduleRequests ActivityRescheduleRequest[]
   activityAppointments       ActivityAppointment[]
 
   @@map("platform_users")
+}
+
+/// Global control-plane challenge; it is deliberately not tenant-owned or RLS-protected.
+/// The raw challenge is delivered only through the identity email adapter.
+model AccountVerificationChallenge {
+  id                    String                       @id @default(uuid()) @db.Uuid
+  platformUserId        String                       @map("platform_user_id") @db.Uuid
+  normalizedChannelHash String                       @map("normalized_channel_hash") @db.Char(64)
+  verifierHash          String                       @unique(map: "account_verification_challenges_verifier_hash_key") @map("verifier_hash") @db.Char(64)
+  purpose               AccountVerificationPurpose   @default(ACCOUNT_REGISTRATION)
+  expiresAt             DateTime                     @map("expires_at") @db.Timestamptz(3)
+  consumedAt            DateTime?                    @map("consumed_at") @db.Timestamptz(3)
+  supersededAt          DateTime?                    @map("superseded_at") @db.Timestamptz(3)
+  attempts              Int                          @default(0)
+  lastAttemptAt         DateTime?                    @map("last_attempt_at") @db.Timestamptz(3)
+  createdAt             DateTime                     @default(now()) @map("created_at") @db.Timestamptz(3)
+  platformUser          PlatformUser                 @relation(fields: [platformUserId], references: [id], onDelete: Cascade)
+
+  @@index([platformUserId, createdAt])
+  @@index([expiresAt])
+  @@map("account_verification_challenges")
 }
 
 /// Sesión opaca server-side: sólo tokenHash persistido, nunca el token raw.

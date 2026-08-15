@@ -230,6 +230,24 @@ export {
   type SendEmailResult,
 } from "./email-adapter.js";
 export {
+  AccountRegistrationService,
+  AccountRegistrationValidationError,
+  AccountVerificationError,
+  createTestAccountRegistrationService,
+  hashNormalizedChannel,
+  type AccountRegistrationInput,
+  type AccountRegistrationPrismaInput,
+  type AccountRegistrationServiceOptions,
+  type AccountVerificationInput,
+  type VerifiedAccountResult,
+} from "./account-registration.js";
+export {
+  DevelopmentIdentityEmailAdapter,
+  type IdentityEmailAdapter,
+  type IdentityVerificationEmailDelivery,
+  type IdentityVerificationEmailInput,
+} from "./identity-email-adapter.js";
+export {
   COMMUNICATION_SEND_TOPIC,
   CommunicationService,
   type ConfirmCommunicationInput,

@@ -2,6 +2,8 @@ import { Module } from "@nestjs/common";
 
 import {
   createAppPrismaClient,
+  AccountRegistrationService,
+  DevelopmentIdentityEmailAdapter,
   NoopSecurityEventSink,
   PrismaAuditSink,
   PrismaClient,
@@ -34,6 +36,7 @@ import { ApiFamilyPortalService } from "./family-portal.service.js";
 import { DashboardController } from "./dashboard.controller.js";
 import { ApiOperationalDashboardService } from "./dashboard.service.js";
 import { ReportingAdminController } from "./reporting-admin.controller.js";
+import { IdentityController } from "./identity.controller.js";
 import {
   ApiAuditReadService,
   ApiReportingService,
@@ -68,9 +71,38 @@ const supportElevationProvider = {
   inject: [PrismaClient, PrismaAuditSink],
 };
 
+const identityEmailAdapterProvider = {
+  provide: DevelopmentIdentityEmailAdapter,
+  useFactory: () => new DevelopmentIdentityEmailAdapter(),
+};
+
+const accountRegistrationProvider = {
+  provide: AccountRegistrationService,
+  useFactory: (
+    prisma: PrismaClient,
+    sessions: SessionService,
+    emailAdapter: DevelopmentIdentityEmailAdapter,
+    auditSink: PrismaAuditSink,
+  ) =>
+    new AccountRegistrationService(
+      prisma,
+      sessions,
+      emailAdapter,
+      auditSink,
+      new NoopSecurityEventSink(),
+    ),
+  inject: [
+    PrismaClient,
+    SessionService,
+    DevelopmentIdentityEmailAdapter,
+    PrismaAuditSink,
+  ],
+};
+
 @Module({
   controllers: [
     HealthController,
+    IdentityController,
     IntakeController,
     FormController,
     DocumentController,
@@ -88,6 +120,8 @@ const supportElevationProvider = {
     auditSinkProvider,
     sessionProvider,
     supportElevationProvider,
+    identityEmailAdapterProvider,
+    accountRegistrationProvider,
     ApiIntakeService,
     ApiFormService,
     ApiDocumentService,

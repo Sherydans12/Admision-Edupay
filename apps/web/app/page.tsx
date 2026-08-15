@@ -342,6 +342,9 @@ export default function Home() {
           <p className="brand">Recorrido funcional sintético</p>
         </div>
         <div className="topbar-actions">
+          <a className="button button-quiet" href="/register">
+            Crear cuenta
+          </a>
           <label className="tenant-field">
             <span>Tenant de desarrollo</span>
             <input

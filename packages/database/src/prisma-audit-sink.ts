@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { Prisma, PrismaClient } from "./generated/prisma/client.js";
 import type { AuditEvent, AuditSink } from "./audit.js";
 import { sanitizeAuditMetadata } from "./audit-metadata.js";
@@ -37,6 +39,47 @@ async function createAuditEvent(
   });
 }
 
+async function createPlatformAuditEvent(
+  transaction: Prisma.TransactionClient,
+  event: AuditEvent,
+): Promise<void> {
+  const metadata = sanitizeAuditMetadata(event.metadata);
+  const metadataJson = metadata === undefined ? null : JSON.stringify(metadata);
+  await transaction.$executeRaw`
+    INSERT INTO audit_events (
+      id,
+      actor_id,
+      effective_actor_id,
+      action,
+      purpose,
+      resource_type,
+      resource_id,
+      result,
+      reason_code,
+      correlation_id,
+      metadata,
+      occurred_at,
+      scope,
+      tenant_id
+    ) VALUES (
+      ${randomUUID()},
+      ${event.actorId},
+      ${event.effectiveActorId},
+      ${event.action},
+      ${event.purpose},
+      ${event.resourceType},
+      ${event.resourceId ?? null},
+      ${event.result},
+      ${event.reasonCode ?? null},
+      ${event.correlationId},
+      CAST(${metadataJson} AS JSONB),
+      ${event.occurredAt},
+      'PLATFORM_GLOBAL',
+      NULL
+    )
+  `;
+}
+
 /**
  * Durable sink for events emitted outside an existing business transaction.
  * It exposes only append-only AuditEvent insertion and never a general tenant client.
@@ -47,7 +90,7 @@ export class PrismaAuditSink implements AuditSink {
   async record(event: AuditEvent): Promise<void> {
     if (event.tenantId === undefined) {
       await withPlatformAuditTransaction(this.prisma, (transaction) =>
-        createAuditEvent(transaction, event),
+        createPlatformAuditEvent(transaction, event),
       );
       return;
     }

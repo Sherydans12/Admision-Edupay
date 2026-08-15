@@ -8,6 +8,8 @@ import {
 import {
   ActivityConflictError,
   AccessAdminValidationError,
+  AccountRegistrationValidationError,
+  AccountVerificationError,
   CapacityOfferConflictError,
   CapacityOfferValidationError,
   FunctionalHandoffConflictError,
@@ -127,6 +129,10 @@ function exceptionStatus(exception: unknown): number {
     return HttpStatus.BAD_REQUEST;
   if (exception instanceof ReportValidationError) return HttpStatus.BAD_REQUEST;
   if (exception instanceof AccessAdminValidationError)
+    return HttpStatus.BAD_REQUEST;
+  if (exception instanceof AccountRegistrationValidationError)
+    return HttpStatus.BAD_REQUEST;
+  if (exception instanceof AccountVerificationError)
     return HttpStatus.BAD_REQUEST;
   return HttpStatus.INTERNAL_SERVER_ERROR;
 }
