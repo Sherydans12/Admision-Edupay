@@ -248,3 +248,43 @@ finito en [`14-g5lp3-prepilot-legal-artifacts.md`](14-g5lp3-prepilot-legal-artif
 La siguiente acción humana es completar y aprobar los 16 artefactos prepiloto. LP3 convierte
 el blocker legal en una lista finita, pero no marca `G5-EXIT-11` como `PASS` ni autoriza
 datos reales, piloto, producción o G5.
+
+## Addendum G5-PC1 — configuración piloto y evaluación técnica (2026-08-16)
+
+Este addendum registra la etapa documental `G5-PC1D`. No reescribe LP3 como si hubiera
+contenido originalmente las decisiones PC1 y no constituye aprobación de G5.
+
+### Estado canónico PC1
+
+- `G5-LP3 = COMPLETE / TECHNICALLY & DOCUMENTARILY ACCEPTED` como estado canónico de
+  entrada de PC1; las etiquetas históricas previas de LP3 se conservan.
+- `PC1-A = HUMAN APPROVED`.
+- `PC1-B = HUMAN APPROVED`.
+- `PC1-C = HUMAN APPROVED`.
+- `G5-PC1 = PILOT_CONFIGURATION_POLICY_DEFINED / TECHNICAL_GAP_ASSESSMENT_COMPLETE`.
+- `Q-106 = DEFERRED / PILOT PRECONDITION`; policy operacional definida, procedimiento
+  final pendiente.
+- La evaluación técnica contiene `0 IMPLEMENTED`, `8 PARTIAL` y `7 NOT_IMPLEMENTED`
+  entre `PC1-TECH-001..015`; no hay `CONFIGURATION_ONLY`, `EVIDENCE_GAP` ni
+  `NOT_APPLICABLE` primarios.
+- `PREPILOT_LEGAL_ARTIFACTS = OPEN — 16 / 16`; ningún artefacto se cierra por PC1.
+
+La evidencia, límites y remediation groups están en
+[`15-g5pc1-pilot-configuration-and-q106-decisions.md`](15-g5pc1-pilot-configuration-and-q106-decisions.md)
+y [`16-g5pc1d-technical-gap-assessment.md`](16-g5pc1d-technical-gap-assessment.md).
+No se modifican runtime, schema, migraciones, tests, dependencias, workflows ni
+providers. `MIGRATION_17_AUTHORIZED = NO`.
+
+El encabezado histórico de este documento conserva controles de entradas anteriores
+(incluido el HEAD histórico y `Migration 16 = No existe`). El control runtime/git de
+PC1 verificó `HEAD = 991654b4eaf518f44ce2f5d2daf2a6b979c3e3f0`, Migration 16 intacta y
+Migration 17 ausente; la discrepancia queda registrada en el documento PC1 y no se
+reescribe el histórico.
+
+### Gate disposition
+
+`C-013 = INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`;
+`G5-EXIT-10 = BLOCKED / IMPLEMENTATION_DEFERRED_TO_PREPROD`;
+`G5-EXIT-11 = BLOCKED / PREPILOT_LEGAL_ARTIFACTS_REQUIRED`;
+`G5-EXIT-12 = BLOCKED`; `G5 = NO APROBADA / NOT REQUESTED`; datos reales, piloto,
+producción e integración técnica EduPay siguen `NOT AUTHORIZED`.

@@ -171,3 +171,33 @@ artefactos, todos todavía abiertos.
 `G5-EXIT-11 = BLOCKED / PREPILOT_LEGAL_ARTIFACTS_REQUIRED`, sin `PASS` ni
 `PASS_WITH_RESIDUAL`. `G5-EXIT-12` sigue `BLOCKED` y `G5-EXIT-10` sigue
 `BLOCKED / IMPLEMENTATION_DEFERRED_TO_PREPROD`.
+
+## Addendum G5-PC1 — configuración y gaps técnicos (2026-08-16)
+
+PC1 registra ahora, por aprobación humana de esta etapa, `PC1-A = HUMAN APPROVED`,
+`PC1-B = HUMAN APPROVED` y `PC1-C = HUMAN APPROVED`. El resultado documental es
+`G5-PC1 = PILOT_CONFIGURATION_POLICY_DEFINED / TECHNICAL_GAP_ASSESSMENT_COMPLETE`.
+
+La evaluación `PC1-TECH-001..015` concluye `0 IMPLEMENTED`, `8 PARTIAL` y
+`7 NOT_IMPLEMENTED`. Los gaps están detallados en
+[`16-g5pc1d-technical-gap-assessment.md`](16-g5pc1d-technical-gap-assessment.md),
+con propuestas acotadas de remediación que no están autorizadas para ejecución en
+PC1D. En particular, la evaluación confirma que el runtime no tiene autoridad Q-106,
+camino adulto >=18, gates de autoridad en submit/acceptance/handoff, exclusiones de
+calendario, expiración local a 23:59, reminder programado, defaults policy-level de
+datos sensibles ni gate de capacidad al publicar.
+
+`Q-106 = DEFERRED / PILOT PRECONDITION`; la policy operacional está definida, pero el
+procedimiento final y `LP3-ART-006` permanecen pendientes. `LP3-ART-007` y
+`LP3-ART-008` siguen abiertos; la evaluación técnica no cierra el catálogo sensible ni
+la verificación de defaults deshabilitados.
+
+El input institucional pendiente —personas primary/backup, evaluadores, capacidades,
+fechas excluidas, mailbox, templates y activación de informe de personalidad— no
+bloquea el desarrollo técnico, pero sí la operación piloto donde corresponda.
+
+No se autoriza Migration 17, schema/runtime/test changes, providers, workflows ni
+integración EduPay. Se mantienen `G5-EXIT-10 = BLOCKED / IMPLEMENTATION_DEFERRED_TO_PREPROD`,
+`G5-EXIT-11 = BLOCKED / PREPILOT_LEGAL_ARTIFACTS_REQUIRED`, `G5-EXIT-12 = BLOCKED`,
+`G5 = NO APROBADA / NOT REQUESTED`, y datos reales/piloto/producción
+`NOT AUTHORIZED`.

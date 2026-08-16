@@ -66,3 +66,21 @@ Por tanto:
 Este registro no crea schema, migraciones, endpoints, permisos, workflows, dependencias,
 variables de entorno, proveedores, textos públicos finales ni integración técnica EduPay.
 Admisión y EduPay permanecen desacoplados.
+
+## Addendum G5-PC1 — progreso factual de configuración y assessment (2026-08-16)
+
+PC1 registró humanamente `PC1-A`, `PC1-B` y `PC1-C` como `HUMAN APPROVED` y realizó
+la evaluación técnica de Q-106 y configuración piloto. Este progreso es documental y
+no satisface por sí solo los criterios de cierre de ningún artefacto.
+
+| Artefacto | Progreso factual PC1 | Estado |
+| --- | --- | --- |
+| `LP3-ART-006` Q-106 | Policy operacional de declaraciones, bases, estados, boundaries, disputa y revisión fue definida; se inspeccionó el runtime y se documentó el gap. El procedimiento institucional/legal final, evidencia exacta, owners y aprobación siguen pendientes. | `OPEN / FINAL_Q106_PROCEDURE_REQUIRED` |
+| `LP3-ART-007` catálogo sensible/PIE/NEE | PC1 documentó defaults aprobados y confirmó que el runtime sólo tiene builder genérico; no existe catálogo legal/funcional aprobado ni evidencia de control policy-level. | `OPEN / SENSITIVE_CATALOG_REQUIRED` |
+| `LP3-ART-008` health disabled/default | PC1 registró `DISABLED BY DEFAULT` y confirmó que no existe enforcement dedicado; falta evidencia de default efectivo, excepción auditada y aprobación requerida. | `OPEN / DISABLED_DEFAULT_VERIFICATION_REQUIRED` |
+
+Los 16 artefactos continúan abiertos (`0` cerrados). Q-106 continúa
+`DEFERRED / PILOT PRECONDITION`; `C-013` continúa `INSTITUTIONALLY_VALIDATED /
+LEGAL_VALIDATION_PENDING`; `G5-EXIT-11` continúa `BLOCKED /
+PREPILOT_LEGAL_ARTIFACTS_REQUIRED`. PC1 no autoriza datos reales, piloto, producción,
+G5 ni implementación.
