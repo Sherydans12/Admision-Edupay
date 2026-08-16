@@ -210,3 +210,41 @@ documentos físicos, proveedores/transferencias, incidentes y logs.
 La siguiente acción humana es completar la validación final y aprobar los requisitos
 LP2-PP-001..LP2-PP-015 antes de cualquier dato real o piloto. LP2 cierra el gap de diseño
 humano, pero no el gate legal final ni la autorización G5.
+
+## Addendum G5-LP3 — síntesis legal y artefactos prepiloto (2026-08-16)
+
+Este addendum actualiza aditivamente el estado posterior a LP2. No reescribe LP1 ni LP2
+como si hubieran contenido originalmente los refinamientos LP3 y no constituye aprobación
+de G5.
+
+### Estado canónico
+
+- `G5-LP1 = COMPLETE / DOCUMENTARY PACKAGE ACCEPTED`.
+- `G5-LP2 = COMPLETE / WORKING DECISIONS ACCEPTED`.
+- `G5-OR1 = COMPLETE / TECHNICALLY ACCEPTED`.
+- `G5-LP3 = LEGAL_REVIEW_SYNTHESIS_COMPLETE / FINAL_EXTERNAL_LEGAL_VALIDATION_PENDING`.
+- `LP3_LEGAL_REVIEW_SYNTHESIS = COMPLETE`.
+- `DESIGN_DECISION_GAP = CLOSED`.
+- `PREPILOT_LEGAL_ARTIFACTS = OPEN`; existen 16 artefactos definidos, ninguno cerrado.
+- `C-013 = INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
+- `Q-106 = DEFERRED / PILOT PRECONDITION`; policy refinada, procedimiento final pendiente.
+- `G5-EXIT-07 = PASS_WITH_RESIDUAL`.
+- `G5-EXIT-10 = BLOCKED / IMPLEMENTATION_DEFERRED_TO_PREPROD`; sin implementación LP3.
+- `G5-EXIT-11 = BLOCKED / PREPILOT_LEGAL_ARTIFACTS_REQUIRED`.
+- `G5-EXIT-12 = BLOCKED`.
+- `G5 = NO APROBADA / NOT REQUESTED`.
+- `REAL DATA`, `PILOT` y `PRODUCTION` = `NOT AUTHORIZED`.
+- `EDUPAY TECHNICAL INTEGRATION = NOT AUTHORIZED`.
+
+LP3 refina sólo las working decisions expresamente aprobadas en LP3-A y LP3-B: modelo
+controller/processor, Q-106, health, base por finalidad, derechos, PIE/NEE, notice,
+retención, delete/anonymize/block, acceso/exportación, físicos, proveedores, incidentes y
+logs. La síntesis completa está en
+[`13-g5lp3-legal-review-synthesis.md`](13-g5lp3-legal-review-synthesis.md) y el registro
+finito en [`14-g5lp3-prepilot-legal-artifacts.md`](14-g5lp3-prepilot-legal-artifacts.md).
+
+### Compuerta siguiente
+
+La siguiente acción humana es completar y aprobar los 16 artefactos prepiloto. LP3 convierte
+el blocker legal en una lista finita, pero no marca `G5-EXIT-11` como `PASS` ni autoriza
+datos reales, piloto, producción o G5.

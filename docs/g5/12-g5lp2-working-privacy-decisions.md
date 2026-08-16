@@ -390,3 +390,38 @@ introducen dependencias directas. La diferencia entre `POLICY_WORKING_DECISION` 
 La siguiente acción humana es completar la validación legal/normativa final, aprobar los
 instrumentos y procedimientos LP2-PP-001..015 y emitir, sólo en una etapa posterior y de
 forma separada, cualquier autorización explícita para datos reales, piloto o producción.
+
+## Addendum G5-LP3 — refinement disposition (2026-08-16)
+
+Este addendum preserva LP2 como registro histórico y documenta únicamente los refinamientos
+humanos aprobados en LP3-A y LP3-B. No reescribe las decisiones LP2 como si hubieran tenido
+desde el inicio los estados LP3. La síntesis canónica está en
+[`13-g5lp3-legal-review-synthesis.md`](13-g5lp3-legal-review-synthesis.md) y el registro
+finito de cierre en [`14-g5lp3-prepilot-legal-artifacts.md`](14-g5lp3-prepilot-legal-artifacts.md).
+
+| LP | LP2 histórico preservado | Refinamiento LP3 | Estado LP3 |
+| --- | --- | --- | --- |
+| LP-001 | Working allocation controller/processor | Modelo legal soportado; validación contractual, DPA, instrucciones y subencargados pendientes | `LEGAL_MODEL_SUPPORTED / CONTRACTUAL_VALIDATION_PENDING` |
+| LP-002 | Candidatos de base por finalidad | Framework soportado; clasificación final independiente por finalidad pendiente; candidatos no promovidos | `LEGAL_FRAMEWORK_SUPPORTED / PURPOSE_BY_PURPOSE_FINAL_CLASSIFICATION_PENDING` |
+| LP-003 | Aviso corto/completo versionado | Requisitos mínimos del aviso corto y consentimiento separado afirmativo/versionado cuando corresponda | `LEGAL_REQUIREMENTS_IDENTIFIED / FINAL_TEXT_AND_APPROVAL_PENDING` |
+| LP-004 | Modelo de dos niveles y email distinto de autoridad | Declaraciones explícitas antes de datos específicos del niño y procedimiento antes de sensible/final | `WORKING_DECISION_REFINED / FINAL_Q106_PROCEDURE_PENDING` |
+| LP-005 | PIE/NEE opcional, progresivo y restringido | Diagnóstico/clinical collection disabled-by-default; sólo apoyo funcional mínimo | `WORKING_DECISION_REFINED / SENSITIVE_FIELD_CATALOG_PENDING` |
+| LP-006 | No health general con excepción operacional | Salud disabled-by-default; necesidad operacional sola no habilita excepción | `WORKING_DECISION_REVISED / HEALTH_COLLECTION_DISABLED_BY_DEFAULT` |
+| LP-007 | Retención por propósito/evento sin períodos numéricos | Principio confirmado; matriz con trigger, duración, disposición, hold y owner obligatoria | `LEGAL_RETENTION_PRINCIPLE_CONFIRMED / NUMERIC_MATRIX_PREPILOT_REQUIRED` |
+| LP-008 | Distinción delete/anonymize/block/archive/legal hold | Modelo legal soportado; procedimiento pendiente | `LEGAL_CONCEPT_MODEL_SUPPORTED / IMPLEMENTATION_PROCEDURE_PENDING` |
+| LP-009 | Procedimiento manual/controlado/auditado | Requisitos identificados; procedimiento final y separación de soporte pendientes | `LEGAL_PROCEDURE_REQUIREMENTS_IDENTIFIED / FINAL_OPERATIONAL_PROCEDURE_PENDING` |
+| LP-010 | Acceso/export controlado | Modelo aprobado; matriz legal final pendiente | `CONTROLLED_ACCESS_EXPORT_MODEL_APPROVED / FINAL_LEGAL_MATRIX_APPROVAL_PENDING` |
+| LP-011 | Físico excepcional, digital oficial, devolución por defecto | Policy de producto aprobada; verificación de excepción sectorial pendiente | `PRODUCT_POLICY_APPROVED / SECTORAL_EXCEPTION_CHECK_PENDING` |
+| LP-012 | Framework provider/transfer, sin selección final | Framework soportado; review específico por proveedor pendiente | `TRANSFER_FRAMEWORK_SUPPORTED / PROVIDER_SPECIFIC_REVIEW_PENDING` |
+| LP-013 | Split técnico/controller/privacy | Requisitos de incidente identificados; runbook y owner final pendientes | `LEGAL_INCIDENT_REQUIREMENTS_IDENTIFIED / FINAL_RUNBOOK_APPROVAL_PENDING` |
+| LP-014 | Working policy Q-106 definida | Policy refinada; procedimiento final pendiente | `WORKING_DECISION_REFINED / FINAL_Q106_PROCEDURE_PENDING` |
+| LP-015 | Minimización, separación AuditEvent/SecurityEvent | Propósito/acceso aprobados; retención numérica pendiente | `PURPOSE_MINIMIZATION_ACCESS_MODEL_APPROVED / NUMERIC_RETENTION_PENDING` |
+
+### Estado global posterior a LP3
+
+`G5-LP3 = LEGAL_REVIEW_SYNTHESIS_COMPLETE / FINAL_EXTERNAL_LEGAL_VALIDATION_PENDING`.
+`DESIGN_DECISION_GAP = CLOSED`; `PREPILOT_LEGAL_ARTIFACTS = OPEN`.
+`G5-EXIT-11 = BLOCKED / PREPILOT_LEGAL_ARTIFACTS_REQUIRED`.
+`C-013 = INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING` y
+`Q-106 = DEFERRED / PILOT PRECONDITION`. LP2 no autoriza implementación, datos reales,
+piloto, producción, EduPay ni G5.

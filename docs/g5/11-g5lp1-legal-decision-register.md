@@ -123,3 +123,19 @@ LP2 cierra el gap de decisión humana de diseño, pero mantiene
 `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`; `Q-106` continúa
 `DEFERRED / PILOT PRECONDITION`; `G5-EXIT-12` continúa `BLOCKED`. No se autoriza G5,
 datos reales, piloto, producción ni integración técnica EduPay.
+
+## Addendum G5-LP3 — referencia de disposición posterior (2026-08-16)
+
+LP3 conserva intactos los estados históricos de LP1 y el addendum LP2. La revisión humana
+LP3-A/LP3-B refina únicamente las working decisions expresamente señaladas y convierte
+`G5-EXIT-11` en un paquete finito de artefactos prepiloto.
+
+- Síntesis LP3: [`13-g5lp3-legal-review-synthesis.md`](13-g5lp3-legal-review-synthesis.md).
+- Registro de artefactos: [`14-g5lp3-prepilot-legal-artifacts.md`](14-g5lp3-prepilot-legal-artifacts.md).
+- `G5-LP3 = LEGAL_REVIEW_SYNTHESIS_COMPLETE / FINAL_EXTERNAL_LEGAL_VALIDATION_PENDING`.
+- `C-013 = INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
+- `Q-106 = DEFERRED / PILOT PRECONDITION`; policy refinada, procedimiento final pendiente.
+- `G5-EXIT-11 = BLOCKED / PREPILOT_LEGAL_ARTIFACTS_REQUIRED`.
+
+Este puntero no marca aprobación legal final, no cierra C-013/Q-106 y no autoriza G5,
+datos reales, piloto, producción o integración técnica EduPay.

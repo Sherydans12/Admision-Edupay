@@ -145,3 +145,29 @@ disposición siguiente es la lectura canónica posterior a LP2.
 `PASS_WITH_RESIDUAL`. `C-013` sigue `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
 `G5-EXIT-12 = BLOCKED` y no existe autorización para G5, datos reales, piloto,
 producción o integración técnica EduPay.
+
+## Addendum G5-LP3 — refinamiento de bloqueadores (2026-08-16)
+
+LP3 no reescribe los estados históricos. Registra que la revisión humana legal/privacy
+cerró la brecha de diseño y convirtió el blocker legal en un paquete finito de 16
+artefactos, todos todavía abiertos.
+
+| Item | Disposición LP3 | Estado/implicación actual |
+| --- | --- | --- |
+| `G5-DEC-001` | LP-001, LP-002 y LP-003 soportan el modelo legal de trabajo, el framework por finalidad y los requisitos de notice | Permanece abierto por validación contractual, DPA, clasificación final y textos aprobados; cubierto por `LP3-ART-001..005` |
+| `G5-DEC-002` | LP-005..LP-011 refinan categorías sensibles, salud, retención, derechos, acceso/exportación y físicos | Permanece abierto por catálogos, matriz numérica, procedimientos y aprobaciones; cubierto por `LP3-ART-006..013` |
+| `G5-DEC-003` | La tecnología/destinos operativos de LP1/LP2 se mantienen aprobados con implementación diferida | `G5-EXIT-10 = BLOCKED / IMPLEMENTATION_DEFERRED_TO_PREPROD`; LP3 no implementa providers |
+| `G5-DEC-004` | Recovery sintético y owner se mantienen cerrados; LP3 no altera residual preprod/productivo | Residual operativo/provider permanece vigente |
+| `G5-DEC-005` | LP3 no emite autorización fechada | `OPEN / BLOCKED`; datos reales, piloto y producción siguen `NOT AUTHORIZED` |
+| `G5-DEC-006` | LP-004/LP-014 refinan Q-106 con declaraciones explícitas y verificación antes de boundary sensible/final | `Q-106 = DEFERRED / PILOT PRECONDITION`; procedimiento final pendiente, cubierto por `LP3-ART-006` |
+| `G5-DEC-007` | LP-012 soporta el framework de transferencias, sin seleccionar proveedores | Revisión por proveedor, DPA, subencargados, región, residencia y seguridad pendiente; `LP3-ART-014` |
+| `G5-DEC-008` | LP-015 aprueba minimización/propósito/acceso y mantiene `AuditEvent != SecurityEvent` | Retención numérica y matriz de acceso pendientes; `LP3-ART-016` |
+| `G5-DEC-009` | LP3 no modifica configuración funcional del piloto | Permanece `OPEN / PILOT CONFIGURATION PENDING` |
+
+### Disposición de gate
+
+`G5-LP3 = LEGAL_REVIEW_SYNTHESIS_COMPLETE / FINAL_EXTERNAL_LEGAL_VALIDATION_PENDING`.
+`DESIGN_DECISION_GAP = CLOSED`; `PREPILOT_LEGAL_ARTIFACTS = OPEN`.
+`G5-EXIT-11 = BLOCKED / PREPILOT_LEGAL_ARTIFACTS_REQUIRED`, sin `PASS` ni
+`PASS_WITH_RESIDUAL`. `G5-EXIT-12` sigue `BLOCKED` y `G5-EXIT-10` sigue
+`BLOCKED / IMPLEMENTATION_DEFERRED_TO_PREPROD`.
