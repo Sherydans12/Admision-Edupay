@@ -71,6 +71,7 @@ export interface AdmissionOfferingInput {
 }
 
 export interface StudentInput {
+  dateOfBirth?: string | undefined;
   familyName: string;
   givenName: string;
 }
@@ -121,6 +122,7 @@ export interface OfferingDto {
 }
 
 export interface StudentDto {
+  dateOfBirth: string | null;
   familyName: string;
   givenName: string;
   id: string;
@@ -201,7 +203,9 @@ type OfferingWithProjection = Prisma.AdmissionOfferingGetPayload<{
 
 const applicationProjection = {
   offering: { include: offeringProjection },
-  student: { select: { familyName: true, givenName: true, id: true } },
+  student: {
+    select: { dateOfBirth: true, familyName: true, givenName: true, id: true },
+  },
 } as const;
 
 type ApplicationWithProjection = Prisma.ApplicationGetPayload<{
@@ -265,12 +269,35 @@ function mapOffering(offering: OfferingWithProjection): OfferingDto {
   };
 }
 
-function mapStudent(student: StudentDto): StudentDto {
+function mapStudent(student: {
+  dateOfBirth: Date | null;
+  familyName: string;
+  givenName: string;
+  id: string;
+}): StudentDto {
   return {
+    dateOfBirth: student.dateOfBirth?.toISOString().slice(0, 10) ?? null,
     familyName: student.familyName,
     givenName: student.givenName,
     id: student.id,
   };
+}
+
+function parseDateOfBirth(value: string | undefined): Date | undefined {
+  if (value === undefined) return undefined;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/u.exec(value);
+  if (match === null) throw new IntakeValidationError("Invalid dateOfBirth");
+  const candidate = new Date(
+    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
+  );
+  if (
+    candidate.getUTCFullYear() !== Number(match[1]) ||
+    candidate.getUTCMonth() !== Number(match[2]) - 1 ||
+    candidate.getUTCDate() !== Number(match[3])
+  ) {
+    throw new IntakeValidationError("Invalid dateOfBirth");
+  }
+  return candidate;
 }
 
 function mapCampus(campus: {
@@ -589,13 +616,19 @@ export class IntakeService {
     assertFamilyPermission(context, PERMISSIONS.STUDENT_WRITE);
     const givenName = requireText(input.givenName, "givenName", 120);
     const familyName = requireText(input.familyName, "familyName", 160);
+    const dateOfBirth = parseDateOfBirth(input.dateOfBirth);
     return withPlatformAuditTransaction(this.prisma, async (transaction) => {
       const profile = await transaction.familyProfile.findUnique({
         where: { userId: context.actorId },
       });
       if (profile === null) throw new IntakeNotFoundError();
       const student = await transaction.student.create({
-        data: { familyName, familyProfileId: profile.id, givenName },
+        data: {
+          ...(dateOfBirth === undefined ? {} : { dateOfBirth }),
+          familyName,
+          familyProfileId: profile.id,
+          givenName,
+        },
       });
       await recordPlatformAudit(transaction, context, {
         action: "STUDENT_CREATED",
@@ -615,6 +648,7 @@ export class IntakeService {
     assertFamilyPermission(context, PERMISSIONS.STUDENT_WRITE);
     const givenName = requireText(input.givenName, "givenName", 120);
     const familyName = requireText(input.familyName, "familyName", 160);
+    const dateOfBirth = parseDateOfBirth(input.dateOfBirth);
     return withPlatformAuditTransaction(this.prisma, async (transaction) => {
       const profile = await transaction.familyProfile.findUnique({
         where: { userId: context.actorId },
@@ -625,7 +659,11 @@ export class IntakeService {
       });
       if (owned === null) throw new IntakeNotFoundError();
       const student = await transaction.student.update({
-        data: { familyName, givenName },
+        data: {
+          ...(dateOfBirth === undefined ? {} : { dateOfBirth }),
+          familyName,
+          givenName,
+        },
         where: { id: studentId },
       });
       await recordPlatformAudit(transaction, context, {

@@ -3,6 +3,10 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { AdminFormBuilder, FamilyApplicationFlow } from "./form-workflows";
 import {
+  FamilyAuthorityWorkspace,
+  StaffAuthorityWorkspace,
+} from "./authority-workflows";
+import {
   AdminDocumentRequirements,
   AssistedApplicationWorkspace,
   StaffDocumentWorkspace,
@@ -43,6 +47,7 @@ type FamilySection =
   | "applications"
   | "activities"
   | "admission"
+  | "authority"
   | "form";
 type AdminSection =
   | "access"
@@ -58,6 +63,7 @@ type AdminSection =
   | "support";
 type StaffSection =
   | "audit"
+  | "authority"
   | "dashboard"
   | "communications"
   | "review"
@@ -81,6 +87,7 @@ interface Offering {
 }
 
 interface Student {
+  dateOfBirth: string | null;
   familyName: string;
   givenName: string;
   id: string;
@@ -219,6 +226,7 @@ export default function Home() {
     setError("");
     try {
       await mutate("/family/students", "POST", {
+        dateOfBirth: data.get("dateOfBirth"),
         familyName: data.get("familyName"),
         givenName: data.get("givenName"),
       });
@@ -248,8 +256,10 @@ export default function Home() {
       );
       await loadFamily();
       setActiveApplicationId(application.id);
-      setFamilySection("form");
-      setNotice("Borrador creado con una versión de formulario fijada.");
+      setFamilySection("authority");
+      setNotice(
+        "Borrador creado. Declara la autoridad antes de continuar al formulario.",
+      );
     } catch (requestError) {
       setError(
         requestError instanceof Error && requestError.message === "HTTP_409"
@@ -438,7 +448,7 @@ export default function Home() {
             activeApplicationId={activeApplicationId}
             onOpenApplication={(applicationId) => {
               setActiveApplicationId(applicationId);
-              setFamilySection("form");
+              setFamilySection("authority");
             }}
             onOpenActivities={(applicationId) => {
               setActiveApplicationId(applicationId);
@@ -502,6 +512,7 @@ function FamilyView(props: {
             "students",
             "offerings",
             "applications",
+            "authority",
             "activities",
             "admission",
           ] as FamilySection[]
@@ -523,9 +534,11 @@ function FamilyView(props: {
                   ? "Ofertas"
                   : section === "applications"
                     ? "Postulaciones"
-                    : section === "activities"
-                      ? "Actividades"
-                      : "Resultado de admisión"}
+                    : section === "authority"
+                      ? "Autoridad"
+                      : section === "activities"
+                        ? "Actividades"
+                        : "Resultado de admisión"}
           </button>
         ))}
         <div className="side-note">
@@ -542,6 +555,15 @@ function FamilyView(props: {
         {familySection === "offerings" ? <OfferingsSection {...props} /> : null}
         {familySection === "applications" ? (
           <ApplicationsSection {...props} />
+        ) : null}
+        {familySection === "authority" && props.activeApplicationId ? (
+          <FamilyAuthorityWorkspace
+            apiBase={API_BASE}
+            applicationId={props.activeApplicationId}
+            key={`${props.tenantId}:${props.activeApplicationId}:authority`}
+            onContinue={() => props.onSectionChange("form")}
+            tenantId={props.tenantId}
+          />
         ) : null}
         {familySection === "activities" ? (
           <FamilyActivityWorkspace
@@ -689,6 +711,10 @@ function StudentsSection({
           </p>
           <Field label="Nombre" name="givenName" />
           <Field label="Apellido" name="familyName" />
+          <label className="field">
+            <span>Fecha de nacimiento</span>
+            <input name="dateOfBirth" required type="date" />
+          </label>
           <button className="button button-primary" type="submit">
             Guardar estudiante
           </button>
@@ -981,6 +1007,7 @@ function StaffView({
 }) {
   const sections: { key: StaffSection; label: string }[] = [
     { key: "dashboard", label: "Dashboard operativo" },
+    { key: "authority", label: "Autoridad de postulación" },
     { key: "communications", label: "Comunicaciones" },
     { key: "review", label: "Revisión documental" },
     { key: "assistance", label: "Postulación asistida" },
@@ -1030,6 +1057,8 @@ function StaffView({
         </div>
         {staffSection === "dashboard" ? (
           <StaffDashboardWorkspace apiBase={API_BASE} tenantId={tenantId} />
+        ) : staffSection === "authority" ? (
+          <StaffAuthorityWorkspace apiBase={API_BASE} tenantId={tenantId} />
         ) : staffSection === "communications" ? (
           <StaffCommunicationsWorkspace
             apiBase={API_BASE}

@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import {
   cp,
   mkdir,
@@ -10,22 +11,16 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { randomUUID } from "node:crypto";
 
 const root = process.cwd();
 const migrationRoot = resolve(root, "packages/database/prisma/migrations");
-const expected = "20260815090000_g5br_account_verification";
-const currentExpected = "20260816070000_g5pc1r12_authority_core";
+const expected = "20260816070000_g5pc1r12_authority_core";
 const migrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
   .sort();
-if (migrations.length !== 17 || migrations.at(-1) !== currentExpected) {
-  throw new Error(`Expected 17 migrations ending in ${currentExpected}`);
-}
-const historicalMigrations = migrations.slice(0, 16);
-if (historicalMigrations.at(-1) !== expected) {
-  throw new Error(`Expected Migration 16 to remain ${expected}`);
+if (migrations.length !== 17 || migrations.at(-1) !== expected) {
+  throw new Error(`Expected 17 migrations ending in ${expected}`);
 }
 
 function run(command, args, options = {}) {
@@ -90,7 +85,7 @@ async function createConfig(tempRoot, selected, database) {
   const config = resolve(
     root,
     "packages/database",
-    `.g5br-migration-${randomUUID()}.config.ts`,
+    `.g5pc1r12-migration-${randomUUID()}.config.ts`,
   );
   const envText = await readFile(resolve(root, ".env"), "utf8");
   const line = envText
@@ -128,7 +123,9 @@ async function deploy(config, url) {
       "--config",
       config,
     ],
-    { env: { DATABASE_MIGRATION_URL: url } },
+    {
+      env: { DATABASE_MIGRATION_URL: url },
+    },
   );
 }
 
@@ -136,16 +133,15 @@ const container = (
   await run("docker", ["compose", "ps", "-q", "postgres"], { capture: true })
 ).stdout.trim();
 if (!container) throw new Error("Local PostgreSQL container is not running");
-
-const tempRoot = await mkdtemp(join(tmpdir(), "admission-g5br-migration-"));
+const tempRoot = await mkdtemp(join(tmpdir(), "admission-g5pc1r12-migration-"));
 const databases = [];
 const configs = [];
 try {
   for (const [label, selected] of [
-    ["fresh", historicalMigrations],
-    ["incremental", historicalMigrations.slice(0, 15)],
+    ["fresh", migrations],
+    ["incremental", migrations.slice(0, 16)],
   ]) {
-    const database = `admission_g5br_${label}_${randomUUID().replaceAll("-", "")}`;
+    const database = `admission_g5pc1r12_${label}_${randomUUID().replaceAll("-", "")}`;
     databases.push(database);
     await run("docker", [
       "exec",
@@ -168,13 +164,12 @@ try {
     if (label === "incremental") {
       const final = await createConfig(
         join(tempRoot, `${label}-final`),
-        historicalMigrations,
+        migrations,
         database,
       );
       configs.push(final.config);
       await deploy(final.config, final.url);
     }
-
     const applied = (
       await psql(
         container,
@@ -182,39 +177,39 @@ try {
         "SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;",
       )
     ).stdout.trim();
-    if (applied !== "16")
+    if (applied !== "17")
       throw new Error(`${label} applied ${applied} migrations`);
     console.log(
-      `${label === "fresh" ? "FRESH_0_TO_16" : "INCREMENTAL_15_TO_16"}=PASS`,
+      `${label === "fresh" ? "FRESH_0_TO_17" : "INCREMENTAL_16_TO_17"}=PASS`,
     );
-
-    if (label === "incremental") {
-      const seals = (
-        await psql(
-          container,
-          database,
-          `SELECT
-            (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name='account_verification_challenges'),
-            (SELECT relrowsecurity FROM pg_class WHERE relname='account_verification_challenges'),
-            (SELECT relforcerowsecurity FROM pg_class WHERE relname='account_verification_challenges'),
-            has_table_privilege('admission_app', 'account_verification_challenges', 'SELECT'),
-            has_table_privilege('admission_app', 'account_verification_challenges', 'INSERT'),
-            has_table_privilege('admission_app', 'account_verification_challenges', 'UPDATE'),
-            has_table_privilege('admission_app', 'account_verification_challenges', 'DELETE'),
-            (SELECT count(*) FROM pg_constraint WHERE conrelid='account_verification_challenges'::regclass AND contype='f'),
-            (SELECT count(*) FROM pg_indexes WHERE schemaname='public' AND tablename='account_verification_challenges' AND indexname IN ('account_verification_challenges_verifier_hash_key','account_verification_challenges_one_active_per_user_key')),
-            (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='account_verification_challenges' AND column_name IN ('consumed_at','superseded_at','verifier_hash')),
-            (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='account_verification_challenges' AND column_name IN ('token','raw_token')),
-            (SELECT pg_get_userbyid(relowner)='admission_migrator' FROM pg_class WHERE relname='account_verification_challenges');`,
-        )
-      ).stdout.trim();
-      if (seals !== "1|f|f|t|t|t|f|1|2|3|0|t") {
-        throw new Error(`G5BR identity seal mismatch: ${seals}`);
-      }
-      console.log(
-        "G5BR_IDENTITY_SEALS=PASS (hashed verifier, uniqueness, one-time fields, FK, grants and global control-plane boundary)",
-      );
+    const seals = (
+      await psql(
+        container,
+        database,
+        `SELECT
+      (SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='students' AND column_name='date_of_birth'),
+      (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('application_authorities','application_authority_reviews','application_authority_evidence')),
+      (SELECT count(*) FROM pg_type WHERE typname IN ('ApplicationAuthoritySubjectMode','ApplicationAuthorityRelationship','ApplicationAuthorityBasis','ApplicationAuthorityStatus')),
+      (SELECT count(*) FROM pg_class WHERE relname IN ('application_authorities','application_authority_reviews','application_authority_evidence') AND relrowsecurity AND relforcerowsecurity),
+      has_table_privilege('admission_app', 'application_authorities', 'SELECT'),
+      has_table_privilege('admission_app', 'application_authorities', 'INSERT'),
+      has_table_privilege('admission_app', 'application_authorities', 'UPDATE'),
+      has_table_privilege('admission_app', 'application_authorities', 'DELETE'),
+      has_table_privilege('admission_app', 'application_authority_reviews', 'INSERT'),
+      has_table_privilege('admission_app', 'application_authority_reviews', 'UPDATE'),
+      has_table_privilege('admission_app', 'application_authority_evidence', 'INSERT'),
+      has_table_privilege('admission_app', 'application_authority_evidence', 'DELETE'),
+      (SELECT count(*) FROM application_authorities WHERE status='VERIFIED'),
+      (SELECT pg_get_userbyid(relowner)='admission_migrator' FROM pg_class WHERE relname='application_authorities'),
+      ('admission_app' <> 'admission_migrator');`,
+      )
+    ).stdout.trim();
+    if (seals !== "1|3|4|3|t|t|t|f|t|f|t|f|0|t|t") {
+      throw new Error(`G5-PC1-R12 migration seal mismatch: ${seals}`);
     }
+    console.log(
+      "G5PC1R12_SEALS=PASS (DOB nullable, authority schema, RLS/FORCE, grants, distinct roles and no verified backfill)",
+    );
   }
 } finally {
   await rm(tempRoot, { recursive: true, force: true });

@@ -57,6 +57,8 @@ async function seedTenant(tenantId: string, suffix: string) {
       "offerVersion",
       "acceptance",
       "withdrawal",
+      "authority",
+      "authorityReview",
     ].map((key) => [key, randomUUID()]),
   ) as Record<
     | "user"
@@ -81,7 +83,9 @@ async function seedTenant(tenantId: string, suffix: string) {
     | "offer"
     | "offerVersion"
     | "acceptance"
-    | "withdrawal",
+    | "withdrawal"
+    | "authority"
+    | "authorityReview",
     string
   >;
   await pool.query("INSERT INTO tenants (id,name) VALUES ($1,$2)", [
@@ -97,8 +101,8 @@ async function seedTenant(tenantId: string, suffix: string) {
     [ids.profile, ids.user, `Familia RLS ${suffix}`],
   );
   await pool.query(
-    `INSERT INTO students (id,family_profile_id,given_name,family_name)
-     VALUES ($1,$2,'Estudiante','Uno'),($3,$2,'Estudiante','Dos')`,
+    `INSERT INTO students (id,family_profile_id,given_name,family_name,date_of_birth)
+     VALUES ($1,$2,'Estudiante','Uno',DATE '2010-01-01'),($3,$2,'Estudiante','Dos',DATE '2010-01-01')`,
     [ids.studentA, ids.profile, ids.studentB],
   );
   await runWithTenantContext(context(tenantId, ids.user), () =>
@@ -166,6 +170,24 @@ async function seedTenant(tenantId: string, suffix: string) {
           }),
           ids.applicationB,
           ids.studentB,
+        ],
+      );
+      await tenantClient.query(
+        `INSERT INTO application_authorities
+          (id,tenant_id,application_id,authority_user_id,subject_mode,relationship,authority_basis,status,date_of_birth_snapshot,declared_at,verified_at)
+         VALUES ($1,$2,$3,$4,'MINOR_REPRESENTATIVE','MOTHER','PARENT','VERIFIED',DATE '2010-01-01',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`,
+        [ids.authority, tenantId, ids.applicationA, ids.user],
+      );
+      await tenantClient.query(
+        `INSERT INTO application_authority_reviews
+          (id,tenant_id,authority_id,application_id,sequence_number,from_status,to_status,subject_mode,relationship,authority_basis,actor_user_id,concurrency_version)
+         VALUES ($1,$2,$3,$4,1,'NOT_DECLARED','DECLARED','MINOR_REPRESENTATIVE','MOTHER','PARENT',$5,1)`,
+        [
+          ids.authorityReview,
+          tenantId,
+          ids.authority,
+          ids.applicationA,
+          ids.user,
         ],
       );
       await tenantClient.query(
@@ -369,6 +391,106 @@ describe.sequential("E5-F tenant RLS and database seals", () => {
       ),
     ).resolves.toBe(1);
     await expect(prisma.admissionOfferVersion.count()).resolves.toBe(0);
+  });
+
+  it("R12-RLS-01..10: authority resources remain tenant-scoped, forced and append-only", async () => {
+    const own = await runWithTenantContext(
+      context(tenantA, seedA.actorId),
+      () =>
+        withTenantTransaction(prisma, async (transaction) => ({
+          authorities: await transaction.applicationAuthority.findMany(),
+          evidence: await transaction.applicationAuthorityEvidence.findMany(),
+          reviews: await transaction.applicationAuthorityReview.findMany(),
+        })),
+    );
+    expect(own.authorities.map((row) => row.id)).toEqual([seedA.ids.authority]);
+    expect(own.reviews.map((row) => row.id)).toEqual([
+      seedA.ids.authorityReview,
+    ]);
+    expect(own.evidence).toEqual([]);
+
+    await expect(prisma.applicationAuthority.findMany()).resolves.toEqual([]);
+    const cross = await runWithTenantContext(
+      context(tenantB, seedB.actorId),
+      () =>
+        withTenantTransaction(prisma, async (transaction) => ({
+          authorities: await transaction.applicationAuthority.findMany({
+            where: { id: seedA.ids.authority },
+          }),
+          evidence: await transaction.applicationAuthorityEvidence.findMany({
+            where: { authorityId: seedA.ids.authority },
+          }),
+          reviews: await transaction.applicationAuthorityReview.findMany({
+            where: { authorityId: seedA.ids.authority },
+          }),
+        })),
+    );
+    expect(cross).toEqual({ authorities: [], evidence: [], reviews: [] });
+
+    await expect(
+      runWithTenantContext(context(tenantB, seedB.actorId), () =>
+        withTenantTransaction(prisma, (transaction) =>
+          transaction.applicationAuthority.create({
+            data: {
+              applicationId: seedA.ids.applicationA,
+              authorityBasis: "PARENT",
+              authorityUserId: seedB.ids.user,
+              dateOfBirthSnapshot: new Date("2010-01-01T00:00:00.000Z"),
+              declaredAt: new Date(),
+              relationship: "MOTHER",
+              subjectMode: "MINOR_REPRESENTATIVE",
+              tenantId: tenantB,
+            },
+          }),
+        ),
+      ),
+    ).rejects.toThrow();
+
+    const deniedUpdate = await runWithTenantContext(
+      context(tenantB, seedB.actorId),
+      () =>
+        withTenantTransaction(prisma, (transaction) =>
+          transaction.applicationAuthority.updateMany({
+            data: { status: "DISPUTED" },
+            where: { id: seedA.ids.authority },
+          }),
+        ),
+    );
+    expect(deniedUpdate.count).toBe(0);
+
+    await expect(
+      runWithTenantContext(context(tenantB, seedB.actorId), () =>
+        withTenantTransaction(prisma, (transaction) =>
+          transaction.applicationAuthorityEvidence.create({
+            data: {
+              applicationId: seedA.ids.applicationA,
+              authorityId: seedA.ids.authority,
+              documentVersionId: randomUUID(),
+              linkedByActorId: seedB.ids.user,
+              tenantId: tenantA,
+            },
+          }),
+        ),
+      ),
+    ).rejects.toThrow();
+
+    const pooled = await Promise.all(
+      Array.from({ length: 12 }, (_, index) => {
+        const tenantId = index % 2 === 0 ? tenantA : tenantB;
+        const actorId = index % 2 === 0 ? seedA.actorId : seedB.actorId;
+        return runWithTenantContext(context(tenantId, actorId), () =>
+          withTenantTransaction(prisma, (transaction) =>
+            transaction.applicationAuthority.findMany(),
+          ),
+        );
+      }),
+    );
+    expect(pooled.filter((rows) => rows.length === 1)).toHaveLength(12);
+    expect(
+      pooled.filter(
+        (rows) => rows.length === 1 && rows[0]?.id === seedA.ids.authority,
+      ),
+    ).toHaveLength(6);
   });
 
   it("E5F-DB-01..03: append-only evidence and terminal histories reject mutation", async () => {

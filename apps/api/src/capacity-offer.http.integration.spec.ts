@@ -108,8 +108,10 @@ async function seedFixture() {
     tenantBStaffId,
   ];
   await migrationPool.query(
-    `INSERT INTO platform_users (id,email_normalized) VALUES ${users
-      .map((_, index) => `($${index * 2 + 1},$${index * 2 + 2})`)
+    `INSERT INTO platform_users (id,email_normalized,email_verified_at) VALUES ${users
+      .map(
+        (_, index) => `($${index * 2 + 1},$${index * 2 + 2},CURRENT_TIMESTAMP)`,
+      )
       .join(",")}`,
     users.flatMap((id) => [id, `e5f-http-${id}@example.invalid`]),
   );
@@ -164,8 +166,8 @@ async function seedFixture() {
         const applicationId = randomUUID();
         const snapshotId = randomUUID();
         await transaction.$executeRaw`
-          INSERT INTO students (id,family_profile_id,given_name,family_name)
-          VALUES (${studentId},${familyProfileId},${`Estudiante ${index + 1}`},'Sintético')`;
+          INSERT INTO students (id,family_profile_id,given_name,family_name,date_of_birth)
+          VALUES (${studentId},${familyProfileId},${`Estudiante ${index + 1}`},'Sintético',DATE '2010-01-01')`;
         await transaction.$executeRaw`
           INSERT INTO applications
             (id,tenant_id,family_profile_id,student_id,academic_year_id,process_id,offering_id,form_version_id,status,submitted_at,draft_data)
@@ -175,6 +177,11 @@ async function seedFixture() {
           INSERT INTO application_snapshots
             (id,tenant_id,application_id,form_version_id,payload,submitted_by,submitted_at)
           VALUES (${snapshotId},${tenantAId},${applicationId},${formVersionId},'{}'::jsonb,${recommenderId},CURRENT_TIMESTAMP)`;
+        await transaction.$executeRaw`
+          INSERT INTO application_authorities
+            (tenant_id,application_id,authority_user_id,subject_mode,relationship,authority_basis,status,date_of_birth_snapshot,declared_at,verified_at)
+          VALUES
+            (${tenantAId},${applicationId},${familyUserId},'MINOR_REPRESENTATIVE','MOTHER','PARENT','VERIFIED',DATE '2010-01-01',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`;
         result.push(applicationId);
       }
       return result;

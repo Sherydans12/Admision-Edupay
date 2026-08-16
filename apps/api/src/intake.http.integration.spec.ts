@@ -97,8 +97,8 @@ async function seedFixture(): Promise<void> {
   try {
     await client.query("BEGIN");
     await client.query(
-      `INSERT INTO platform_users (id, email_normalized)
-       VALUES ($1, $2), ($3, $4), ($5, $6), ($7, $8), ($9, $10)`,
+      `INSERT INTO platform_users (id, email_normalized, email_verified_at)
+       VALUES ($1, $2, CURRENT_TIMESTAMP), ($3, $4, CURRENT_TIMESTAMP), ($5, $6, CURRENT_TIMESTAMP), ($7, $8, CURRENT_TIMESTAMP), ($9, $10, CURRENT_TIMESTAMP)`,
       [
         userA,
         `synthetic-http-a-${userA}@example.invalid`,
@@ -122,8 +122,8 @@ async function seedFixture(): Promise<void> {
       [profileA, userA, "Familia HTTP A", profileB, userB, "Familia HTTP B"],
     );
     await client.query(
-      `INSERT INTO students (id, family_profile_id, given_name, family_name)
-       VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)`,
+      `INSERT INTO students (id, family_profile_id, given_name, family_name, date_of_birth)
+       VALUES ($1, $2, $3, $4, DATE '2010-01-01'), ($5, $6, $7, $8, DATE '2010-01-01')`,
       [
         studentA,
         profileA,
@@ -215,7 +215,7 @@ async function seedFixture(): Promise<void> {
     await transaction.$executeRaw`
       INSERT INTO role_assignments
         (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
-       VALUES (${roleAssignment}, ${tenantA}, ${membership}, ${"SYNTHETIC_E5C_ADMIN"}, ARRAY[${PERMISSIONS.ADMISSION_CONFIG_READ}, ${PERMISSIONS.ADMISSION_CONFIG_MANAGE}, ${PERMISSIONS.APPLICATION_ASSIST}, ${PERMISSIONS.DOCUMENT_EXEMPT}, ${PERMISSIONS.DOCUMENT_READ}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_MANAGE}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_PUBLISH}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_READ}, ${PERMISSIONS.DOCUMENT_REVIEW}, ${PERMISSIONS.DOCUMENT_UPLOAD}, ${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}, ${PERMISSIONS.FORM_PUBLISH}, ${PERMISSIONS.RESTRICTED_READ}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
+       VALUES (${roleAssignment}, ${tenantA}, ${membership}, ${"SYNTHETIC_E5C_ADMIN"}, ARRAY[${PERMISSIONS.ADMISSION_CONFIG_READ}, ${PERMISSIONS.ADMISSION_CONFIG_MANAGE}, ${PERMISSIONS.APPLICATION_ASSIST}, ${PERMISSIONS.APPLICATION_AUTHORITY_REVIEW}, ${PERMISSIONS.DOCUMENT_EXEMPT}, ${PERMISSIONS.DOCUMENT_READ}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_MANAGE}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_PUBLISH}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_READ}, ${PERMISSIONS.DOCUMENT_REVIEW}, ${PERMISSIONS.DOCUMENT_UPLOAD}, ${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}, ${PERMISSIONS.FORM_PUBLISH}, ${PERMISSIONS.RESTRICTED_READ}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
     await transaction.$executeRaw`
       INSERT INTO role_assignments
         (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
@@ -909,6 +909,55 @@ describe.sequential("E5-A real HTTP boundary", () => {
     expect((await review.json()) as object).toMatchObject({
       missingRequired: [],
     });
+    const declaration = await mutation(
+      `/family/tenants/${fixture.tenantAId}/applications/${application.id}/authority`,
+      fixture.familyAToken,
+      token,
+      {
+        body: JSON.stringify({
+          authorityBasis: "PARENT",
+          relationship: "MOTHER",
+          subjectMode: "MINOR_REPRESENTATIVE",
+        }),
+        method: "POST",
+      },
+    );
+    expect(declaration.status).toBe(201);
+    const declared = (await declaration.json()) as {
+      concurrencyVersion: number;
+    };
+    const staffToken = await csrf(fixture.adminAllowedToken);
+    const underReview = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/applications/${application.id}/authority/review`,
+      fixture.adminAllowedToken,
+      staffToken,
+      {
+        body: JSON.stringify({
+          expectedConcurrencyVersion: declared.concurrencyVersion,
+          reason: "Revisión sintética del flujo HTTP",
+          toStatus: "UNDER_REVIEW",
+        }),
+        method: "POST",
+      },
+    );
+    expect(underReview.status).toBe(201);
+    const reviewing = (await underReview.json()) as {
+      concurrencyVersion: number;
+    };
+    const verified = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/applications/${application.id}/authority/review`,
+      fixture.adminAllowedToken,
+      staffToken,
+      {
+        body: JSON.stringify({
+          expectedConcurrencyVersion: reviewing.concurrencyVersion,
+          reason: "Verificación sintética del flujo HTTP",
+          toStatus: "VERIFIED",
+        }),
+        method: "POST",
+      },
+    );
+    expect(verified.status).toBe(201);
     const path = `/family/tenants/${fixture.tenantAId}/applications/${application.id}/submit`;
     const first = await mutation(path, fixture.familyAToken, token, {
       method: "POST",

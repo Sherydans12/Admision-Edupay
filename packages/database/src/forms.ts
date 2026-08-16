@@ -1,4 +1,9 @@
 import { Prisma, type PrismaClient } from "./generated/prisma/client.js";
+import {
+  assertApplicationAuthorityForCriticalAction,
+  isApplicationAuthorityCriticalActionError,
+  recordApplicationAuthorityCriticalActionDenied,
+} from "./application-authority.js";
 import { pinApplicationActivities } from "./activities.js";
 import { authorizeOrThrow } from "./authorization.js";
 import { evaluateDocumentSubmissionReadiness } from "./documents.js";
@@ -1721,7 +1726,7 @@ export class FormService {
     );
   }
 
-  private submitApplicationCore(
+  private async submitApplicationCore(
     input:
       | {
           applicantContext: TenantExecutionContext;
@@ -1744,281 +1749,302 @@ export class FormService {
     submittedAt: string;
   }> {
     const { applicantContext, applicationId } = input;
-    return withTenantTransaction(this.prisma, async (transaction) => {
-      let verifiedAssistanceSession:
-        | NonNullable<
-            Awaited<
-              ReturnType<
-                Prisma.TransactionClient["assistanceSession"]["findFirst"]
+    try {
+      return await withTenantTransaction(this.prisma, async (transaction) => {
+        let verifiedAssistanceSession:
+          | NonNullable<
+              Awaited<
+                ReturnType<
+                  Prisma.TransactionClient["assistanceSession"]["findFirst"]
+                >
               >
             >
-          >
-        | undefined;
-      if (input.submissionMode === "ASSISTED") {
-        const sessionLock = await transaction.$queryRaw<Array<{ id: string }>>`
+          | undefined;
+        if (input.submissionMode === "ASSISTED") {
+          const sessionLock = await transaction.$queryRaw<
+            Array<{ id: string }>
+          >`
           SELECT "id" FROM "assistance_sessions"
           WHERE "tenant_id" = ${applicantContext.tenantId}::uuid
             AND "id" = ${input.assistanceSessionId}::uuid
           FOR UPDATE
         `;
-        if (sessionLock.length !== 1) throw new IntakeNotFoundError();
-        const session = await transaction.assistanceSession.findFirst({
-          where: { id: input.assistanceSessionId },
-        });
-        if (
-          session === null ||
-          session.tenantId !== applicantContext.tenantId ||
-          session.status !== "ACTIVE" ||
-          session.operatorUserId !==
-            (applicantContext.effectiveActorId ?? applicantContext.actorId) ||
-          !session.adultPresentConfirmed ||
-          !session.authorizationConfirmed ||
-          session.authorizationRecordedAt === null
-        ) {
-          throw new IntakeNotFoundError();
+          if (sessionLock.length !== 1) throw new IntakeNotFoundError();
+          const session = await transaction.assistanceSession.findFirst({
+            where: { id: input.assistanceSessionId },
+          });
+          if (
+            session === null ||
+            session.tenantId !== applicantContext.tenantId ||
+            session.status !== "ACTIVE" ||
+            session.operatorUserId !==
+              (applicantContext.effectiveActorId ?? applicantContext.actorId) ||
+            !session.adultPresentConfirmed ||
+            !session.authorizationConfirmed ||
+            session.authorizationRecordedAt === null
+          ) {
+            throw new IntakeNotFoundError();
+          }
+          verifiedAssistanceSession = session;
         }
-        verifiedAssistanceSession = session;
-      }
 
-      const locked = await transaction.$queryRaw<Array<{ id: string }>>`
+        const locked = await transaction.$queryRaw<Array<{ id: string }>>`
         SELECT "id" FROM "applications"
         WHERE "tenant_id" = ${applicantContext.tenantId}::uuid AND "id" = ${applicationId}::uuid
         FOR UPDATE
       `;
-      if (locked.length !== 1) throw new IntakeNotFoundError();
-      const familyProfileId =
-        verifiedAssistanceSession?.familyProfileId ??
-        (input.submissionMode === "SELF_SERVICE"
-          ? input.familyProfileId
-          : (() => {
-              throw new IntakeNotFoundError();
-            })());
-      const application = await this.loadOwnedApplication(
-        transaction,
-        familyProfileId,
-        applicationId,
-      );
-      if (application === null) throw new IntakeNotFoundError();
-      if (input.submissionMode === "ASSISTED") {
+        if (locked.length !== 1) throw new IntakeNotFoundError();
+        const familyProfileId =
+          verifiedAssistanceSession?.familyProfileId ??
+          (input.submissionMode === "SELF_SERVICE"
+            ? input.familyProfileId
+            : (() => {
+                throw new IntakeNotFoundError();
+              })());
+        const application = await this.loadOwnedApplication(
+          transaction,
+          familyProfileId,
+          applicationId,
+        );
+        if (application === null) throw new IntakeNotFoundError();
+        if (input.submissionMode === "ASSISTED") {
+          if (
+            verifiedAssistanceSession === undefined ||
+            application.tenantId !== verifiedAssistanceSession.tenantId ||
+            application.origin !== "ASSISTED" ||
+            application.assistanceSessionId !== verifiedAssistanceSession.id ||
+            application.familyProfileId !==
+              verifiedAssistanceSession.familyProfileId
+          ) {
+            throw new IntakeNotFoundError();
+          }
+        }
+        const profileSnapshot = await transaction.familyProfile.findUnique({
+          where: { id: application.familyProfileId },
+        });
+        if (profileSnapshot === null) throw new IntakeNotFoundError();
         if (
-          verifiedAssistanceSession === undefined ||
-          application.tenantId !== verifiedAssistanceSession.tenantId ||
-          application.origin !== "ASSISTED" ||
-          application.assistanceSessionId !== verifiedAssistanceSession.id ||
-          application.familyProfileId !==
-            verifiedAssistanceSession.familyProfileId
+          verifiedAssistanceSession !== undefined &&
+          profileSnapshot.userId !==
+            verifiedAssistanceSession.adultResponsibleUserId
         ) {
           throw new IntakeNotFoundError();
         }
-      }
-      const profileSnapshot = await transaction.familyProfile.findUnique({
-        where: { id: application.familyProfileId },
-      });
-      if (profileSnapshot === null) throw new IntakeNotFoundError();
-      if (
-        verifiedAssistanceSession !== undefined &&
-        profileSnapshot.userId !==
-          verifiedAssistanceSession.adultResponsibleUserId
-      ) {
-        throw new IntakeNotFoundError();
-      }
-      if (application.status === "SUBMITTED") {
-        const snapshot = await transaction.applicationSnapshot.findUnique({
-          where: { applicationId },
-        });
-        if (snapshot === null)
-          throw new IntakeValidationError(
-            "Submitted application snapshot is unavailable",
-          );
-        return {
-          applicationId,
-          snapshotId: snapshot.id,
-          status: "SUBMITTED" as const,
-          submittedAt: snapshot.submittedAt.toISOString(),
-        };
-      }
-      if (
-        application.formVersion === null ||
-        application.formVersionId === null
-      ) {
-        throw new IntakeValidationError(
-          "Legacy development draft has no form version and cannot be submitted",
-        );
-      }
-      if (
-        application.formVersion.lifecycle !== "PUBLISHED" &&
-        application.formVersion.lifecycle !== "ARCHIVED"
-      )
-        throw new IntakeValidationError(
-          "Pinned form version is not a valid historical version",
-        );
-      if (
-        !isAdmissionOfferingCurrent(application.offering, now) ||
-        application.offering.availabilityCategory === "PROCESS_CLOSED"
-      )
-        throw new IntakeValidationError(
-          "Admission offering is no longer open for submission",
-        );
-      const form = mapVersion(application.formVersion);
-      const fields = new Map(
-        form.sections
-          .flatMap((section) => section.fields)
-          .map((field) => [field.id, field]),
-      );
-      const answerMap = new Map<string, AnswerValue>();
-      for (const answer of application.draftAnswers) {
-        const field = fields.get(answer.fieldId);
+        if (application.status === "SUBMITTED") {
+          const snapshot = await transaction.applicationSnapshot.findUnique({
+            where: { applicationId },
+          });
+          if (snapshot === null)
+            throw new IntakeValidationError(
+              "Submitted application snapshot is unavailable",
+            );
+          return {
+            applicationId,
+            snapshotId: snapshot.id,
+            status: "SUBMITTED" as const,
+            submittedAt: snapshot.submittedAt.toISOString(),
+          };
+        }
         if (
-          answer.tenantId !== applicantContext.tenantId ||
-          answer.applicationId !== application.id ||
-          answer.formVersionId !== application.formVersionId ||
-          field === undefined
+          application.formVersion === null ||
+          application.formVersionId === null
         ) {
           throw new IntakeValidationError(
-            "Persisted answer is inconsistent with the pinned form version",
+            "Legacy development draft has no form version and cannot be submitted",
           );
         }
-        answerMap.set(answer.fieldId, validateAnswer(field, answer.value));
-      }
-      const review = this.buildReview(application, answerMap);
-      if (review.missingRequired.length > 0)
-        throw new IntakeValidationError(
-          "Required applicable answers are missing",
+        if (
+          application.formVersion.lifecycle !== "PUBLISHED" &&
+          application.formVersion.lifecycle !== "ARCHIVED"
+        )
+          throw new IntakeValidationError(
+            "Pinned form version is not a valid historical version",
+          );
+        if (
+          !isAdmissionOfferingCurrent(application.offering, now) ||
+          application.offering.availabilityCategory === "PROCESS_CLOSED"
+        )
+          throw new IntakeValidationError(
+            "Admission offering is no longer open for submission",
+          );
+        const form = mapVersion(application.formVersion);
+        const fields = new Map(
+          form.sections
+            .flatMap((section) => section.fields)
+            .map((field) => [field.id, field]),
         );
-      const applicability = calculateApplicability(form, answerMap);
-      const documentReadiness = await evaluateDocumentSubmissionReadiness(
-        transaction,
-        {
-          applicationId,
-          formVersionId: application.formVersionId,
+        const answerMap = new Map<string, AnswerValue>();
+        for (const answer of application.draftAnswers) {
+          const field = fields.get(answer.fieldId);
+          if (
+            answer.tenantId !== applicantContext.tenantId ||
+            answer.applicationId !== application.id ||
+            answer.formVersionId !== application.formVersionId ||
+            field === undefined
+          ) {
+            throw new IntakeValidationError(
+              "Persisted answer is inconsistent with the pinned form version",
+            );
+          }
+          answerMap.set(answer.fieldId, validateAnswer(field, answer.value));
+        }
+        const review = this.buildReview(application, answerMap);
+        if (review.missingRequired.length > 0)
+          throw new IntakeValidationError(
+            "Required applicable answers are missing",
+          );
+        const applicability = calculateApplicability(form, answerMap);
+        const documentReadiness = await evaluateDocumentSubmissionReadiness(
+          transaction,
+          {
+            applicationId,
+            formVersionId: application.formVersionId,
+            now,
+            tenantId: applicantContext.tenantId,
+          },
+        );
+        const activityCount = await pinApplicationActivities(
+          transaction,
+          {
+            academicYearId: application.academicYearId,
+            applicationId,
+            courseLevelId: application.offering.courseLevel.id,
+            offeringId: application.offering.id,
+            processId: application.offering.process.id,
+            tenantId: applicantContext.tenantId,
+          },
+          now,
+        );
+        await assertApplicationAuthorityForCriticalAction(transaction, {
+          applicationId: application.id,
+          expectedAuthorityUserId: profileSnapshot.userId,
           now,
           tenantId: applicantContext.tenantId,
-        },
-      );
-      const activityCount = await pinApplicationActivities(
-        transaction,
-        {
-          academicYearId: application.academicYearId,
+        });
+        const submittedBy =
+          verifiedAssistanceSession?.operatorUserId ??
+          (input.submissionMode === "SELF_SERVICE"
+            ? input.submittedBy
+            : (() => {
+                throw new IntakeNotFoundError();
+              })());
+        const payload = {
           applicationId,
-          courseLevelId: application.offering.courseLevel.id,
-          offeringId: application.offering.id,
-          processId: application.offering.process.id,
-          tenantId: applicantContext.tenantId,
-        },
-        now,
-      );
-      const submittedBy =
-        verifiedAssistanceSession?.operatorUserId ??
-        (input.submissionMode === "SELF_SERVICE"
-          ? input.submittedBy
-          : (() => {
-              throw new IntakeNotFoundError();
-            })());
-      const payload = {
-        applicationId,
-        familyProfile: { displayName: profileSnapshot.displayName },
-        form: {
-          ...form,
-          sections: form.sections.map((section) => ({
-            ...section,
-            fields: section.fields.map((field) => ({
-              ...field,
-              applicability:
-                applicability.get(field.id) === false
-                  ? "NOT_APPLICABLE"
-                  : "APPLICABLE",
-              ...(applicability.get(field.id) !== false &&
-              answerMap.has(field.id)
-                ? { value: answerMap.get(field.id) }
-                : {}),
+          familyProfile: { displayName: profileSnapshot.displayName },
+          form: {
+            ...form,
+            sections: form.sections.map((section) => ({
+              ...section,
+              fields: section.fields.map((field) => ({
+                ...field,
+                applicability:
+                  applicability.get(field.id) === false
+                    ? "NOT_APPLICABLE"
+                    : "APPLICABLE",
+                ...(applicability.get(field.id) !== false &&
+                answerMap.has(field.id)
+                  ? { value: answerMap.get(field.id) }
+                  : {}),
+              })),
             })),
-          })),
-        },
-        offering: {
-          academicYear: {
-            code: application.offering.academicYear.code,
-            id: application.academicYearId,
-            label: application.offering.academicYear.label,
           },
-          campus: {
-            id: application.offering.campus.id,
-            name: application.offering.campus.name,
+          offering: {
+            academicYear: {
+              code: application.offering.academicYear.code,
+              id: application.academicYearId,
+              label: application.offering.academicYear.label,
+            },
+            campus: {
+              id: application.offering.campus.id,
+              name: application.offering.campus.name,
+            },
+            courseLevel: {
+              id: application.offering.courseLevel.id,
+              name: application.offering.courseLevel.name,
+            },
+            id: application.offering.id,
+            process: {
+              id: application.offering.process.id,
+              name: application.offering.process.name,
+            },
+            title: application.offering.title,
           },
-          courseLevel: {
-            id: application.offering.courseLevel.id,
-            name: application.offering.courseLevel.name,
-          },
-          id: application.offering.id,
-          process: {
-            id: application.offering.process.id,
-            name: application.offering.process.name,
-          },
-          title: application.offering.title,
-        },
-        documents: documentReadiness.evidence,
-        schemaVersion: 2,
-        ...(input.submissionMode === "ASSISTED"
-          ? {
-              adultResponsibleUserId:
-                verifiedAssistanceSession!.adultResponsibleUserId,
-              assistanceSessionId: verifiedAssistanceSession!.id,
-              operatorUserId: verifiedAssistanceSession!.operatorUserId,
-            }
-          : {}),
-        submissionMode: input.submissionMode,
-        student: {
-          familyName: application.student.familyName,
-          givenName: application.student.givenName,
-          id: application.student.id,
-        },
-        submittedAt: now.toISOString(),
-        submittedBy,
-        tenantId: applicantContext.tenantId,
-      };
-      const snapshot = await transaction.applicationSnapshot.create({
-        data: {
-          applicationId,
-          formVersionId: application.formVersionId,
-          payload: asJson(payload),
+          documents: documentReadiness.evidence,
           schemaVersion: 2,
-          submittedAt: now,
+          ...(input.submissionMode === "ASSISTED"
+            ? {
+                adultResponsibleUserId:
+                  verifiedAssistanceSession!.adultResponsibleUserId,
+                assistanceSessionId: verifiedAssistanceSession!.id,
+                operatorUserId: verifiedAssistanceSession!.operatorUserId,
+              }
+            : {}),
+          submissionMode: input.submissionMode,
+          student: {
+            familyName: application.student.familyName,
+            givenName: application.student.givenName,
+            id: application.student.id,
+          },
+          submittedAt: now.toISOString(),
           submittedBy,
           tenantId: applicantContext.tenantId,
-        },
-      });
-      await transaction.application.update({
-        data: { status: "SUBMITTED", submittedAt: now },
-        where: { id: applicationId },
-      });
-      await recordAudit(transaction, applicantContext, {
-        action: "APPLICATION_SUBMITTED",
-        metadata: {
-          activityCount,
-          fieldCount: form.sections.reduce(
-            (sum, section) => sum + section.fields.length,
-            0,
-          ),
-          versionNumber: form.versionNumber,
-        },
-        resourceId: applicationId,
-        resourceType: "Application",
-      });
-      if (input.submissionMode === "ASSISTED") {
+        };
+        const snapshot = await transaction.applicationSnapshot.create({
+          data: {
+            applicationId,
+            formVersionId: application.formVersionId,
+            payload: asJson(payload),
+            schemaVersion: 2,
+            submittedAt: now,
+            submittedBy,
+            tenantId: applicantContext.tenantId,
+          },
+        });
+        await transaction.application.update({
+          data: { status: "SUBMITTED", submittedAt: now },
+          where: { id: applicationId },
+        });
         await recordAudit(transaction, applicantContext, {
-          action: "ASSISTED_SUBMISSION_CONFIRMED",
+          action: "APPLICATION_SUBMITTED",
           metadata: {
-            assistanceSessionId: verifiedAssistanceSession!.id,
+            activityCount,
+            fieldCount: form.sections.reduce(
+              (sum, section) => sum + section.fields.length,
+              0,
+            ),
+            versionNumber: form.versionNumber,
           },
           resourceId: applicationId,
           resourceType: "Application",
         });
+        if (input.submissionMode === "ASSISTED") {
+          await recordAudit(transaction, applicantContext, {
+            action: "ASSISTED_SUBMISSION_CONFIRMED",
+            metadata: {
+              assistanceSessionId: verifiedAssistanceSession!.id,
+            },
+            resourceId: applicationId,
+            resourceType: "Application",
+          });
+        }
+        return {
+          applicationId,
+          snapshotId: snapshot.id,
+          status: "SUBMITTED" as const,
+          submittedAt: now.toISOString(),
+        };
+      });
+    } catch (error) {
+      if (isApplicationAuthorityCriticalActionError(error)) {
+        await recordApplicationAuthorityCriticalActionDenied(
+          this.prisma,
+          applicantContext,
+          applicationId,
+          error.code,
+          now,
+        );
       }
-      return {
-        applicationId,
-        snapshotId: snapshot.id,
-        status: "SUBMITTED" as const,
-        submittedAt: now.toISOString(),
-      };
-    });
+      throw error;
+    }
   }
 }

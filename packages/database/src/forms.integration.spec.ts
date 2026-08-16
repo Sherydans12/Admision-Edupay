@@ -4,6 +4,7 @@ import { Pool, type PoolClient } from "pg";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { ForbiddenError } from "./authorization.js";
+import { ApplicationAuthorityService } from "./application-authority.js";
 import { getRequiredEnvironment } from "./environment.js";
 import { FormService } from "./forms.js";
 import {
@@ -68,9 +69,12 @@ const allFormPermissions = [
   PERMISSIONS.FORM_MANAGE,
   PERMISSIONS.FORM_PUBLISH,
   PERMISSIONS.FORM_READ,
+  PERMISSIONS.APPLICATION_AUTHORITY_REVIEW,
 ];
 const familyPermissions = [
   PERMISSIONS.APPLICATION_CREATE,
+  PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+  PERMISSIONS.APPLICATION_AUTHORITY_READ,
   PERMISSIONS.APPLICATION_READ,
   PERMISSIONS.APPLICATION_SUBMIT,
   PERMISSIONS.APPLICATION_WRITE,
@@ -232,11 +236,13 @@ async function seed(): Promise<void> {
     prisma.platformUser.create({
       data: {
         emailNormalized: `synthetic-e5b-family-a-${randomUUID()}@example.invalid`,
+        emailVerifiedAt: now,
       },
     }),
     prisma.platformUser.create({
       data: {
         emailNormalized: `synthetic-e5b-family-b-${randomUUID()}@example.invalid`,
+        emailVerifiedAt: now,
       },
     }),
     prisma.platformUser.create({
@@ -276,6 +282,8 @@ async function seed(): Promise<void> {
     userA.id,
     tenantA.id,
     [
+      PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+      PERMISSIONS.APPLICATION_AUTHORITY_READ,
       PERMISSIONS.APPLICATION_READ,
       PERMISSIONS.APPLICATION_SUBMIT,
       PERMISSIONS.APPLICATION_WRITE,
@@ -286,6 +294,8 @@ async function seed(): Promise<void> {
     userB.id,
     tenantB.id,
     [
+      PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+      PERMISSIONS.APPLICATION_AUTHORITY_READ,
       PERMISSIONS.APPLICATION_READ,
       PERMISSIONS.APPLICATION_SUBMIT,
       PERMISSIONS.APPLICATION_WRITE,
@@ -306,24 +316,28 @@ async function seed(): Promise<void> {
     intake.createStudent(familyA, {
       familyName: "Familia E5B A",
       givenName: "Estudiante Uno",
+      dateOfBirth: "2012-08-09",
     }),
   );
   const studentA2 = await runWithFamilyContext(familyA, () =>
     intake.createStudent(familyA, {
       familyName: "Familia E5B A",
       givenName: "Estudiante Dos",
+      dateOfBirth: "2012-08-09",
     }),
   );
   const studentA3 = await runWithFamilyContext(familyA, () =>
     intake.createStudent(familyA, {
       familyName: "Familia E5B A",
       givenName: "Estudiante Tres",
+      dateOfBirth: "2012-08-09",
     }),
   );
   const studentB = await runWithFamilyContext(familyB, () =>
     intake.createStudent(familyB, {
       familyName: "Familia E5B B",
       givenName: "Estudiante B",
+      dateOfBirth: "2012-08-09",
     }),
   );
 
@@ -428,7 +442,7 @@ async function seed(): Promise<void> {
 
 async function createDraft(studentId = fixture.studentA) {
   const intake = new IntakeService(prisma);
-  return runWithFamilyContext(fixture.familyA, () =>
+  const draft = await runWithFamilyContext(fixture.familyA, () =>
     intake.createApplicationDraft(
       fixture.familyA,
       fixture.publicA,
@@ -436,6 +450,47 @@ async function createDraft(studentId = fixture.studentA) {
       now,
     ),
   );
+  const authorities = new ApplicationAuthorityService(prisma);
+  const declared = await runWithFamilyContext(fixture.familyA, () =>
+    runWithTenantContext(fixture.applicantA, () =>
+      authorities.declareApplicationAuthority(
+        fixture.familyA,
+        fixture.applicantA,
+        draft.id,
+        {
+          authorityBasis: "PARENT",
+          relationship: "MOTHER",
+          subjectMode: "MINOR_REPRESENTATIVE",
+        },
+        now,
+      ),
+    ),
+  );
+  const underReview = await runWithTenantContext(fixture.adminA, () =>
+    authorities.reviewApplicationAuthority(
+      fixture.adminA,
+      draft.id,
+      {
+        expectedConcurrencyVersion: declared.concurrencyVersion!,
+        reason: "Revisión sintética de fixture",
+        toStatus: "UNDER_REVIEW",
+      },
+      now,
+    ),
+  );
+  await runWithTenantContext(fixture.adminA, () =>
+    authorities.reviewApplicationAuthority(
+      fixture.adminA,
+      draft.id,
+      {
+        expectedConcurrencyVersion: underReview.concurrencyVersion!,
+        reason: "Fundamento sintético de verificación",
+        toStatus: "VERIFIED",
+      },
+      now,
+    ),
+  );
+  return draft;
 }
 
 async function saveMinimum(applicationId: string, support = "NO") {

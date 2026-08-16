@@ -29,6 +29,8 @@ import { CapacityOfferController } from "./capacity-offer.controller.js";
 import { ApiCapacityOfferService } from "./capacity-offer.service.js";
 import { FunctionalHandoffController } from "./functional-handoff.controller.js";
 import { ApiFunctionalHandoffService } from "./functional-handoff.service.js";
+import { ApplicationAuthorityController } from "./application-authority.controller.js";
+import { ApiApplicationAuthorityService } from "./application-authority.service.js";
 import { CommunicationsController } from "./communications.controller.js";
 import { ApiCommunicationsService } from "./communications.service.js";
 import { FamilyPortalController } from "./family-portal.controller.js";
@@ -110,6 +112,7 @@ const accountRegistrationProvider = {
     RecommendationController,
     CapacityOfferController,
     FunctionalHandoffController,
+    ApplicationAuthorityController,
     CommunicationsController,
     FamilyPortalController,
     DashboardController,
@@ -130,6 +133,7 @@ const accountRegistrationProvider = {
     ApiRecommendationService,
     ApiCapacityOfferService,
     ApiFunctionalHandoffService,
+    ApiApplicationAuthorityService,
     ApiCommunicationsService,
     ApiFamilyPortalService,
     ApiOperationalDashboardService,

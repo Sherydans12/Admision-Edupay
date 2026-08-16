@@ -105,8 +105,8 @@ async function seedScenario(options: ScenarioOptions = {}): Promise<Scenario> {
     [familyProfileId, familyUserId, "Familia E5-I sintética"],
   );
   await migrationPool.query(
-    "INSERT INTO students (id, family_profile_id, given_name, family_name) VALUES ($1, $2, $3, $4)",
-    [studentId, familyProfileId, "Estudiante", "E5-I"],
+    "INSERT INTO students (id, family_profile_id, given_name, family_name, date_of_birth) VALUES ($1, $2, $3, $4, $5)",
+    [studentId, familyProfileId, "Estudiante", "E5-I", "2012-08-09"],
   );
 
   const context = tenantContext(tenantId, staffUserId);
@@ -185,6 +185,20 @@ async function seedScenario(options: ScenarioOptions = {}): Promise<Scenario> {
           studentId,
           submittedAt: now,
           tenantId,
+        },
+      });
+      await transaction.applicationAuthority.create({
+        data: {
+          applicationId: application.id,
+          authorityBasis: "PARENT",
+          authorityUserId: familyUserId,
+          dateOfBirthSnapshot: new Date("2012-08-09T00:00:00.000Z"),
+          declaredAt: now,
+          relationship: "MOTHER",
+          status: "VERIFIED",
+          subjectMode: "MINOR_REPRESENTATIVE",
+          tenantId,
+          verifiedAt: now,
         },
       });
       const capacity = await transaction.admissionCapacity.create({

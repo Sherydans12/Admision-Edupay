@@ -101,6 +101,9 @@ jobs:
       - name: Prove G5-BR fresh and incremental migration upgrade
         run: pnpm g5br:migration:smoke
 
+      - name: Prove G5-PC1-R12 fresh and incremental Migration 17 upgrade
+        run: pnpm g5pc1r12:migration:smoke
+
       - name: Prove G5-OR operational readiness
         run: pnpm g5or:operations:smoke
 

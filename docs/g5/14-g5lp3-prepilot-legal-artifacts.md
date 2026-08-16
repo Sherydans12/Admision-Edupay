@@ -84,3 +84,15 @@ Los 16 artefactos continúan abiertos (`0` cerrados). Q-106 continúa
 LEGAL_VALIDATION_PENDING`; `G5-EXIT-11` continúa `BLOCKED /
 PREPILOT_LEGAL_ARTIFACTS_REQUIRED`. PC1 no autoriza datos reales, piloto, producción,
 G5 ni implementación.
+
+## Addendum R12 — núcleo técnico sin cierre del artefacto (2026-08-16)
+
+R12 implementa una base técnica de declaración, historial, evidencia privada y revisión
+manual de autoridad por postulación. No satisface criterios de cierre de `LP3-ART-006`:
+aún faltan procedimiento institucional/legal final, catálogo exacto de evidencia, owners y
+aprobaciones. `LP3-ART-006` permanece `OPEN / FINAL_Q106_PROCEDURE_REQUIRED` y `Q-106`
+queda `TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING /
+PILOT_PRECONDITION`.
+
+Los otros artefactos y gates no cambian. Datos reales, piloto, producción, providers, G5
+e integración técnica EduPay siguen `NOT AUTHORIZED`.

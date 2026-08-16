@@ -106,3 +106,29 @@ export class FunctionalHandoffConflictError extends Error {
     this.name = "FunctionalHandoffConflictError";
   }
 }
+
+export type ApplicationAuthorityConflictCode =
+  | "APPLICATION_AUTHORITY_NOT_DECLARED"
+  | "APPLICATION_AUTHORITY_NOT_VERIFIED"
+  | "APPLICATION_AUTHORITY_MODE_INVALID"
+  | "AUTHORITY_STUDENT_DATA_CHANGED"
+  | "STUDENT_DATE_OF_BIRTH_REQUIRED"
+  | "AUTHORITY_VERSION_CHANGED"
+  | "AUTHORITY_EVIDENCE_REQUIRED"
+  | "AUTHORITY_INVALID_TRANSITION"
+  | "AUTHORITY_EVIDENCE_INVALID"
+  | "AUTHORITY_PRINCIPAL_MISMATCH";
+
+export class ApplicationAuthorityConflictError extends Error {
+  constructor(readonly code: ApplicationAuthorityConflictCode) {
+    super(code);
+    this.name = "ApplicationAuthorityConflictError";
+  }
+}
+
+export class ApplicationAuthorityValidationError extends Error {
+  constructor(message = "Invalid application authority input") {
+    super(message);
+    this.name = "ApplicationAuthorityValidationError";
+  }
+}

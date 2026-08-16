@@ -1,5 +1,10 @@
 import { authorizeOrThrow, ForbiddenError } from "./authorization.js";
 import {
+  assertApplicationAuthorityForCriticalAction,
+  isApplicationAuthorityCriticalActionError,
+  recordApplicationAuthorityCriticalActionDenied,
+} from "./application-authority.js";
+import {
   CapacityOfferConflictError,
   CapacityOfferValidationError,
   IntakeNotFoundError,
@@ -1333,133 +1338,165 @@ export class CapacityOfferService {
         "expectedOfferVersionId is required",
       );
     }
-    return withTenantTransaction(this.prisma, async (transaction) => {
-      const initial = await transaction.admissionOffer.findFirst({
-        where: { id: offerId },
+    try {
+      return await withTenantTransaction(this.prisma, async (transaction) => {
+        const initial = await transaction.admissionOffer.findFirst({
+          where: { id: offerId },
+        });
+        if (initial === null) throw new IntakeNotFoundError();
+        await lockApplication(
+          transaction,
+          applicant.tenantId,
+          initial.applicationId,
+        );
+        const application = await findApplication(
+          transaction,
+          initial.applicationId,
+        );
+        assertFamilyOwnership(family, applicant, application);
+        await lockOffer(transaction, applicant.tenantId, offerId);
+        const offer = await transaction.admissionOffer.findFirst({
+          include: {
+            acceptance: true,
+            versions: { orderBy: { versionNumber: "asc" } },
+          },
+          where: { id: offerId },
+        });
+        if (offer === null) throw new IntakeNotFoundError();
+        const current = offer.versions.find(
+          (version) => version.id === offer.currentVersionId,
+        );
+        if (current === undefined)
+          throw new Error("OFFER_CURRENT_VERSION_MISSING");
+        if (offer.currentVersionId !== input.expectedOfferVersionId) {
+          throw new CapacityOfferConflictError("OFFER_VERSION_CHANGED");
+        }
+        if (
+          action === "ACCEPT" &&
+          offer.acceptance?.offerVersionId === input.expectedOfferVersionId
+        ) {
+          return mapOffer(offer);
+        }
+        if (
+          action === "DECLINE" &&
+          current.lifecycle === "DECLINED" &&
+          current.terminalReason === "FAMILY_DECLINED"
+        ) {
+          return mapOffer(offer);
+        }
+        if (application.status === "WITHDRAWN") {
+          throw new CapacityOfferConflictError("APPLICATION_WITHDRAWN");
+        }
+        if (current.lifecycle !== "ACTIVE") {
+          throw new CapacityOfferConflictError("OFFER_NOT_ACTIVE");
+        }
+        if (current.expiresAt <= now) {
+          throw new CapacityOfferConflictError("OFFER_EXPIRED");
+        }
+        const reservation = await transaction.seatReservation.findFirst({
+          where: { id: current.reservationId },
+        });
+        if (reservation === null || reservation.state !== "ACTIVE") {
+          throw new CapacityOfferConflictError("OFFER_NOT_ACTIVE");
+        }
+        if (action === "ACCEPT") {
+          await assertApplicationAuthorityForCriticalAction(transaction, {
+            applicationId: application.id,
+            expectedAuthorityUserId: family.effectiveActorId ?? family.actorId,
+            now,
+            tenantId: applicant.tenantId,
+          });
+          await transaction.admissionOfferVersion.update({
+            data: {
+              lifecycle: "ACCEPTED",
+              terminalAt: now,
+              terminalReason: "FAMILY_ACCEPTED",
+            },
+            where: { id: current.id },
+          });
+          await transaction.offerAcceptance.create({
+            data: {
+              acceptedAt: now,
+              actorId: family.effectiveActorId ?? family.actorId,
+              applicationId: application.id,
+              offerId: offer.id,
+              offeringId: application.offeringId,
+              offerVersionId: current.id,
+              reservationId: reservation.id,
+              tenantId: applicant.tenantId,
+            },
+          });
+          await transaction.seatReservation.update({
+            data: { committedAt: now, state: "COMMITTED" },
+            where: { id: reservation.id },
+          });
+          await transaction.admissionCapacity.update({
+            data: { concurrencyVersion: { increment: 1 } },
+            where: { id: reservation.capacityId },
+          });
+          await recordAudit(transaction, applicant, {
+            action: "ADMISSION_OFFER_ACCEPTED",
+            metadata: { versionNumber: current.versionNumber },
+            occurredAt: now,
+            resourceId: offer.id,
+            resourceType: "AdmissionOffer",
+          });
+          await recordAudit(transaction, applicant, {
+            action: "SEAT_COMMITTED",
+            occurredAt: now,
+            resourceId: reservation.id,
+            resourceType: "SeatReservation",
+          });
+        } else {
+          await transaction.admissionOfferVersion.update({
+            data: {
+              lifecycle: "DECLINED",
+              terminalAt: now,
+              terminalReason: "FAMILY_DECLINED",
+            },
+            where: { id: current.id },
+          });
+          await releaseReservation(
+            transaction,
+            applicant,
+            reservation,
+            "FAMILY_DECLINED",
+            now,
+          );
+          await recordAudit(transaction, applicant, {
+            action: "ADMISSION_OFFER_DECLINED",
+            metadata: { versionNumber: current.versionNumber },
+            occurredAt: now,
+            resourceId: offer.id,
+            resourceType: "AdmissionOffer",
+          });
+        }
+        return this.readOffer(transaction, offer.id);
       });
-      if (initial === null) throw new IntakeNotFoundError();
-      await lockApplication(
-        transaction,
-        applicant.tenantId,
-        initial.applicationId,
-      );
-      const application = await findApplication(
-        transaction,
-        initial.applicationId,
-      );
-      assertFamilyOwnership(family, applicant, application);
-      await lockOffer(transaction, applicant.tenantId, offerId);
-      const offer = await transaction.admissionOffer.findFirst({
-        include: {
-          acceptance: true,
-          versions: { orderBy: { versionNumber: "asc" } },
-        },
-        where: { id: offerId },
-      });
-      if (offer === null) throw new IntakeNotFoundError();
-      const current = offer.versions.find(
-        (version) => version.id === offer.currentVersionId,
-      );
-      if (current === undefined)
-        throw new Error("OFFER_CURRENT_VERSION_MISSING");
-      if (offer.currentVersionId !== input.expectedOfferVersionId) {
-        throw new CapacityOfferConflictError("OFFER_VERSION_CHANGED");
-      }
+    } catch (error) {
       if (
         action === "ACCEPT" &&
-        offer.acceptance?.offerVersionId === input.expectedOfferVersionId
+        isApplicationAuthorityCriticalActionError(error)
       ) {
-        return mapOffer(offer);
-      }
-      if (
-        action === "DECLINE" &&
-        current.lifecycle === "DECLINED" &&
-        current.terminalReason === "FAMILY_DECLINED"
-      ) {
-        return mapOffer(offer);
-      }
-      if (application.status === "WITHDRAWN") {
-        throw new CapacityOfferConflictError("APPLICATION_WITHDRAWN");
-      }
-      if (current.lifecycle !== "ACTIVE") {
-        throw new CapacityOfferConflictError("OFFER_NOT_ACTIVE");
-      }
-      if (current.expiresAt <= now) {
-        throw new CapacityOfferConflictError("OFFER_EXPIRED");
-      }
-      const reservation = await transaction.seatReservation.findFirst({
-        where: { id: current.reservationId },
-      });
-      if (reservation === null || reservation.state !== "ACTIVE") {
-        throw new CapacityOfferConflictError("OFFER_NOT_ACTIVE");
-      }
-      if (action === "ACCEPT") {
-        await transaction.admissionOfferVersion.update({
-          data: {
-            lifecycle: "ACCEPTED",
-            terminalAt: now,
-            terminalReason: "FAMILY_ACCEPTED",
-          },
-          where: { id: current.id },
-        });
-        await transaction.offerAcceptance.create({
-          data: {
-            acceptedAt: now,
-            actorId: family.effectiveActorId ?? family.actorId,
-            applicationId: application.id,
-            offerId: offer.id,
-            offeringId: application.offeringId,
-            offerVersionId: current.id,
-            reservationId: reservation.id,
-            tenantId: applicant.tenantId,
-          },
-        });
-        await transaction.seatReservation.update({
-          data: { committedAt: now, state: "COMMITTED" },
-          where: { id: reservation.id },
-        });
-        await transaction.admissionCapacity.update({
-          data: { concurrencyVersion: { increment: 1 } },
-          where: { id: reservation.capacityId },
-        });
-        await recordAudit(transaction, applicant, {
-          action: "ADMISSION_OFFER_ACCEPTED",
-          metadata: { versionNumber: current.versionNumber },
-          occurredAt: now,
-          resourceId: offer.id,
-          resourceType: "AdmissionOffer",
-        });
-        await recordAudit(transaction, applicant, {
-          action: "SEAT_COMMITTED",
-          occurredAt: now,
-          resourceId: reservation.id,
-          resourceType: "SeatReservation",
-        });
-      } else {
-        await transaction.admissionOfferVersion.update({
-          data: {
-            lifecycle: "DECLINED",
-            terminalAt: now,
-            terminalReason: "FAMILY_DECLINED",
-          },
-          where: { id: current.id },
-        });
-        await releaseReservation(
-          transaction,
-          applicant,
-          reservation,
-          "FAMILY_DECLINED",
-          now,
+        const initial = await withTenantTransaction(
+          this.prisma,
+          (transaction) =>
+            transaction.admissionOffer.findFirst({
+              select: { applicationId: true },
+              where: { id: offerId },
+            }),
         );
-        await recordAudit(transaction, applicant, {
-          action: "ADMISSION_OFFER_DECLINED",
-          metadata: { versionNumber: current.versionNumber },
-          occurredAt: now,
-          resourceId: offer.id,
-          resourceType: "AdmissionOffer",
-        });
+        if (initial !== null) {
+          await recordApplicationAuthorityCriticalActionDenied(
+            this.prisma,
+            applicant,
+            initial.applicationId,
+            error.code,
+            now,
+          );
+        }
       }
-      return this.readOffer(transaction, offer.id);
-    });
+      throw error;
+    }
   }
 }

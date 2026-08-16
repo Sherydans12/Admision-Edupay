@@ -67,8 +67,9 @@ async function seedFixture() {
     [tenantAId, "E5I HTTP A sintético", tenantBId, "E5I HTTP B sintético"],
   );
   await migrationPool.query(
-    `INSERT INTO platform_users (id, email_normalized) VALUES
-      ($1, $2), ($3, $4), ($5, $6), ($7, $8), ($9, $10)`,
+    `INSERT INTO platform_users (id, email_normalized, email_verified_at) VALUES
+      ($1, $2, CURRENT_TIMESTAMP), ($3, $4, CURRENT_TIMESTAMP), ($5, $6, CURRENT_TIMESTAMP),
+      ($7, $8, CURRENT_TIMESTAMP), ($9, $10, CURRENT_TIMESTAMP)`,
     [
       staffId,
       `e5i-http-staff-${staffId}@example.invalid`,
@@ -87,11 +88,11 @@ async function seedFixture() {
     [profileId, familyId, "Familia E5-I HTTP sintética"],
   );
   await migrationPool.query(
-    "INSERT INTO students (id, family_profile_id, given_name, family_name) VALUES ($1, $2, $3, $4)",
+    "INSERT INTO students (id, family_profile_id, given_name, family_name, date_of_birth) VALUES ($1, $2, $3, $4, DATE '2010-01-01')",
     [studentId, profileId, "Estudiante", "HTTP"],
   );
   await migrationPool.query(
-    "INSERT INTO students (id, family_profile_id, given_name, family_name) VALUES ($1, $2, $3, $4)",
+    "INSERT INTO students (id, family_profile_id, given_name, family_name, date_of_birth) VALUES ($1, $2, $3, $4, DATE '2010-01-01')",
     [activeStudentId, profileId, "Estudiante Activo", "HTTP"],
   );
   const seedContext = context(tenantAId, staffId);
@@ -232,6 +233,20 @@ async function seedFixture() {
               offeringId: offering.id,
               reservationId: reservation.id,
               tenantId: tenantAId,
+            },
+          });
+          await transaction.applicationAuthority.create({
+            data: {
+              applicationId: application.id,
+              authorityBasis: "PARENT",
+              authorityUserId: familyId,
+              dateOfBirthSnapshot: new Date("2010-01-01T00:00:00.000Z"),
+              declaredAt: now,
+              relationship: "MOTHER",
+              status: "VERIFIED",
+              subjectMode: "MINOR_REPRESENTATIVE",
+              tenantId: tenantAId,
+              verifiedAt: now,
             },
           });
         }

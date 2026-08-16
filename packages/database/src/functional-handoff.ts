@@ -1,5 +1,10 @@
 import { authorizeOrThrow, ForbiddenError } from "./authorization.js";
 import {
+  assertApplicationAuthorityForCriticalAction,
+  isApplicationAuthorityCriticalActionError,
+  recordApplicationAuthorityCriticalActionDenied,
+} from "./application-authority.js";
+import {
   FunctionalHandoffConflictError,
   IntakeNotFoundError,
 } from "./domain-errors.js";
@@ -104,88 +109,108 @@ export class FunctionalHandoffService {
     applicationId: string,
     now = new Date(),
   ): Promise<FunctionalHandoffDto> {
-    return withTenantTransaction(this.prisma, async (transaction) => {
-      await transaction.$queryRaw`
+    try {
+      return await withTenantTransaction(this.prisma, async (transaction) => {
+        await transaction.$queryRaw`
         SELECT id FROM applications
         WHERE tenant_id = ${context.tenantId}::uuid
           AND id = ${applicationId}::uuid
         FOR UPDATE
       `;
 
-      const application = await transaction.application.findFirst({
-        select: {
-          id: true,
-          offering: {
-            select: {
-              campusId: true,
-              id: true,
-              processId: true,
-              tenantId: true,
+        const application = await transaction.application.findFirst({
+          select: {
+            id: true,
+            offering: {
+              select: {
+                campusId: true,
+                id: true,
+                processId: true,
+                tenantId: true,
+              },
             },
+            status: true,
+            tenantId: true,
           },
-          status: true,
-          tenantId: true,
-        },
-        where: { id: applicationId },
-      });
-      if (application === null) throw new IntakeNotFoundError();
-      authorizeHandoff(context, application);
+          where: { id: applicationId },
+        });
+        if (application === null) throw new IntakeNotFoundError();
+        authorizeHandoff(context, application);
 
-      const offer = await transaction.admissionOffer.findFirst({
-        include: { acceptance: true, currentVersion: true },
-        where: { applicationId: application.id },
-      });
-      const currentVersion = offer?.currentVersion;
-      const acceptance = offer?.acceptance;
-      if (
-        application.status !== "SUBMITTED" ||
-        offer === null ||
-        currentVersion === null ||
-        currentVersion === undefined ||
-        acceptance === null ||
-        acceptance === undefined ||
-        acceptance.applicationId !== application.id ||
-        acceptance.offerId !== offer.id ||
-        acceptance.offerVersionId !== currentVersion.id ||
-        currentVersion.lifecycle !== "ACCEPTED"
-      ) {
-        throw new FunctionalHandoffConflictError("HANDOFF_NOT_ENABLED");
-      }
+        const offer = await transaction.admissionOffer.findFirst({
+          include: { acceptance: true, currentVersion: true },
+          where: { applicationId: application.id },
+        });
+        const currentVersion = offer?.currentVersion;
+        const acceptance = offer?.acceptance;
+        if (
+          application.status !== "SUBMITTED" ||
+          offer === null ||
+          currentVersion === null ||
+          currentVersion === undefined ||
+          acceptance === null ||
+          acceptance === undefined ||
+          acceptance.applicationId !== application.id ||
+          acceptance.offerId !== offer.id ||
+          acceptance.offerVersionId !== currentVersion.id ||
+          currentVersion.lifecycle !== "ACCEPTED"
+        ) {
+          throw new FunctionalHandoffConflictError("HANDOFF_NOT_ENABLED");
+        }
 
-      const existing = await transaction.integrationHandoff.findFirst({
-        where: { offerAcceptanceId: acceptance.id },
-      });
-      if (existing !== null) return mapHandoff(existing);
-
-      const handoff = await transaction.integrationHandoff.create({
-        data: {
+        await assertApplicationAuthorityForCriticalAction(transaction, {
           applicationId: application.id,
-          offerAcceptanceId: acceptance.id,
-          requestedAt: now,
-          requestedByActorId: effectiveActor(context),
+          expectedAuthorityUserId: acceptance.actorId,
+          now,
           tenantId: context.tenantId,
-        },
-      });
-      await transaction.auditEvent.create({
-        data: {
-          action: "INTEGRATION_HANDOFF_REQUESTED",
-          actorId: context.actorId,
-          correlationId: context.correlationId,
-          effectiveActorId: effectiveActor(context),
-          metadata: asJson({
-            handoffId: handoff.id,
+        });
+
+        const existing = await transaction.integrationHandoff.findFirst({
+          where: { offerAcceptanceId: acceptance.id },
+        });
+        if (existing !== null) return mapHandoff(existing);
+
+        const handoff = await transaction.integrationHandoff.create({
+          data: {
+            applicationId: application.id,
             offerAcceptanceId: acceptance.id,
-          }),
-          occurredAt: now,
-          purpose: context.purpose,
-          resourceId: handoff.id,
-          resourceType: "IntegrationHandoff",
-          result: "SUCCESS",
-          scope: "TENANT",
-          tenantId: context.tenantId,
-        },
+            requestedAt: now,
+            requestedByActorId: effectiveActor(context),
+            tenantId: context.tenantId,
+          },
+        });
+        await transaction.auditEvent.create({
+          data: {
+            action: "INTEGRATION_HANDOFF_REQUESTED",
+            actorId: context.actorId,
+            correlationId: context.correlationId,
+            effectiveActorId: effectiveActor(context),
+            metadata: asJson({
+              handoffId: handoff.id,
+              offerAcceptanceId: acceptance.id,
+            }),
+            occurredAt: now,
+            purpose: context.purpose,
+            resourceId: handoff.id,
+            resourceType: "IntegrationHandoff",
+            result: "SUCCESS",
+            scope: "TENANT",
+            tenantId: context.tenantId,
+          },
+        });
+        return mapHandoff(handoff);
       });
-      return mapHandoff(handoff);
-    });
+    } catch (error) {
+      if (isApplicationAuthorityCriticalActionError(error)) {
+        await recordApplicationAuthorityCriticalActionDenied(
+          this.prisma,
+          context,
+          applicationId,
+          error.code,
+          now,
+        );
+      }
+      throw error;
+    }
   }
 }

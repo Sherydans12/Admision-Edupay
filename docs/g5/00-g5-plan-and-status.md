@@ -288,3 +288,15 @@ reescribe el histórico.
 `G5-EXIT-11 = BLOCKED / PREPILOT_LEGAL_ARTIFACTS_REQUIRED`;
 `G5-EXIT-12 = BLOCKED`; `G5 = NO APROBADA / NOT REQUESTED`; datos reales, piloto,
 producción e integración técnica EduPay siguen `NOT AUTHORIZED`.
+
+## Addendum G5-PC1-R12 — núcleo técnico de autoridad (2026-08-16)
+
+R12 implementó autoridad explícita tenant/application-scoped, ruta adulta, historial,
+evidencia privada y gates de submit/accept/handoff. La evidencia está en
+[`17-g5pc1r12-authority-adult-core.md`](17-g5pc1r12-authority-adult-core.md).
+
+- `PC1-TECH-001`, `002`, `004`, `005`, `006` = `IMPLEMENTED / PENDING_HUMAN_TECHNICAL_REVIEW`.
+- `PC1-TECH-003` = `NOT_IMPLEMENTED / DEFERRED_TO_PC1-R4`; `007..015` no cambian.
+- `Q-106 = TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING / PILOT_PRECONDITION`.
+- `LP3-ART-006`, `C-013`, `G5-EXIT-10`, `G5-EXIT-11` y `G5-EXIT-12` no cambian.
+- G5, datos reales, piloto, producción y EduPay technical integration siguen `NOT AUTHORIZED`.

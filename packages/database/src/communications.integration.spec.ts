@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
+  ApplicationAuthorityService,
   CapacityOfferService,
   CommunicationService,
   DevelopmentEmailAdapter,
@@ -30,6 +31,7 @@ const familyProjectionService = new FamilyApplicationProjectionService(prisma);
 const dashboardService = new OperationalDashboardService(prisma);
 const recService = new RecommendationService(prisma);
 const capService = new CapacityOfferService(prisma);
+const authorityService = new ApplicationAuthorityService(prisma);
 
 const tenantId = randomUUID();
 const tenantBId = randomUUID();
@@ -97,6 +99,8 @@ const familyCtx = (userId = familyUserId) => ({
   correlationId: `fam-${randomUUID()}`,
   effectiveActorId: userId,
   familyCapabilities: [
+    PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+    PERMISSIONS.APPLICATION_AUTHORITY_READ,
     PERMISSIONS.APPLICATION_READ,
     PERMISSIONS.APPLICATION_SUBMIT,
   ] as const,
@@ -125,6 +129,7 @@ async function createSubmittedApp(
         if (!targetStudentId) {
           const freshStudent = await tx.student.create({
             data: {
+              dateOfBirth: new Date("2010-01-01T00:00:00.000Z"),
               familyName: "Sintético",
               familyProfileId: fProfileId,
               givenName: "Estudiante",
@@ -163,6 +168,55 @@ async function createSubmittedApp(
   );
 }
 
+function familyAuthorityContext() {
+  return {
+    ...staffCtx(familyUserId, [
+      PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+      PERMISSIONS.APPLICATION_AUTHORITY_READ,
+    ]),
+    contextOrigin: "family_application" as const,
+  };
+}
+
+function authorityReviewerContext() {
+  return staffCtx(admissionUserId, [PERMISSIONS.APPLICATION_AUTHORITY_REVIEW]);
+}
+
+async function ensureVerifiedMinorAuthority(
+  applicationId: string,
+): Promise<void> {
+  const family = familyCtx();
+  const declaring = familyAuthorityContext();
+  const declared = await runWithTenantContext(declaring, () =>
+    authorityService.declareApplicationAuthority(
+      family,
+      declaring,
+      applicationId,
+      {
+        authorityBasis: "PARENT",
+        relationship: "MOTHER",
+        subjectMode: "MINOR_REPRESENTATIVE",
+      },
+      new Date("2026-08-16T12:00:00.000Z"),
+    ),
+  );
+  const reviewer = authorityReviewerContext();
+  const underReview = await runWithTenantContext(reviewer, () =>
+    authorityService.reviewApplicationAuthority(reviewer, applicationId, {
+      expectedConcurrencyVersion: declared.concurrencyVersion!,
+      reason: "Revisión sintética de comunicaciones",
+      toStatus: "UNDER_REVIEW",
+    }),
+  );
+  await runWithTenantContext(reviewer, () =>
+    authorityService.reviewApplicationAuthority(reviewer, applicationId, {
+      expectedConcurrencyVersion: underReview.concurrencyVersion!,
+      reason: "Verificación sintética de comunicaciones",
+      toStatus: "VERIFIED",
+    }),
+  );
+}
+
 describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
   beforeAll(async () => {
     // Insert test tenants
@@ -177,7 +231,7 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     );
     // Insert platform users
     await migrationPool.query(
-      "INSERT INTO platform_users (id, email_normalized) VALUES ($1, $2), ($3, $4), ($5, $6), ($7, $8), ($9, $10)",
+      "INSERT INTO platform_users (id, email_normalized, email_verified_at) VALUES ($1, $2, CURRENT_TIMESTAMP), ($3, $4, CURRENT_TIMESTAMP), ($5, $6, CURRENT_TIMESTAMP), ($7, $8, CURRENT_TIMESTAMP), ($9, $10, CURRENT_TIMESTAMP)",
       [
         admissionUserId,
         `e5g-admission-${admissionUserId}@example.invalid`,
@@ -205,7 +259,7 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     );
     // Insert students
     await migrationPool.query(
-      "INSERT INTO students (id, family_profile_id, given_name, family_name) VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)",
+      "INSERT INTO students (id, family_profile_id, given_name, family_name, date_of_birth) VALUES ($1, $2, $3, $4, DATE '2010-01-01'), ($5, $6, $7, $8, DATE '2010-01-01')",
       [
         studentId,
         familyProfileId,
@@ -674,6 +728,7 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       expect(reminder?.purpose).toBe("OFFER_REMINDER");
 
       // Accept offer -> subsequent reminder attempt should be suppressed (return undefined)
+      await ensureVerifiedMinorAuthority(app.id);
       await runWithFamilyContext(familyCtx(), () =>
         runWithTenantContext(
           staffCtx(familyUserId, [PERMISSIONS.APPLICATION_READ]),

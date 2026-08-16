@@ -10,7 +10,14 @@ const dateTime = z
 
 export const profileSchema = z.object({ displayName: text(160) }).strict();
 export const studentSchema = z
-  .object({ familyName: text(160), givenName: text(120) })
+  .object({
+    dateOfBirth: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/u)
+      .optional(),
+    familyName: text(160),
+    givenName: text(120),
+  })
   .strict();
 
 export const campusSchema = z

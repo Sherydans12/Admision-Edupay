@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { AssistanceService } from "./assistance.js";
+import { ApplicationAuthorityService } from "./application-authority.js";
 import { authorize, ForbiddenError } from "./authorization.js";
 import {
   DevelopmentBusinessCalendar,
@@ -47,6 +48,7 @@ let documents: DocumentService;
 let forms: FormService;
 let intake: IntakeService;
 let assistance: AssistanceService;
+let authorities: ApplicationAuthorityService;
 
 const allDocumentPermissions = [
   PERMISSIONS.APPLICATION_ASSIST,
@@ -88,6 +90,8 @@ function familyContext(actorId: string): FamilyExecutionContext {
     effectiveActorId: actorId,
     familyCapabilities: [
       PERMISSIONS.APPLICATION_CREATE,
+      PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+      PERMISSIONS.APPLICATION_AUTHORITY_READ,
       PERMISSIONS.APPLICATION_READ,
       PERMISSIONS.APPLICATION_SUBMIT,
       PERMISSIONS.APPLICATION_WRITE,
@@ -148,8 +152,8 @@ async function seedFixture() {
   try {
     await client.query("BEGIN");
     await client.query(
-      `INSERT INTO platform_users (id, email_normalized) VALUES
-       ($1,$2),($3,$4),($5,$6),($7,$8)`,
+      `INSERT INTO platform_users (id, email_normalized, email_verified_at) VALUES
+       ($1,$2,CURRENT_TIMESTAMP),($3,$4,CURRENT_TIMESTAMP),($5,$6,CURRENT_TIMESTAMP),($7,$8,CURRENT_TIMESTAMP)`,
       [
         ids.userA,
         `synthetic-e5c-family-a-${ids.userA}@example.invalid`,
@@ -182,8 +186,8 @@ async function seedFixture() {
       ],
     );
     await client.query(
-      `INSERT INTO students (id,family_profile_id,given_name,family_name) VALUES
-       ($1,$2,$3,$4),($5,$2,$6,$4),($7,$2,$8,$4),($9,$10,$11,$12)`,
+      `INSERT INTO students (id,family_profile_id,given_name,family_name,date_of_birth) VALUES
+       ($1,$2,$3,$4,DATE '2010-01-01'),($5,$2,$6,$4,DATE '2010-01-01'),($7,$2,$8,$4,DATE '2010-01-01'),($9,$10,$11,$12,DATE '2010-01-01')`,
       [
         ids.studentA,
         ids.profileA,
@@ -250,6 +254,8 @@ async function seedFixture() {
       ids.tenantA,
       [
         PERMISSIONS.APPLICATION_READ,
+        PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+        PERMISSIONS.APPLICATION_AUTHORITY_READ,
         PERMISSIONS.APPLICATION_SUBMIT,
         PERMISSIONS.APPLICATION_WRITE,
         PERMISSIONS.DOCUMENT_READ,
@@ -277,6 +283,7 @@ async function seedFixture() {
       PERMISSIONS.DOCUMENT_READ,
       PERMISSIONS.DOCUMENT_REVIEW,
       PERMISSIONS.RESTRICTED_READ,
+      PERMISSIONS.APPLICATION_AUTHORITY_REVIEW,
     ]),
     secretaryA: tenantContext(ids.adminA, ids.tenantA, [
       PERMISSIONS.APPLICATION_ASSIST,
@@ -400,11 +407,61 @@ async function saveRequiredAnswer(applicationId: string, value = true) {
 }
 
 async function submit(applicationId: string) {
+  await ensureVerifiedAuthority(applicationId);
   return runWithTenantContext(fixture.applicantA, () =>
     forms.submitApplication(
       fixture.familyA,
       fixture.applicantA,
       applicationId,
+      NOW,
+    ),
+  );
+}
+
+async function ensureVerifiedAuthority(applicationId: string): Promise<void> {
+  const current = await runWithTenantContext(fixture.applicantA, () =>
+    authorities.getFamilyAuthority(
+      fixture.familyA,
+      fixture.applicantA,
+      applicationId,
+      NOW,
+    ),
+  );
+  if (current.status === "VERIFIED") return;
+  const declared = await runWithTenantContext(fixture.applicantA, () =>
+    authorities.declareApplicationAuthority(
+      fixture.familyA,
+      fixture.applicantA,
+      applicationId,
+      {
+        authorityBasis: "PARENT",
+        relationship: "MOTHER",
+        subjectMode: "MINOR_REPRESENTATIVE",
+      },
+      NOW,
+    ),
+  );
+  const reviewing = await runWithTenantContext(fixture.reviewerA, () =>
+    authorities.reviewApplicationAuthority(
+      fixture.reviewerA,
+      applicationId,
+      {
+        expectedConcurrencyVersion: declared.concurrencyVersion!,
+        reason: "Base sintética de prueba",
+        toStatus: "UNDER_REVIEW",
+      },
+      NOW,
+    ),
+  );
+  await runWithTenantContext(fixture.reviewerA, () =>
+    authorities.reviewApplicationAuthority(
+      fixture.reviewerA,
+      applicationId,
+      {
+        expectedConcurrencyVersion: reviewing.concurrencyVersion!,
+        reason: "Verificación sintética de prueba",
+        toStatus: "VERIFIED",
+      },
       NOW,
     ),
   );
@@ -423,6 +480,7 @@ beforeEach(async () => {
   );
   forms = new FormService(prisma);
   intake = new IntakeService(prisma);
+  authorities = new ApplicationAuthorityService(prisma);
   assistance = new AssistanceService(prisma, forms, documents);
 });
 
@@ -1479,6 +1537,7 @@ describe.sequential("E5-C review, replacement and readiness", () => {
     await createPublishedRequirement(versionInput({ required: false }));
     const application = await createDraft();
     await saveRequiredAnswer(application.id);
+    await ensureVerifiedAuthority(application.id);
     const results = await Promise.all(
       Array.from({ length: 20 }, () => submit(application.id)),
     );
@@ -1738,6 +1797,7 @@ describe.sequential("E5-C assisted application without impersonation", () => {
         [{ fieldId: fixture.fieldA, value: true }],
       ),
     );
+    await ensureVerifiedAuthority(application.id);
     return { application, session };
   }
 
@@ -1974,6 +2034,7 @@ describe.sequential("E5-C assisted application without impersonation", () => {
         where: { id: session.id },
       }),
     );
+    await ensureVerifiedAuthority(application.id);
     await runWithTenantContext(fixture.assistOnlyA, () =>
       assistance.submitAssistedApplication(
         fixture.assistOnlyA,

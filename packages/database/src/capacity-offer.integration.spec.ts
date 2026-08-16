@@ -4,10 +4,12 @@ import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
+  ApplicationAuthorityService,
   CapacityOfferService,
   DevelopmentBusinessCalendar,
   PERMISSIONS,
   RecommendationService,
+  runWithFamilyContext,
   runWithTenantContext,
   type FamilyExecutionContext,
   type TenantExecutionContext,
@@ -57,6 +59,7 @@ const admission = () =>
 const staff = () =>
   tenantContext(directionUserId, [
     PERMISSIONS.APPLICATION_DECIDE,
+    PERMISSIONS.APPLICATION_AUTHORITY_REVIEW,
     PERMISSIONS.CAPACITY_MANAGE,
     PERMISSIONS.CAPACITY_READ,
     PERMISSIONS.OFFER_READ,
@@ -66,13 +69,24 @@ const staff = () =>
     PERMISSIONS.WAITLIST_READ,
   ]);
 const applicant = (actorId = familyUserId) =>
-  tenantContext(actorId, [PERMISSIONS.APPLICATION_READ]);
+  ({
+    ...tenantContext(actorId, [
+      PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+      PERMISSIONS.APPLICATION_AUTHORITY_READ,
+      PERMISSIONS.APPLICATION_READ,
+    ]),
+    contextOrigin: "family_application",
+  }) as TenantExecutionContext;
 const family = (actorId = familyUserId): FamilyExecutionContext => ({
   actorId,
   contextOrigin: "synthetic_test",
   correlationId: `e5f-family-${randomUUID()}`,
   effectiveActorId: actorId,
-  familyCapabilities: [PERMISSIONS.APPLICATION_READ],
+  familyCapabilities: [
+    PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+    PERMISSIONS.APPLICATION_AUTHORITY_READ,
+    PERMISSIONS.APPLICATION_READ,
+  ],
   purpose: "E5F_TEST",
   source: "authenticated_request",
 });
@@ -88,6 +102,7 @@ const job = (): TenantExecutionContext => ({
 
 const capacityService = new CapacityOfferService(prisma);
 const recommendationService = new RecommendationService(prisma);
+const authorityService = new ApplicationAuthorityService(prisma);
 
 async function createOffering(configuredCapacity = 1, validity = 3) {
   const ids = await runWithTenantContext(staff(), () =>
@@ -148,13 +163,14 @@ async function createSubmittedApplication(
   offeringId: string,
   formVersionId: string,
 ) {
-  return runWithTenantContext(admission(), () =>
+  const applicationId = await runWithTenantContext(admission(), () =>
     withTenantTransaction(prisma, async (transaction) => {
       const offering = await transaction.admissionOffering.findUniqueOrThrow({
         where: { id: offeringId },
       });
       const student = await transaction.student.create({
         data: {
+          dateOfBirth: new Date("2012-08-09T00:00:00.000Z"),
           familyName: "Sintético",
           familyProfileId,
           givenName: `E5-F ${randomUUID().slice(0, 6)}`,
@@ -169,9 +185,9 @@ async function createSubmittedApplication(
           formVersionId,
           offeringId,
           processId: offering.processId,
-          status: "SUBMITTED",
+          status: "DRAFT",
           studentId: student.id,
-          submittedAt,
+          submittedAt: null,
           tenantId,
         },
       });
@@ -189,6 +205,43 @@ async function createSubmittedApplication(
       return application.id;
     }),
   );
+  const declaration = await runWithFamilyContext(family(), () =>
+    runWithTenantContext(applicant(), () =>
+      authorityService.declareApplicationAuthority(
+        family(),
+        applicant(),
+        applicationId,
+        {
+          authorityBasis: "PARENT",
+          relationship: "MOTHER",
+          subjectMode: "MINOR_REPRESENTATIVE",
+        },
+      ),
+    ),
+  );
+  const review = await runWithTenantContext(staff(), () =>
+    authorityService.reviewApplicationAuthority(staff(), applicationId, {
+      expectedConcurrencyVersion: declaration.concurrencyVersion!,
+      reason: "Fixture de autoridad E5-F",
+      toStatus: "UNDER_REVIEW",
+    }),
+  );
+  await runWithTenantContext(staff(), () =>
+    authorityService.reviewApplicationAuthority(staff(), applicationId, {
+      expectedConcurrencyVersion: review.concurrencyVersion!,
+      reason: "Verificación de fixture E5-F",
+      toStatus: "VERIFIED",
+    }),
+  );
+  await runWithTenantContext(staff(), () =>
+    withTenantTransaction(prisma, (transaction) =>
+      transaction.application.update({
+        data: { status: "SUBMITTED", submittedAt: new Date() },
+        where: { id: applicationId },
+      }),
+    ),
+  );
+  return applicationId;
 }
 
 async function decide(
@@ -237,8 +290,8 @@ beforeAll(async () => {
     "Tenant E5-F sintético",
   ]);
   await migrationPool.query(
-    `INSERT INTO platform_users (id, email_normalized)
-     VALUES ($1,$2),($3,$4),($5,$6),($7,$8)`,
+    `INSERT INTO platform_users (id, email_normalized, email_verified_at)
+     VALUES ($1,$2,CURRENT_TIMESTAMP),($3,$4,CURRENT_TIMESTAMP),($5,$6,CURRENT_TIMESTAMP),($7,$8,CURRENT_TIMESTAMP)`,
     [
       familyUserId,
       `e5f-family-${familyUserId}@example.invalid`,

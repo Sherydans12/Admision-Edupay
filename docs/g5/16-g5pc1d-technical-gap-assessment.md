@@ -457,3 +457,19 @@ feriados concretos, personas reales, capacidades, templates ni activación de DO
 No se implementó ningún grupo `PC1-R*`. La siguiente acción humana es aprobar el
 procedimiento/legal artifacts y, en una etapa separada, autorizar una remediación
 técnica acotada.
+
+## Addendum post-R12 — disposición factual (2026-08-16)
+
+Este addendum conserva el assessment PC1D histórico y registra la implementación posterior
+autorizada, con evidencia en [`17-g5pc1r12-authority-adult-core.md`](17-g5pc1r12-authority-adult-core.md).
+
+| TECH | Estado post-R12 |
+| --- | --- |
+| `PC1-TECH-001`, `002`, `004`, `005`, `006` | `IMPLEMENTED / PENDING_HUMAN_TECHNICAL_REVIEW` |
+| `PC1-TECH-003` | `NOT_IMPLEMENTED / DEFERRED_TO_PC1-R4` |
+| `PC1-TECH-007..015` | Sin cambio respecto de PC1D |
+
+Migration 17 se limita a DOB nullable y autoridad/history/evidence con RLS; no introduce
+backfill, gate sensible genérico, calendario, providers ni EduPay. `Q-106` no se cierra:
+queda `TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING /
+PILOT_PRECONDITION`. `LP3-ART-006`, `C-013`, los exits y prohibiciones originales continúan.

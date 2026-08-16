@@ -44,15 +44,35 @@ export {
 } from "./intake.js";
 export {
   ActivityConflictError,
+  ApplicationAuthorityConflictError,
+  ApplicationAuthorityValidationError,
   CapacityOfferConflictError,
   CapacityOfferValidationError,
   FunctionalHandoffConflictError,
   RecommendationConflictError,
   RecommendationValidationError,
   type CapacityOfferConflictCode,
+  type ApplicationAuthorityConflictCode,
   type FunctionalHandoffConflictCode,
   type RecommendationConflictCode,
 } from "./domain-errors.js";
+export {
+  APPLICATION_AUTHORITY_BASES,
+  APPLICATION_AUTHORITY_RELATIONSHIPS,
+  APPLICATION_AUTHORITY_STATUSES,
+  APPLICATION_AUTHORITY_SUBJECT_MODES,
+  ApplicationAuthorityService,
+  assertApplicationAuthorityForCriticalAction,
+  isAdultStudent,
+  type ApplicationAuthorityBasis,
+  type ApplicationAuthorityDeclarationInput,
+  type ApplicationAuthorityDto,
+  type ApplicationAuthorityRelationship,
+  type ApplicationAuthorityReviewInput,
+  type ApplicationAuthorityStaffDto,
+  type ApplicationAuthorityStatus,
+  type ApplicationAuthoritySubjectMode,
+} from "./application-authority.js";
 export {
   CapacityOfferService,
   DEFAULT_OFFER_VALIDITY_BUSINESS_DAYS,

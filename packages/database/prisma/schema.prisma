@@ -79,6 +79,39 @@ enum ApplicationStatus {
   WITHDRAWN
 }
 
+/// Explicit tenant-and-application scoped authority subject. It is never a
+/// global attribute of Student or FamilyProfile.
+enum ApplicationAuthoritySubjectMode {
+  MINOR_REPRESENTATIVE
+  ADULT_STUDENT_SELF
+}
+
+enum ApplicationAuthorityRelationship {
+  MOTHER
+  FATHER
+  OTHER_RELATIVE
+  OTHER
+  SELF
+}
+
+enum ApplicationAuthorityBasis {
+  PARENT
+  LEGAL_REPRESENTATIVE
+  PERSONAL_CARE_HOLDER
+  AUTHORIZED_BY_AUTHORITY_HOLDER
+  SELF
+}
+
+enum ApplicationAuthorityStatus {
+  NOT_DECLARED
+  DECLARED
+  EVIDENCE_PENDING
+  UNDER_REVIEW
+  VERIFIED
+  DISPUTED
+  REJECTED
+}
+
 enum AdmissionRecommendationOption {
   RECOMENDAR_ADMISION
   NO_RECOMENDAR_ADMISION
@@ -325,6 +358,7 @@ model PlatformUser {
   verificationChallenges    AccountVerificationChallenge[]
   supportElevations          SupportElevation[]
   familyProfile              FamilyProfile?
+  applicationAuthorities     ApplicationAuthority[]
   activityRescheduleRequests ActivityRescheduleRequest[]
   activityAppointments       ActivityAppointment[]
 
@@ -387,6 +421,9 @@ model Tenant {
   admissionProcesses              AdmissionProcess[]
   admissionOfferings              AdmissionOffering[]
   applications                    Application[]
+  applicationAuthorities          ApplicationAuthority[]
+  applicationAuthorityReviews     ApplicationAuthorityReview[]
+  applicationAuthorityEvidence    ApplicationAuthorityEvidence[]
   formDefinitions                 FormDefinition[]
   formVersions                    FormVersion[]
   formSections                    FormSection[]
@@ -544,6 +581,7 @@ model Student {
   familyProfileId String        @map("family_profile_id") @db.Uuid
   givenName       String        @map("given_name") @db.VarChar(120)
   familyName      String        @map("family_name") @db.VarChar(160)
+  dateOfBirth     DateTime?     @map("date_of_birth") @db.Date
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
   familyProfile   FamilyProfile @relation(fields: [familyProfileId], references: [id], onDelete: Cascade)
@@ -712,6 +750,9 @@ model Application {
   waitlistEntries                 WaitlistEntry[]
   admissionOffers                 AdmissionOffer[]
   offerAcceptances                OfferAcceptance[]
+  authority                       ApplicationAuthority?
+  authorityReviews                ApplicationAuthorityReview[]
+  authorityEvidence               ApplicationAuthorityEvidence[]
   integrationHandoffs              IntegrationHandoff[]
   withdrawals                     ApplicationWithdrawal[]
   communications                  Communication[]
@@ -725,6 +766,86 @@ model Application {
   @@index([tenantId, familyProfileId, status, updatedAt])
   @@index([tenantId, studentId, status])
   @@map("applications")
+}
+
+/// One stable authority root per tenant application. Absence is the only
+/// operational representation of NOT_DECLARED before a family declaration.
+model ApplicationAuthority {
+  id                  String                           @id @default(uuid()) @db.Uuid
+  tenantId            String                           @map("tenant_id") @db.Uuid
+  applicationId       String                           @map("application_id") @db.Uuid
+  authorityUserId     String                           @map("authority_user_id") @db.Uuid
+  subjectMode         ApplicationAuthoritySubjectMode  @map("subject_mode")
+  relationship        ApplicationAuthorityRelationship
+  authorityBasis      ApplicationAuthorityBasis        @map("authority_basis")
+  status              ApplicationAuthorityStatus       @default(DECLARED)
+  dateOfBirthSnapshot DateTime                         @map("date_of_birth_snapshot") @db.Date
+  declaredAt          DateTime                         @map("declared_at") @db.Timestamptz(3)
+  verifiedAt          DateTime?                        @map("verified_at") @db.Timestamptz(3)
+  disputedAt          DateTime?                        @map("disputed_at") @db.Timestamptz(3)
+  rejectedAt          DateTime?                        @map("rejected_at") @db.Timestamptz(3)
+  concurrencyVersion  Int                              @default(1) @map("concurrency_version")
+  createdAt           DateTime                         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime                         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant              Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  application         Application                      @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+  authorityUser       PlatformUser                     @relation(fields: [authorityUserId], references: [id], onDelete: Restrict)
+  reviews             ApplicationAuthorityReview[]
+  evidence            ApplicationAuthorityEvidence[]
+
+  @@unique([tenantId, id, applicationId], map: "application_authorities_resource_key")
+  @@unique([tenantId, applicationId])
+  @@index([tenantId, status, applicationId])
+  @@map("application_authorities")
+}
+
+/// Immutable lifecycle history. Root changes and this append are committed in
+/// the same tenant transaction.
+model ApplicationAuthorityReview {
+  id              String                           @id @default(uuid()) @db.Uuid
+  tenantId        String                           @map("tenant_id") @db.Uuid
+  authorityId     String                           @map("authority_id") @db.Uuid
+  applicationId   String                           @map("application_id") @db.Uuid
+  sequenceNumber  Int                              @map("sequence_number")
+  fromStatus      ApplicationAuthorityStatus       @map("from_status")
+  toStatus        ApplicationAuthorityStatus       @map("to_status")
+  subjectMode     ApplicationAuthoritySubjectMode  @map("subject_mode")
+  relationship    ApplicationAuthorityRelationship
+  authorityBasis  ApplicationAuthorityBasis        @map("authority_basis")
+  actorUserId     String                           @map("actor_user_id") @db.Uuid
+  reason          String?                          @db.VarChar(1000)
+  evidenceManifest Json?                           @map("evidence_manifest")
+  concurrencyVersion Int                            @map("concurrency_version")
+  createdAt       DateTime                         @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant          Tenant                           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  authority       ApplicationAuthority             @relation(fields: [tenantId, authorityId, applicationId], references: [tenantId, id, applicationId], onDelete: Restrict)
+  application     Application                      @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, authorityId, sequenceNumber])
+  @@index([tenantId, applicationId, createdAt])
+  @@map("application_authority_reviews")
+}
+
+/// Narrow pointer to an already private, scanned DocumentVersion. No bytes,
+/// object keys, or document type taxonomy are duplicated here.
+model ApplicationAuthorityEvidence {
+  id                String               @id @default(uuid()) @db.Uuid
+  tenantId          String               @map("tenant_id") @db.Uuid
+  authorityId       String               @map("authority_id") @db.Uuid
+  applicationId     String               @map("application_id") @db.Uuid
+  documentVersionId String               @map("document_version_id") @db.Uuid
+  linkedByActorId   String               @map("linked_by_actor_id") @db.Uuid
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant            Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  authority         ApplicationAuthority @relation(fields: [tenantId, authorityId, applicationId], references: [tenantId, id, applicationId], onDelete: Restrict)
+  application       Application          @relation(fields: [tenantId, applicationId], references: [tenantId, id], onDelete: Restrict)
+  documentVersion   DocumentVersion      @relation(fields: [tenantId, documentVersionId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, authorityId, documentVersionId])
+  @@index([tenantId, applicationId, authorityId])
+  @@map("application_authority_evidence")
 }
 
 /// Stable E5-E recommendation root: exactly one per application.
@@ -1375,6 +1496,7 @@ model DocumentVersion {
   replacesVersion      DocumentVersion?        @relation("DocumentReplacement", fields: [tenantId, documentSubmissionId, replacesVersionId], references: [tenantId, documentSubmissionId, id], onDelete: Restrict, map: "document_versions_replaces_fkey")
   replacementVersions  DocumentVersion[]       @relation("DocumentReplacement")
   reviews              DocumentReview[]
+  authorityEvidence    ApplicationAuthorityEvidence[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, documentSubmissionId, id], map: "document_versions_submission_id_key")

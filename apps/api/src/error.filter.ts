@@ -7,6 +7,8 @@ import {
 } from "@nestjs/common";
 import {
   ActivityConflictError,
+  ApplicationAuthorityConflictError,
+  ApplicationAuthorityValidationError,
   AccessAdminValidationError,
   AccountRegistrationValidationError,
   AccountVerificationError,
@@ -65,6 +67,16 @@ export interface PublicErrorResponse {
     | "OFFER_EXPIRED"
     | "APPLICATION_WITHDRAWN"
     | "HANDOFF_NOT_ENABLED"
+    | "APPLICATION_AUTHORITY_NOT_DECLARED"
+    | "APPLICATION_AUTHORITY_NOT_VERIFIED"
+    | "APPLICATION_AUTHORITY_MODE_INVALID"
+    | "AUTHORITY_STUDENT_DATA_CHANGED"
+    | "STUDENT_DATE_OF_BIRTH_REQUIRED"
+    | "AUTHORITY_VERSION_CHANGED"
+    | "AUTHORITY_EVIDENCE_REQUIRED"
+    | "AUTHORITY_INVALID_TRANSITION"
+    | "AUTHORITY_EVIDENCE_INVALID"
+    | "AUTHORITY_PRINCIPAL_MISMATCH"
     | "REPORT_EXPORT_LIMIT_EXCEEDED"
     | "ROLE_ASSIGNMENT_CHANGED";
 }
@@ -96,11 +108,13 @@ export class GlobalErrorFilter implements ExceptionFilter {
               ? { code: exception.code }
               : exception instanceof FunctionalHandoffConflictError
                 ? { code: exception.code }
-                : exception instanceof ReportExportLimitExceededError
+                : exception instanceof ApplicationAuthorityConflictError
                   ? { code: exception.code }
-                  : exception instanceof RoleAssignmentChangedError
+                  : exception instanceof ReportExportLimitExceededError
                     ? { code: exception.code }
-                    : {}),
+                    : exception instanceof RoleAssignmentChangedError
+                      ? { code: exception.code }
+                      : {}),
     });
   }
 }
@@ -116,6 +130,8 @@ function exceptionStatus(exception: unknown): number {
     return HttpStatus.CONFLICT;
   if (exception instanceof FunctionalHandoffConflictError)
     return HttpStatus.CONFLICT;
+  if (exception instanceof ApplicationAuthorityConflictError)
+    return HttpStatus.CONFLICT;
   if (exception instanceof ReportExportLimitExceededError)
     return HttpStatus.CONFLICT;
   if (exception instanceof RoleAssignmentChangedError)
@@ -126,6 +142,8 @@ function exceptionStatus(exception: unknown): number {
   if (exception instanceof RecommendationValidationError)
     return HttpStatus.BAD_REQUEST;
   if (exception instanceof CapacityOfferValidationError)
+    return HttpStatus.BAD_REQUEST;
+  if (exception instanceof ApplicationAuthorityValidationError)
     return HttpStatus.BAD_REQUEST;
   if (exception instanceof ReportValidationError) return HttpStatus.BAD_REQUEST;
   if (exception instanceof AccessAdminValidationError)

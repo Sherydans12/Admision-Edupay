@@ -201,3 +201,15 @@ integración EduPay. Se mantienen `G5-EXIT-10 = BLOCKED / IMPLEMENTATION_DEFERRE
 `G5-EXIT-11 = BLOCKED / PREPILOT_LEGAL_ARTIFACTS_REQUIRED`, `G5-EXIT-12 = BLOCKED`,
 `G5 = NO APROBADA / NOT REQUESTED`, y datos reales/piloto/producción
 `NOT AUTHORIZED`.
+
+## Addendum G5-PC1-R12 — disposición post-implementación (2026-08-16)
+
+| Item | Disposición R12 | Implicación |
+| --- | --- | --- |
+| `G5-DEC-006` / Q-106 | Autoridad explícita por tenant/postulación, evidencia privada y gates críticos | No cierra procedimiento institucional/legal; `LP3-ART-006` sigue abierto |
+| `PC1-TECH-001/002/004/005/006` | `IMPLEMENTED / PENDING_HUMAN_TECHNICAL_REVIEW` | Requieren revisión humana de evidencia técnica |
+| `PC1-TECH-003` | `NOT_IMPLEMENTED / DEFERRED_TO_PC1-R4` | No hay gate genérico de datos sensibles |
+| `G5-DEC-005/007` | Sin cambio | Sin datos reales, piloto, producción ni providers |
+
+`G5-EXIT-10`, `G5-EXIT-11` y `G5-EXIT-12` continúan `BLOCKED`; G5 y la integración
+técnica EduPay siguen fuera de alcance.
