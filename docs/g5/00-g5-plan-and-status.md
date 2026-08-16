@@ -159,9 +159,9 @@ El paquete factual queda en:
 - [`10-g5lp1-access-export-rights-matrix.md`](10-g5lp1-access-export-rights-matrix.md).
 - [`11-g5lp1-legal-decision-register.md`](11-g5lp1-legal-decision-register.md).
 
-Los documentos inventarían el runtime observado, categorías, finalidades, controles de
-menores/sensibles, acceso/exportación, retención técnica, derechos como gap, proveedores
-y preguntas de decisión. No concluyen licitud, consentimiento, plazos legales,
+Los documentos contienen el inventario factual del runtime observado, las categorías,
+finalidades, controles de menores/sensibles, acceso/exportación, retención técnica,
+derechos como gap, proveedores y preguntas de decisión. No concluyen licitud, consentimiento, plazos legales,
 cumplimiento ni autorización de datos.
 
 `G5 = NO APROBADA / NOT REQUESTED`; `REAL DATA = NOT AUTHORIZED`; `PILOT = NOT

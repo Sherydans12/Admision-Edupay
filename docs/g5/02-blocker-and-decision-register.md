@@ -9,7 +9,7 @@ cuando las fuentes revisadas no identifican un owner suficiente.
 | G5-DEC-001 | PRIVACY/LEGAL | G5-EXIT-11 | C-013 remains legal validation pending | Institutional validation exists; legal/normative closure absent | Dated legal/privacy decision covering basis, notices, purpose, minimization, categories and access | `UNASSIGNED` | NO | YES | YES | YES | YES | YES | `OPEN / BLOCKED` |
 | G5-DEC-002 | PRIVACY/LEGAL | G5-EXIT-11 | Retention, deletion/block/anonymization, rights requests and physical document handling are unresolved | Technical history and minimization exist; policy absent | Approved retention/deletion/DSR/physical-document matrix and procedure | `UNASSIGNED` | NO | YES | YES | YES | YES | YES | `OPEN / BLOCKED` |
 | G5-DEC-003 | OPERATIONS | G5-EXIT-10 | Monitoring, alerting, runbooks and incident response are not evidenced | Health/logging/development smoke exist; productive controls absent | Operational package with selected controls, alert routes, runbooks, escalation and incident owner; no provider selected in G5-A | `UNASSIGNED` | NO | YES | NO | YES | YES | YES | `OPEN / BLOCKED` |
-| G5-DEC-004 | OPERATIONS/RECOVERY | G5-EXIT-07, G5-EXIT-10 | Recovery evidence is synthetic and not tied to an authorized operation or confirmed owner | `REC-01..08 PASS`; no authorized exercise/owner | Dated authorized recovery exercise, result, runbook, scope, owner and object-storage recovery evidence where applicable | `UNASSIGNED` | NO | YES | NO | YES (evidence gap) | YES | YES | `OPEN / EVIDENCE_GAP` |
+| G5-DEC-004 | OPERATIONS/RECOVERY | G5-EXIT-07, G5-EXIT-10 | Synthetic authorized recovery exercise is closed; only preprod/productive/provider evidence remains residual | `REC-01..08 PASS`; synthetic authorized recovery exercise = `CLOSED`; recovery owner = `DECIDED` (`BaseLogic / Nicolás`) | Preprod/productive/provider recovery evidence and any corresponding authorized validation | `BaseLogic / Nicolás` | NO | YES | NO | YES (residual) | YES | YES | `OPEN / RESIDUAL` |
 | G5-DEC-005 | AUTHORIZATION | G5-EXIT-12 | Real data, pilot and specific environment have no explicit dated authorization | All remain `NOT AUTHORIZED` | Separate dated human authorization naming scope, environment, data class, owner and stop conditions | `UNASSIGNED` | NO | YES | YES if real personal data is in scope | YES | YES | YES | `OPEN / BLOCKED` |
 | G5-DEC-006 | FUNCTIONAL/EVIDENCE | G5-EXIT-01, G5-EXIT-02, G5-EXIT-06 | Registration/channel verification and definitive Q-106 family identity/relationship policy are not evidenced/closed | Tests use synthetic pre-authenticated primitives; exact-identifier assistance boundary only | Direct functional onboarding/verification evidence and an institutional Q-106 operating rule; no external provider assumed | `UNASSIGNED` | NO | YES | MAYBE, depending on data/policy scope | EXIT-01/02 evidence gap; not separately counted as a G5 authorization | YES | YES | `OPEN / EVIDENCE_GAP / PILOT PRECONDITION` |
 | G5-DEC-007 | PROVIDER/OPERATIONS | G5-EXIT-06, G5-EXIT-09 | Object storage, malware and email productive adapters/providers remain unselected | Development filesystem/scanner/email adapters are tested and fail closed where applicable | Human provider/residency/security decision plus productive adapter validation; Q-203 remains open | `UNASSIGNED` | NO | YES | YES if residency/data processing is affected | Residual in EXIT-06/09; may block operational G5 package | YES | YES | `OPEN / DECISION REQUIRED` |
@@ -61,9 +61,9 @@ autorización de piloto permanecen abiertos.
 
 ## Addendum G5-OR1
 
-`G5-DEC-004`: recovery técnico coordinado sintético (DB + APPROVED/QUARANTINE objects,
-manifest, hashes, RLS y cleanup) queda `CLOSED / TECHNICAL PASS`. Provider, operación
-autorizada fuera de local/CI y `RECOVERY_OWNER = HUMAN_DECISION_REQUIRED` siguen residuales.
+`G5-DEC-004`: synthetic authorized recovery exercise (DB + APPROVED/QUARANTINE objects,
+manifest, hashes, RLS y cleanup) = `CLOSED`; `RECOVERY_OWNER = DECIDED`
+(`BaseLogic / Nicolás`). Sólo la evidencia preprod/productiva/provider queda residual.
 
 `G5-DEC-003`: contrato de señales, evaluación determinista y runbooks quedan
 `CLOSED / TECHNICAL PASS`. `PRODUCTIVE_MONITORING_PROVIDER`,
@@ -104,8 +104,9 @@ malware provider en G5-LP1.
 - `G5-DEC-003` remains blocking `G5-EXIT-10`: operational technology/destinations are
   selected, while implementation, productive configuration and evidence are deferred to
   preprod; `G5-EXIT-10 = BLOCKED / HUMAN_DECISION_REQUIRED`.
-- `G5-DEC-004` records the approved recovery owner above; the technical recovery
-  residual/evidence boundary and authorized exercise requirements remain open.
+- `G5-DEC-004`: synthetic authorized recovery exercise = `CLOSED`; recovery owner =
+  `DECIDED` (`BaseLogic / Nicolás`); only preprod/productive/provider evidence remains
+  residual.
 - `G5-DEC-006` remains `OPEN / EVIDENCE_GAP / PILOT PRECONDITION`; `Q-106` is not closed.
 - `G5-DEC-007` remains open for productive object storage, malware scanning and email;
   only the future monitoring/alert selections above are approved.
