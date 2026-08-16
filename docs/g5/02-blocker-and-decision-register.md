@@ -119,3 +119,29 @@ malware provider en G5-LP1.
 `G5-EXIT-11 = BLOCKED / LEGAL_DECISIONS_REQUIRED`; `C-013 = INSTITUTIONALLY_VALIDATED /
 LEGAL_VALIDATION_PENDING`; `G5-EXIT-12 = BLOCKED` and unchanged. This register does not
 mark any gate `PASS` and does not authorize G5, real data, pilot or production.
+
+## Addendum G5-LP2 — disposition de bloqueadores (2026-08-16)
+
+LP2 cierra la brecha de decisiones humanas de diseño, pero no cierra la validación legal
+final ni la autorización. Los estados históricos de este registro se preservan; la
+disposición siguiente es la lectura canónica posterior a LP2.
+
+| Item | Disposición LP2 | Estado/implicación actual |
+| --- | --- | --- |
+| `G5-DEC-001` | LP-001..LP-006 definen working model de controller/processor, bases candidatas, notice, menores, PIE/NEE y health | Permanece `OPEN / BLOCKED` hasta validación jurídica final, DPA, textos y catálogos |
+| `G5-DEC-002` | LP-007..LP-011 definen working policy de retención, delete/anonymize/block, solicitudes, acceso/exportación y físico | Permanece `OPEN / BLOCKED` hasta matrices numéricas, procedimientos y validación final |
+| `G5-DEC-003` | Se conservan monitoring gestionado, Grafana Cloud, Email y Telegram como elecciones operativas aprobadas | `G5-EXIT-10 = BLOCKED / IMPLEMENTATION_DEFERRED_TO_PREPROD`; no se reabre ni implementa en LP2 |
+| `G5-DEC-004` | Recovery sintético y owner siguen cerrados; LP2 no altera el residual productivo/preprod | Mantiene residual de evidencia preprod/productiva/provider |
+| `G5-DEC-005` | LP2 no emite autorización | `OPEN / BLOCKED`; datos reales, piloto y producción siguen `NOT AUTHORIZED` |
+| `G5-DEC-006` | LP-014 define working policy de Q-106 y separa email verificado de autoridad guardian | `Q-106 = DEFERRED / PILOT PRECONDITION`; no se marca `CLOSED` |
+| `G5-DEC-007` | LP-012 define política de proveedor y validación específica; Grafana/alertas operativas permanecen diferidas | Productivo object storage, malware y email siguen no seleccionados; validación provider-specific pendiente |
+| `G5-DEC-008` | LP-015 conserva `SecurityEvent != AuditEvent`, destino futuro Grafana y minimización | Retención/acceso final e implementación productiva siguen pendientes |
+| `G5-DEC-009` | LP2 no modifica configuración funcional del piloto | Permanece `OPEN / PILOT CONFIGURATION PENDING` |
+
+### Disposición de gate
+
+`G5-LP2 = WORKING_DECISIONS_COMPLETE / FINAL_LEGAL_VALIDATION_PENDING`.
+`G5-EXIT-11 = BLOCKED / FINAL_LEGAL_VALIDATION_REQUIRED`; no se marca `PASS` ni
+`PASS_WITH_RESIDUAL`. `C-013` sigue `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
+`G5-EXIT-12 = BLOCKED` y no existe autorización para G5, datos reales, piloto,
+producción o integración técnica EduPay.

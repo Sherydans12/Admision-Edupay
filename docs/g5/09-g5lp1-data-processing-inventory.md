@@ -377,3 +377,92 @@ Grafana, Telegram, email, object-storage or malware integration is implemented b
 the latter is the durable application audit record observed in the current PostgreSQL
 sink. This distinction does not assign legal responsibility or establish an incident
 notification procedure.
+
+## Addendum G5-LP2 — policy working decisions
+
+Este addendum no reescribe las 27 categorías ni convierte una decisión de trabajo en un
+hecho de runtime. `POLICY_WORKING_DECISION` registra la decisión humana aprobada en LP2;
+`CURRENT_RUNTIME_IMPLEMENTATION` conserva el comportamiento factual observado en LP1. Los
+valores técnicos `NOT_DEFINED`, `NOT_IMPLEMENTED` y `NOT_SELECTED` no se rellenan con
+valores ficticios.
+
+### Controller / processor working model
+
+Para el expediente de admisión del tenant, el working model es:
+
+- Colegio Conquistadores = `CONTROLLER / RESPONSABLE`.
+- SENAS Tecnologías SpA / BaseLogic = `PROCESSOR / ENCARGADO TECNOLÓGICO` para el
+  tratamiento realizado por cuenta del colegio.
+
+El alcance por finalidad, DPA, subencargados, devolución/supresión y tratamientos propios
+de BaseLogic siguen pendientes de validación final. Esto no cambia el runtime ni afirma
+que BaseLogic no pueda ser responsable independiente de tratamientos propios fuera del
+expediente de admisión.
+
+### Guardian authority boundary
+
+La política de trabajo permite iniciar con cuenta de email verificada, declaración de
+relación y declaración de autoridad. La relación/autoridad debe validarse antes del
+boundary institucional sensible/final y de inmediato ante discrepancia o riesgo.
+
+`EMAIL_ACCOUNT_VERIFIED != GUARDIAN_AUTHORITY_VERIFIED`.
+
+El runtime actual no tiene entidad `GuardianRelationship` ni verificación definitiva de
+parentesco, tutela o facultad. `Q-106 = DEFERRED / PILOT PRECONDITION`; la policy está
+definida en LP2 y su validación institucional/legal final sigue pendiente.
+
+### PIE / NEE / health working policy
+
+PIE/NEE conserva la política de captura opcional, progresiva, condicional, mínima, con
+finalidad explícita, acceso `HIGHLY_RESTRICTED`, auditoría y sin exposición general a
+personal de Admisión. No se crea un catálogo legal definitivo en LP2.
+
+La política del piloto es `NO GENERAL HEALTH COLLECTION`. El runtime sigue sin modelo o
+campo dedicado de historia de salud; una capacidad genérica de campo sensible no es una
+autorización. Cualquier captura excepcional requiere necesidad operacional concreta,
+aprobación previa, mínimo dato, finalidad explícita y acceso `HIGHLY_RESTRICTED`.
+
+### Retention and rights working policy
+
+La política de trabajo es `RETENTION_MODEL = PURPOSE_AND_EVENT_DRIVEN` y
+`INDEFINITE_RETENTION = PROHIBITED_BY PRODUCT POLICY`. Al finalizar la finalidad, se
+trabaja con delete o anonymize salvo fundamento documentado de preservación. Los períodos
+numéricos siguen `NOT_DEFINED` hasta validación final.
+
+Se distinguen `DELETE`, `ANONYMIZE`, `BLOCK`, `ARCHIVE` y `LEGAL_HOLD`; `ARCHIVE != DELETE`
+y `BLOCK` no equivale a borrar. El modelo de solicitudes de titulares es manual,
+controlado y auditado; no existe todavía un módulo ni canal público final en el runtime.
+Debe registrar solicitante, autoridad/identidad, tipo, alcance, fechas, decisión, acciones,
+prueba de respuesta y cierre cuando corresponda.
+
+### Provider policy
+
+No existe una exigencia de residencia en Chile para todo el producto. El uso de proveedores
+internacionales requiere aprobación controlada y registro de identidad, finalidad,
+categorías, región, subencargados, mecanismo de transferencia, DPA/acuerdo, retención,
+devolución/supresión, seguridad, incidentes y minimización.
+
+Grafana Cloud y el modelo de alertas Email + Telegram están aprobados como decisiones
+operativas, con implementación diferida a preproducción. La región y retención de Grafana
+Cloud, el object storage productivo, el malware provider productivo y el proveedor de email
+productivo para comunicaciones familiares permanecen `NOT_SELECTED` en el estado factual.
+La observabilidad no debe recibir documentos crudos, respuestas irrestrictas, salud,
+PIE/NEE, tokens/challenges ni PII salvo necesidad técnica y aprobación explícita.
+
+### Incident ownership split
+
+`TECHNICAL_INCIDENT_OWNER = BaseLogic / Nicolás` y `RECOVERY_OWNER = BaseLogic / Nicolás`.
+`PRIVACY_INCIDENT_OWNER = Colegio / Institutional Maximum Admin` hasta que se designe un
+owner privacy/legal dedicado. BaseLogic mantiene la detección, contención, evidencia
+técnica, recuperación y reporte factual; el controller evalúa impacto y escalamiento según
+la validación jurídica final. No se infiere plazo, deber de notificación ni contenido
+regulatorio.
+
+### Log minimization
+
+`AuditEvent != SecurityEvent`. `AuditEvent` sigue siendo el registro durable de auditoría
+observado en PostgreSQL; `SecurityEvent` es una señal de detección cuyo destino futuro
+aprobado es Grafana Cloud observability stack, con implementación diferida. No se deben
+registrar tokens crudos, challenges, credenciales, authorization headers, documentos,
+respuestas irrestrictas ni contenido innecesario de salud/PIE/NEE. La retención numérica y
+la matriz final de acceso de ambos eventos permanecen pendientes.

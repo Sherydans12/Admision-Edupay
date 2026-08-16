@@ -166,3 +166,47 @@ cumplimiento ni autorización de datos.
 
 `G5 = NO APROBADA / NOT REQUESTED`; `REAL DATA = NOT AUTHORIZED`; `PILOT = NOT
 AUTHORIZED`; `PRODUCTION = NOT AUTHORIZED`.
+
+## Addendum G5-LP2 — cierre de decisiones working (2026-08-16)
+
+Este addendum registra la disposición posterior a LP1. No reescribe los estados históricos
+de las etapas anteriores y no constituye aprobación de G5.
+
+### Control de entrada de LP2
+
+| Control | Resultado |
+| --- | --- |
+| Branch | `feat/e5-mvp` |
+| HEAD inicial | `5c0edb4a5c26a596600a8ab6da79525d8d904cc8` |
+| Working tree al inicio | `clean` |
+| PR #8 | `OPEN / DRAFT / NO MERGE` |
+| Migration 16 | `INTACT` |
+| Migration 17 | `ABSENT` |
+
+### Estado canónico LP2
+
+- `G5-LP1 = COMPLETE / DOCUMENTARY PACKAGE ACCEPTED`.
+- `G5-OR1 = COMPLETE / TECHNICALLY ACCEPTED`.
+- `G5-EXIT-07 = PASS_WITH_RESIDUAL`.
+- `G5-EXIT-10 = BLOCKED / IMPLEMENTATION_DEFERRED_TO_PREPROD`; LP2 no lo reabre.
+- `G5-EXIT-11 = BLOCKED / FINAL_LEGAL_VALIDATION_REQUIRED`.
+- `G5-EXIT-12 = BLOCKED`; no existe documento de autorización.
+- `G5-LP2 = WORKING_DECISIONS_COMPLETE / FINAL_LEGAL_VALIDATION_PENDING`.
+- `C-013 = INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
+- `Q-106 = DEFERRED / PILOT PRECONDITION`; working policy definida, no cerrada.
+- `G5 = NO APROBADA / NOT REQUESTED`.
+- `REAL DATA`, `PILOT` y `PRODUCTION` = `NOT AUTHORIZED`.
+- `EDUPAY TECHNICAL INTEGRATION = NOT AUTHORIZED`.
+
+Las decisiones LP-001..LP-015 fueron aprobadas humanamente como decisiones de trabajo en
+Ronda A, B y C. Ninguna se marca `FINAL_LEGAL_APPROVED` o
+`LEGAL_COMPLIANCE_CONFIRMED`. Los residuales incluyen validación final de bases y avisos,
+controller/processor y DPA, Q-106, catálogo sensible y salud, retención numérica,
+eliminación/anonimización/bloqueo, solicitudes de titulares, acceso/exportación,
+documentos físicos, proveedores/transferencias, incidentes y logs.
+
+### Compuerta siguiente
+
+La siguiente acción humana es completar la validación final y aprobar los requisitos
+LP2-PP-001..LP2-PP-015 antes de cualquier dato real o piloto. LP2 cierra el gap de diseño
+humano, pero no el gate legal final ni la autorización G5.

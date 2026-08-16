@@ -88,3 +88,38 @@ LP1 queda cerrado como paquete documental cuando los documentos 09 y 10 sean rev
 contra el runtime y este registro sea entregado a los aprobadores humanos. `G5-EXIT-11`
 no puede marcarse `PASS` por la sola creación de este paquete. No se modifica `C-013`, no
 se crea autorización para piloto/producción y no se decide `G5-EXIT-12`.
+
+## Addendum G5-LP2 — working decision disposition (2026-08-16)
+
+Este addendum registra decisiones humanas posteriores a LP1 como decisiones de trabajo.
+No borra ni reescribe el registro histórico `OPEN / HUMAN_DECISION_REQUIRED`; conserva el
+estado previo y explicita qué validación final permanece pendiente. Ningún LP se marca
+`FINAL_LEGAL_APPROVED` ni `LEGAL_COMPLIANCE_CONFIRMED`.
+
+| DECISION_ID | PREVIOUS STATE | LP2 WORKING DECISION | REMAINING VALIDATION | BLOCKING IMPLICATION |
+| --- | --- | --- | --- | --- |
+| LP-001 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: Colegio Conquistadores como controller/responsable del tenant; SENAS Tecnologías SpA / BaseLogic como processor/encargado tecnológico para admisión | Validación final por finalidad, contrato/DPA, subencargados, devolución/supresión y tratamientos propios de BaseLogic | Sigue bloqueando cierre legal, datos reales, piloto y producción |
+| LP-002 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED / FINAL_LEGAL_CLASSIFICATION_PENDING`: mapa candidato independiente por finalidad; no consentimiento genérico para todo | Clasificación jurídica final, reglas de menores y evidencia por finalidad | Sigue bloqueando cierre legal, datos reales, piloto y producción |
+| LP-003 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: aviso corto previo, aviso completo accesible, ambos versionados; consentimiento separado si corresponde | Textos finales, puntos de captura, versiones y determinación de cuándo el consentimiento es exigible | Sigue bloqueando cierre legal, datos reales, piloto y producción |
+| LP-004 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: modelo de dos niveles para iniciar y cruzar el boundary sensible/final; `EMAIL_ACCOUNT_VERIFIED != GUARDIAN_AUTHORITY_VERIFIED` | Política institucional final de relación/autoridad, evidencia y casos de riesgo/discrepancia | Sigue bloqueando datos reales, piloto y producción por el boundary de menores |
+| LP-005 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: PIE/NEE opcional, progresivo, condicional, mínimo, restringido, auditable y fuera de exposición general | Catálogo institucional/legal, finalidades, roles, aviso, retención y derechos | Sigue bloqueando cierre legal y uso productivo de categorías sensibles |
+| LP-006 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: no health collection general; captura excepcional sólo con necesidad, aprobación, mínimo, finalidad y acceso highly restricted | Catálogo excepcional o confirmación operativa final, acceso, aviso, retención y derechos | Sigue bloqueando uso productivo de cualquier captura de salud |
+| LP-007 | `OPEN / HUMAN_DECISION_REQUIRED` | `PARTIAL_WORKING_DECISION_APPROVED`: retención por propósito/evento; retención indefinida prohibida por política de producto | Matriz numérica y validación legal final | Sigue bloqueando cierre legal, piloto y producción |
+| LP-008 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: distinción `DELETE`, `ANONYMIZE`, `BLOCK`, `ARCHIVE`, `LEGAL_HOLD`; `ARCHIVE != DELETE` | Procedimiento aprobado, excepciones, dependencias, copias y evidencia | Sigue bloqueando cierre legal, piloto y producción; no hay implementación LP2 |
+| LP-009 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: procedimiento manual/controlado/auditado, sin módulo completo obligatorio antes del piloto | Canal, roles, verificación, expediente, respuesta y cierre aprobados | Sigue bloqueando cierre legal y preparación de derechos para piloto |
+| LP-010 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: portal familiar, export controlado para solicitud formal, revisión de terceros, restricción de highly restricted, allowlist/auditoría y elevación explícita | Aprobación legal final de alcance, columnas, destinatarios, portabilidad y límites | Sigue bloqueando cierre legal y exportación productiva como respuesta formal |
+| LP-011 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED / SECTORAL_VALIDATION_PENDING`: físico excepcional; copia digital oficial; devolución por defecto; custodia temporal trazable | Requisito sectorial/institucional final y procedimiento operativo de original | Sigue bloqueando política final de documentos físicos |
+| LP-012 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED / PROVIDER-SPECIFIC_VALIDATION_PENDING`: no residencia Chile global; proveedores controlados; Grafana Cloud y alertas Email + Telegram aprobados, implementación diferida | Región, retención, DPA, transferencias, subencargados y validación por proveedor; productivo email/object storage/malware siguen no seleccionados | G5-EXIT-10 sigue bloqueado por implementación diferida; proveedores productivos siguen bloqueando preproducción/piloto |
+| LP-013 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: BaseLogic/Nicolás técnico y recovery; Colegio/Institutional Maximum Admin privacy hasta designación dedicada | Procedimiento final, owner dedicado si corresponde y determinación jurídica de comunicaciones | Sigue bloqueando cierre final de incidentes privacy/legal; no se inventan plazos |
+| LP-014 | `OPEN / HUMAN_DECISION_REQUIRED` | `WORKING_DECISION_APPROVED`: policy Q-106 definida; validación antes del boundary y de inmediato ante discrepancia/riesgo; Q-106 permanece diferido | Evidencia aceptable, reviewer, conflictos, trazabilidad y validación institucional/legal final | `Q-106 = DEFERRED / PILOT PRECONDITION`; no se marca `CLOSED` |
+| LP-015 | `OPEN / HUMAN_DECISION_REQUIRED` | `PARTIAL_WORKING_DECISION_APPROVED`: `AuditEvent != SecurityEvent`, destino futuro Grafana Cloud, acceso mínimo y logs sanitizados | Retención numérica y matriz de acceso final para ambos eventos | Sigue bloqueando cierre final de logs; implementación observability diferida a preproducción |
+
+### Estado global LP2
+
+`G5-LP2 = WORKING_DECISIONS_COMPLETE / FINAL_LEGAL_VALIDATION_PENDING`.
+
+LP2 cierra el gap de decisión humana de diseño, pero mantiene
+`G5-EXIT-11 = BLOCKED / FINAL_LEGAL_VALIDATION_REQUIRED`. `C-013` continúa
+`INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`; `Q-106` continúa
+`DEFERRED / PILOT PRECONDITION`; `G5-EXIT-12` continúa `BLOCKED`. No se autoriza G5,
+datos reales, piloto, producción ni integración técnica EduPay.
