@@ -213,3 +213,13 @@ integración EduPay. Se mantienen `G5-EXIT-10 = BLOCKED / IMPLEMENTATION_DEFERRE
 
 `G5-EXIT-10`, `G5-EXIT-11` y `G5-EXIT-12` continúan `BLOCKED`; G5 y la integración
 técnica EduPay siguen fuera de alcance.
+
+## Addendum G5-PC1-R12H — evidencia directa cerrada (2026-08-20)
+
+| Item | Disposición R12H | Implicación |
+| --- | --- | --- |
+| Evidencia directa de autoridad (`PC1-TECH-001/002/004/005/006`) | `DIRECT_EVIDENCE_COMPLETE / 61 Integration Tests + 9 HTTP Tests PASS` | Gap de evidencia de testing directo cerrado para revisión humana |
+| `PC1-TECH-003` | `NOT_IMPLEMENTED / DEFERRED_TO_PC1-R4` | Fuera de alcance en R12H |
+| `PC1-TECH-007..015` | `OUT_OF_SCOPE` | Fuera de alcance en R12H |
+| `Q-106` / `LP3-ART-006` | `OPEN / PILOT_PRECONDITION` | Procedimiento legal e institucional definitivo permanece abierto |
+| `C-013` / `G5-EXIT-10..12` | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |

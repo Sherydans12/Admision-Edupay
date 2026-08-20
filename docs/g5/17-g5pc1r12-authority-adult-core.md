@@ -89,3 +89,17 @@ RLS/FORCE, grants/roles distintos y ausencia de backfill `VERIFIED`.
 `LP3-ART-006` sigue abierto, `C-013` sigue `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`,
 y `G5-EXIT-10`, `G5-EXIT-11` y `G5-EXIT-12` siguen bloqueados. G5, datos reales, piloto,
 producción e integración técnica EduPay permanecen `NOT AUTHORIZED`.
+
+## Addendum G5-PC1-R12H — evidencia directa y endurecimiento de pruebas (2026-08-20)
+
+El gap de evidencia directa detectado en la revisión humana de PC1-R12 queda cerrado mediante suites directas:
+
+1. **Integration Suite Dedicada** (`packages/database/src/application-authority.integration.spec.ts`):
+   - 61 pruebas unitarias e integradas dedicadas cubriendo `R12-AUTH-01..18`, máquina de estados, transición de mayoría de edad al cumplir 18 años, `R12-SUB-01..10`, `R12-OFFER-01..08`, `R12-HANDOFF-01..08` y 5 pruebas de evidencia documental.
+   - Sin mock de base de datos; opera sobre PostgreSQL real con RLS y contexto tenant estricto.
+2. **HTTP Direct Boundary Suite** (`apps/api/src/application-authority.http.integration.spec.ts`):
+   - 9 pruebas de integración HTTP cubriendo endpoints de declaración familiar, revisión staff, rechazo de inyección de estado `VERIFIED`, control de permisos RBAC, transiciones de estado, concurrencia optimista (409), aislamiento multiempresa (404) y rechazo de combinaciones inválidas (400).
+3. **Invariantes y RLS**:
+   - `Migration 17` (`20260816070000_g5pc1r12_authority_core`) permanece intacta e inmutable. `Migration 18` ausente.
+   - `pnpm test:rls` y `pnpm g5pc1r12:migration:smoke` aprobados al 100%.
+   - `apps/web/app/authority-workflows.tsx` no expone motivos de revisión internos a la familia y protege controles de staff mediante `canReview`.

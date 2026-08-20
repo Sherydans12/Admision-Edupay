@@ -300,3 +300,11 @@ evidencia privada y gates de submit/accept/handoff. La evidencia está en
 - `Q-106 = TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING / PILOT_PRECONDITION`.
 - `LP3-ART-006`, `C-013`, `G5-EXIT-10`, `G5-EXIT-11` y `G5-EXIT-12` no cambian.
 - G5, datos reales, piloto, producción y EduPay technical integration siguen `NOT AUTHORIZED`.
+
+## Addendum G5-PC1-R12H — endurecimiento de evidencia directa de autoridad (2026-08-20)
+
+R12H cierra exclusivamente el gap de evidencia directa de PC1-R12 mediante:
+1. Suite de integración dedicada `packages/database/src/application-authority.integration.spec.ts` (61 pruebas aprobadas: `R12-AUTH-01..18`, máquina de estados, transición de 18 años, `R12-SUB-01..10`, `R12-OFFER-01..08`, `R12-HANDOFF-01..08` y evidencia documental).
+2. Suite HTTP dedicada `apps/api/src/application-authority.http.integration.spec.ts` (9 pruebas HTTP aprobadas).
+3. Smokes y RLS (`pnpm test:rls` y `pnpm g5pc1r12:migration:smoke`) verificados al 100%.
+4. Migration 17 permanece inmutable; Migration 18 ausente; PC1-TECH-003 permanece `NOT_IMPLEMENTED / DEFERRED_TO_PC1-R4`; `PC1-TECH-007..015` fuera de alcance; `Q-106`, `LP3-ART-006`, `C-013`, `G5-EXIT-10..12`, G5, piloto, datos reales y EduPay permanecen sin cambio.
