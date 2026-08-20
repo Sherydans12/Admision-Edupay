@@ -10,9 +10,7 @@ import {
 import { ForbiddenError } from "./authorization.js";
 import { CapacityOfferService } from "./capacity-offer.js";
 import {
-  ApplicationAuthorityConflictError,
   ApplicationAuthorityValidationError,
-  FunctionalHandoffConflictError,
   IntakeNotFoundError,
 } from "./domain-errors.js";
 import { getRequiredEnvironment } from "./environment.js";
@@ -1590,6 +1588,8 @@ describe("G5-PC1-R12H Dedicated Application Authority Core Integration Suite", (
           ),
         ),
       );
+
+      expect(declared.status).toBe("DECLARED");
 
       const staffView = await runWithTenantContext(fixture.adminReviewerA, () =>
         authorities.getStaffAuthority(fixture.adminReviewerA, appId),
