@@ -26,6 +26,7 @@
     "e5i:migration:smoke": "node scripts/e5i-migration-smoke.mjs",
     "g5br:migration:smoke": "node scripts/g5br-migration-smoke.mjs",
     "g5pc1r12:migration:smoke": "node scripts/g5pc1r12-migration-smoke.mjs",
+    "g5pc1r4:migration:smoke": "node scripts/g5pc1r4-migration-smoke.mjs",
     "g5or:operations:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/g5or-operations-smoke.ts",
     "g5or:recovery:smoke": "node scripts/g5or-recovery-smoke.mjs",
     "e5i:boundary:check": "node scripts/e5i-boundary-check.mjs",

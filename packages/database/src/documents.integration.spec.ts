@@ -298,13 +298,17 @@ async function seedFixture() {
 function versionInput(
   overrides: Partial<DocumentRequirementVersionInput> = {},
 ): DocumentRequirementVersionInput {
+  const sensitivity = overrides.sensitivity ?? "restricted";
+  const processingCategory =
+    sensitivity === "highly_restricted" ? "ORDINARY_ADMISSION" : null;
   return {
     allowedFileTypes: ["PDF"],
     allowsEquivalent: false,
     correctionWindowBusinessDays: 3,
     maxFileSizeBytes: 1024 * 1024,
+    processingCategory,
     required: true,
-    sensitivity: "restricted",
+    sensitivity,
     validityRule: "NONE",
     ...overrides,
   };
