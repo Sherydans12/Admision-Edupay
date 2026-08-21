@@ -308,3 +308,33 @@ R12H cierra exclusivamente el gap de evidencia directa de PC1-R12 mediante:
 2. Suite HTTP dedicada `apps/api/src/application-authority.http.integration.spec.ts` (9 pruebas HTTP aprobadas).
 3. Smokes y RLS (`pnpm test:rls` y `pnpm g5pc1r12:migration:smoke`) verificados al 100%.
 4. Migration 17 permanece inmutable; Migration 18 ausente; PC1-TECH-003 permanece `NOT_IMPLEMENTED / DEFERRED_TO_PC1-R4`; `PC1-TECH-007..015` fuera de alcance; `Q-106`, `LP3-ART-006`, `C-013`, `G5-EXIT-10..12`, G5, piloto, datos reales y EduPay permanecen sin cambio.
+
+## Addendum G5-PC1-R4 — categorías de procesamiento sensible y fail-closed builder/documents (2026-08-20)
+
+PC1-R4 implementa el diseño humano aprobado PC1-R4A para separar sensibilidad técnica de categoría semántica/de procesamiento:
+
+1. **Schema (Migration 18):** enum `ProcessingCategory` (4 valores), enum `DocumentClassification` (2 valores), columna `processing_category` en `form_fields` y `document_requirement_versions`, columna `document_classification` en `document_requirement_versions`, tabla `sensitive_processing_policies` con RLS/FORCE.
+2. **Política fail-closed:** `HEALTH` y `PIE_NEE_DIAGNOSTIC` deshabilitadas por defecto. Publicación denegada si categoría deshabilitada. `HIGHLY_RESTRICTED` sin categoría explícita → publicación denegada. `PERSONALITY_DEVELOPMENT_REPORT` deshabilitado por defecto.
+3. **Authority ≠ processing authorization:** la autoridad R12 verificada no habilita categorías deshabilitadas.
+4. **Auditoría:** enable/disable de categorías sensibles produce `AuditEvent` duradero.
+5. **Suite dedicada:** `packages/database/src/sensitive-processing.integration.spec.ts` (23 pruebas: clasificación, política, builder, authority, personality, security, cross-tenant).
+6. **Migration smoke:** `scripts/g5pc1r4-migration-smoke.mjs` (fresh 0→18 + incremental 17→18).
+
+### Disposición PC1-TECH
+
+| ID | Estado post-R4 |
+| --- | --- |
+| `PC1-TECH-003` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
+| `PC1-TECH-010` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
+| `PC1-TECH-011` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
+| `PC1-TECH-012` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
+
+### Sin cambio
+
+- `PC1-TECH-007..009`, `013..015` fuera de alcance.
+- `Q-106` sigue `TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING / PILOT_PRECONDITION`.
+- `LP3-ART-006` sigue `OPEN`.
+- `C-013` sigue `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING`.
+- `G5-EXIT-10`, `G5-EXIT-11`, `G5-EXIT-12` = `BLOCKED`.
+- G5, datos reales, piloto, producción y EduPay = `NOT AUTHORIZED`.
+- Migration 17 inmutable; Migration 19 ausente.

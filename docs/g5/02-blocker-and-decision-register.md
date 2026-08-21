@@ -223,3 +223,16 @@ técnica EduPay siguen fuera de alcance.
 | `PC1-TECH-007..015` | `OUT_OF_SCOPE` | Fuera de alcance en R12H |
 | `Q-106` / `LP3-ART-006` | `OPEN / PILOT_PRECONDITION` | Procedimiento legal e institucional definitivo permanece abierto |
 | `C-013` / `G5-EXIT-10..12` | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |
+
+## Addendum G5-PC1-R4 — categorías de procesamiento sensible (2026-08-20)
+
+| Item | Disposición R4 | Implicación |
+| --- | --- | --- |
+| `PC1-TECH-003` (gating tratamiento sensible) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | ProcessingCategory + publish/submission guards |
+| `PC1-TECH-010` (health disabled by default) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | HEALTH category fail-closed |
+| `PC1-TECH-011` (PIE/NEE disabled by default) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | PIE_NEE_DIAGNOSTIC category fail-closed |
+| `PC1-TECH-012` (personality report) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | PERSONALITY_DEVELOPMENT_REPORT classification |
+| Migration 18 | `AUTHORIZED / APPLIED` | `20260820090000_g5pc1r4_sensitive_processing` |
+| Migration 19 | `ABSENT / NOT AUTHORIZED` | No migration adicional |
+| `Q-106` / `LP3-ART-006` / `C-013` | `SIN CAMBIO` | Procedimiento legal e institucional permanece abierto |
+| `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | Gates permanecen bloqueados |
