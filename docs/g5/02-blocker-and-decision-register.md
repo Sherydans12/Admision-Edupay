@@ -224,15 +224,19 @@ técnica EduPay siguen fuera de alcance.
 | `Q-106` / `LP3-ART-006` | `OPEN / PILOT_PRECONDITION` | Procedimiento legal e institucional definitivo permanece abierto |
 | `C-013` / `G5-EXIT-10..12` | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |
 
-## Addendum G5-PC1-R4 — categorías de procesamiento sensible (2026-08-20)
+## Addendum G5-PC1-R4 / G5-PC1-R4H — categorías de procesamiento sensible y cierre de evidencia directa (2026-08-21)
 
-| Item | Disposición R4 | Implicación |
+| Item | Disposición R4 / R4H | Implicación |
 | --- | --- | --- |
-| `PC1-TECH-003` (gating tratamiento sensible) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | ProcessingCategory + publish/submission guards |
+| `PC1-TECH-003` (gating tratamiento sensible) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | ProcessingCategory + publish/submission guards + RLS + HTTP suite |
 | `PC1-TECH-010` (health disabled by default) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | HEALTH category fail-closed |
 | `PC1-TECH-011` (PIE/NEE disabled by default) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | PIE_NEE_DIAGNOSTIC category fail-closed |
-| `PC1-TECH-012` (personality report) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | PERSONALITY_DEVELOPMENT_REPORT classification |
-| Migration 18 | `AUTHORIZED / APPLIED` | `20260820090000_g5pc1r4_sensitive_processing` |
+| `PC1-TECH-012` (personality report) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | PERSONALITY_DEVELOPMENT_REPORT classification + narrow offering scope guard |
+| Migration 18 | `AUTHORIZED / APPLIED / SMOKE PASS` | `20260820090000_g5pc1r4_sensitive_processing` |
 | Migration 19 | `ABSENT / NOT AUTHORIZED` | No migration adicional |
+| Evidencia directa RLS | `COMPLETE / PASS` | `packages/database/src/sensitive-processing.rls.integration.spec.ts` (8 pruebas) |
+| Evidencia directa HTTP | `COMPLETE / PASS` | `apps/api/src/sensitive-processing.http.integration.spec.ts` (12 pruebas) |
+| Evidencia directa integración | `COMPLETE / PASS` | `packages/database/src/sensitive-processing.integration.spec.ts` (37 pruebas) |
+| UI de configuración sensible | `COMPLETE` | `apps/web/app/sensitive-processing-workflows.tsx` y workflows de forms/documentos |
 | `Q-106` / `LP3-ART-006` / `C-013` | `SIN CAMBIO` | Procedimiento legal e institucional permanece abierto |
 | `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | Gates permanecen bloqueados |

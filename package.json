@@ -39,8 +39,8 @@
     "lint": "eslint . --max-warnings=0",
     "security:secrets": "node scripts/security-scan.mjs",
     "security:deps": "pnpm audit --audit-level=high",
-    "test": "vitest run --exclude packages/database/src/tenant-rls.integration.spec.ts --exclude packages/database/src/capacity-offer.rls.integration.spec.ts --exclude packages/database/src/communications.rls.integration.spec.ts --exclude packages/database/src/reporting-admin.rls.integration.spec.ts --exclude packages/database/src/functional-handoff.rls.integration.spec.ts",
-    "test:rls": "vitest run packages/database/src/tenant-rls.integration.spec.ts && vitest run packages/database/src/capacity-offer.rls.integration.spec.ts && vitest run packages/database/src/communications.rls.integration.spec.ts && vitest run packages/database/src/reporting-admin.rls.integration.spec.ts && vitest run packages/database/src/functional-handoff.rls.integration.spec.ts",
+    "test": "vitest run --exclude packages/database/src/tenant-rls.integration.spec.ts --exclude packages/database/src/capacity-offer.rls.integration.spec.ts --exclude packages/database/src/communications.rls.integration.spec.ts --exclude packages/database/src/reporting-admin.rls.integration.spec.ts --exclude packages/database/src/functional-handoff.rls.integration.spec.ts --exclude packages/database/src/sensitive-processing.rls.integration.spec.ts",
+    "test:rls": "vitest run packages/database/src/tenant-rls.integration.spec.ts && vitest run packages/database/src/capacity-offer.rls.integration.spec.ts && vitest run packages/database/src/communications.rls.integration.spec.ts && vitest run packages/database/src/reporting-admin.rls.integration.spec.ts && vitest run packages/database/src/functional-handoff.rls.integration.spec.ts && vitest run packages/database/src/sensitive-processing.rls.integration.spec.ts",
     "typecheck": "pnpm --recursive --if-present run typecheck"
   },
   "devDependencies": {

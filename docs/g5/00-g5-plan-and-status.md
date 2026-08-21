@@ -338,3 +338,15 @@ PC1-R4 implementa el diseño humano aprobado PC1-R4A para separar sensibilidad t
 - `G5-EXIT-10`, `G5-EXIT-11`, `G5-EXIT-12` = `BLOCKED`.
 - G5, datos reales, piloto, producción y EduPay = `NOT AUTHORIZED`.
 - Migration 17 inmutable; Migration 19 ausente.
+
+## Addendum G5-PC1-R4H — cierre de evidencia requerida y UX de tratamiento sensible (2026-08-21)
+
+G5-PC1-R4H completa la evidencia directa y la interfaz mínima autorizada:
+1. **Suite PostgreSQL RLS dedicada:** `packages/database/src/sensitive-processing.rls.integration.spec.ts` (8 pruebas aprobadas: `R4-RLS-01..08`, aislamiento por tenant, denegación sin contexto, fuerza de RLS y rol `admission_app`).
+2. **Suite HTTP dedicada:** `apps/api/src/sensitive-processing.http.integration.spec.ts` (12 pruebas aprobadas: `R4-HTTP-01..12`, lectura/escritura de políticas, validación de publicación fail-closed, gates de submit y envelopes de error).
+3. **Suite de integración ampliada:** `packages/database/src/sensitive-processing.integration.spec.ts` (37 pruebas aprobadas: `R4-CAT-*`, `R4-POL-*`, `R4-PUB-*`, `R4-AUTH-01..07`, `R4-PER-01..06`, `R4-DOC-01..05`, `R4-SEC-01..03`).
+4. **Frontend Staff/Admin y Family:**
+   - Form Builder (`apps/web/app/form-workflows.tsx`): selector de `processingCategory`, avisos de política y guard fail-closed.
+   - Document Requirements (`apps/web/app/document-workflows.tsx`): selectores de `processingCategory` y `documentClassification`.
+   - Workspace administrativo de tratamiento sensible (`apps/web/app/sensitive-processing-workflows.tsx` y `page.tsx`).
+5. **Smokes:** `pnpm g5pc1r4:migration:smoke` (Fresh 0→18 PASS, Incremental 17→18 PASS, Seals PASS). Migration 18 inalterada; Migration 19 ausente.

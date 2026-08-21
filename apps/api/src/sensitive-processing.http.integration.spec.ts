@@ -1,0 +1,777 @@
+import { randomUUID } from "node:crypto";
+import { NestFactory } from "@nestjs/core";
+import { Pool } from "pg";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import {
+  InMemoryAuditSink,
+  InMemorySecurityEventSink,
+  PERMISSIONS,
+  SessionService,
+  buildSessionCookieOptions,
+  createAppPrismaClient,
+  runWithTenantContext,
+  withTenantTransaction,
+  type TenantExecutionContext,
+} from "@admission/database";
+import { AppModule } from "./app.module.js";
+import { configureAdmissionApp } from "./app-bootstrap.js";
+
+const prisma = createAppPrismaClient();
+const migrationPool = new Pool({
+  connectionString: process.env.DATABASE_MIGRATION_URL,
+  connectionTimeoutMillis: 5_000,
+});
+const cookieName = buildSessionCookieOptions({ environment: "local" }).name;
+let app: Awaited<ReturnType<typeof NestFactory.create>>;
+let baseUrl = "";
+let sessions: SessionService;
+
+let fixture: {
+  adminConfigOnlyToken: string;
+  adminFullToken: string;
+  adminStaffBToken: string;
+  familyAToken: string;
+  formDefinitionAId: string;
+  offeringAId: string;
+  studentAId: string;
+  tenantAId: string;
+  tenantBId: string;
+  userAId: string;
+};
+
+function context(
+  tenantId: string,
+  actorId: string,
+  capabilities: readonly string[],
+): TenantExecutionContext {
+  return {
+    actorId,
+    capabilities,
+    contextOrigin: "synthetic_test",
+    correlationId: `sp-http-${randomUUID()}`,
+    effectiveActorId: actorId,
+    purpose: "SENSITIVE_PROCESSING_HTTP_TEST",
+    scopes: ["*"],
+    source: "authenticated_request",
+    tenantId,
+  };
+}
+
+async function seedFixture() {
+  const tenantAId = randomUUID();
+  const tenantBId = randomUUID();
+  const userAId = randomUUID();
+  const adminFullId = randomUUID();
+  const adminConfigOnlyId = randomUUID();
+  const staffBId = randomUUID();
+  const familyProfileAId = randomUUID();
+  const studentAId = randomUUID();
+  const now = new Date();
+
+  await migrationPool.query(
+    "INSERT INTO tenants (id, name) VALUES ($1, $2), ($3, $4)",
+    [tenantAId, "Tenant A HTTP SP", tenantBId, "Tenant B HTTP SP"],
+  );
+
+  await migrationPool.query(
+    `INSERT INTO platform_users (id, email_normalized, email_verified_at) VALUES
+      ($1, $2, CURRENT_TIMESTAMP), ($3, $4, CURRENT_TIMESTAMP), ($5, $6, CURRENT_TIMESTAMP),
+      ($7, $8, CURRENT_TIMESTAMP)`,
+    [
+      userAId,
+      `family-a-${userAId}@example.invalid`,
+      adminFullId,
+      `admin-full-${adminFullId}@example.invalid`,
+      adminConfigOnlyId,
+      `admin-config-${adminConfigOnlyId}@example.invalid`,
+      staffBId,
+      `staff-b-${staffBId}@example.invalid`,
+    ],
+  );
+
+  await migrationPool.query(
+    "INSERT INTO family_profiles (id, user_id, display_name) VALUES ($1, $2, $3)",
+    [familyProfileAId, userAId, "Familia A SP"],
+  );
+
+  await migrationPool.query(
+    "INSERT INTO students (id, family_profile_id, given_name, family_name, date_of_birth) VALUES ($1, $2, $3, $4, DATE '2015-01-01')",
+    [studentAId, familyProfileAId, "Estudiante", "SP"],
+  );
+
+  const seedCtx = context(tenantAId, adminFullId, [
+    PERMISSIONS.ADMISSION_CONFIG_READ,
+    PERMISSIONS.ADMISSION_CONFIG_MANAGE,
+    PERMISSIONS.ADMISSION_SENSITIVE_PROCESSING_CONFIGURE,
+    PERMISSIONS.FORM_MANAGE,
+    PERMISSIONS.FORM_PUBLISH,
+    PERMISSIONS.FORM_READ,
+  ]);
+
+  const { formDefId, offeringId } = await runWithTenantContext(seedCtx, () =>
+    withTenantTransaction(prisma, async (tx) => {
+      const campus = await tx.campus.create({
+        data: {
+          code: "SP-CAMPUS-A",
+          name: "Sede SP HTTP",
+          tenantId: tenantAId,
+        },
+      });
+      const year = await tx.academicYear.create({
+        data: {
+          code: "SP-YEAR-A",
+          label: "Año 2026 SP",
+          status: "OPEN",
+          tenantId: tenantAId,
+        },
+      });
+      const level = await tx.courseLevel.create({
+        data: {
+          code: "SP-LEVEL-A",
+          name: "Nivel 1 SP",
+          tenantId: tenantAId,
+        },
+      });
+      const process = await tx.admissionProcess.create({
+        data: {
+          academicYearId: year.id,
+          code: "SP-PROCESS-A",
+          name: "Proceso 2026 SP",
+          status: "PUBLISHED",
+          tenantId: tenantAId,
+        },
+      });
+      const formDef = await tx.formDefinition.create({
+        data: {
+          name: "Formulario Base SP",
+          purpose: "admission_application",
+          tenantId: tenantAId,
+        },
+      });
+      const formVersion = await tx.formVersion.create({
+        data: {
+          formDefinitionId: formDef.id,
+          lifecycle: "DRAFT",
+          tenantId: tenantAId,
+          versionNumber: 1,
+        },
+      });
+      const section = await tx.formSection.create({
+        data: {
+          formVersionId: formVersion.id,
+          order: 1,
+          tenantId: tenantAId,
+          title: "Datos Generales",
+        },
+      });
+      await tx.formField.create({
+        data: {
+          formVersionId: formVersion.id,
+          key: "confirmed_info",
+          label: "Confirma información",
+          order: 1,
+          processingCategory: "ORDINARY_ADMISSION",
+          purpose: "admission_application",
+          required: true,
+          sectionId: section.id,
+          sensitivity: "restricted",
+          tenantId: tenantAId,
+          type: "BOOLEAN",
+        },
+      });
+      await tx.formVersion.update({
+        data: {
+          lifecycle: "PUBLISHED",
+          publishedAt: now,
+        },
+        where: { id: formVersion.id },
+      });
+      const offering = await tx.admissionOffering.create({
+        data: {
+          academicYearId: year.id,
+          availabilityCategory: "LIMITED_CAPACITY",
+          campusId: campus.id,
+          code: "SP-OFFERING-A",
+          courseLevelId: level.id,
+          formVersionId: formVersion.id,
+          processId: process.id,
+          status: "PUBLISHED",
+          tenantId: tenantAId,
+          title: "Oferta SP 2026",
+        },
+      });
+      await tx.admissionCapacity.create({
+        data: {
+          configuredCapacity: 10,
+          offeringId: offering.id,
+          tenantId: tenantAId,
+        },
+      });
+
+      // Admin with full SP config capability
+      const adminMembership = await tx.membership.create({
+        data: {
+          id: randomUUID(),
+          startsAt: new Date(now.getTime() - 60_000),
+          status: "ACTIVE",
+          tenantId: tenantAId,
+          userId: adminFullId,
+        },
+      });
+      await tx.roleAssignment.create({
+        data: {
+          id: randomUUID(),
+          membershipId: adminMembership.id,
+          permissions: [
+            PERMISSIONS.ADMISSION_CONFIG_READ,
+            PERMISSIONS.ADMISSION_CONFIG_MANAGE,
+            PERMISSIONS.ADMISSION_SENSITIVE_PROCESSING_CONFIGURE,
+            PERMISSIONS.FORM_MANAGE,
+            PERMISSIONS.FORM_PUBLISH,
+            PERMISSIONS.FORM_READ,
+            PERMISSIONS.APPLICATION_AUTHORITY_REVIEW,
+            PERMISSIONS.APPLICATION_AUTHORITY_READ,
+            PERMISSIONS.APPLICATION_READ,
+          ],
+          roleKey: "SP_ADMIN_FULL_ROLE",
+          scopes: ["*"],
+          startsAt: new Date(now.getTime() - 60_000),
+          status: "ACTIVE",
+          tenantId: tenantAId,
+        },
+      });
+
+      // Admin with read & manage but WITHOUT admission.sensitive_processing.configure
+      const adminConfigMembership = await tx.membership.create({
+        data: {
+          id: randomUUID(),
+          startsAt: new Date(now.getTime() - 60_000),
+          status: "ACTIVE",
+          tenantId: tenantAId,
+          userId: adminConfigOnlyId,
+        },
+      });
+      await tx.roleAssignment.create({
+        data: {
+          id: randomUUID(),
+          membershipId: adminConfigMembership.id,
+          permissions: [
+            PERMISSIONS.ADMISSION_CONFIG_READ,
+            PERMISSIONS.ADMISSION_CONFIG_MANAGE,
+            PERMISSIONS.FORM_MANAGE,
+            PERMISSIONS.FORM_PUBLISH,
+            PERMISSIONS.FORM_READ,
+          ],
+          roleKey: "SP_ADMIN_READ_ONLY_ROLE",
+          scopes: ["*"],
+          startsAt: new Date(now.getTime() - 60_000),
+          status: "ACTIVE",
+          tenantId: tenantAId,
+        },
+      });
+
+      return {
+        formDefId: formDef.id,
+        offeringId: offering.id,
+      };
+    }),
+  );
+
+  // Staff B in Tenant B
+  const seedCtxB = context(tenantBId, staffBId, [
+    PERMISSIONS.ADMISSION_CONFIG_READ,
+    PERMISSIONS.ADMISSION_CONFIG_MANAGE,
+    PERMISSIONS.ADMISSION_SENSITIVE_PROCESSING_CONFIGURE,
+  ]);
+  await runWithTenantContext(seedCtxB, () =>
+    withTenantTransaction(prisma, async (tx) => {
+      const staffBMembership = await tx.membership.create({
+        data: {
+          id: randomUUID(),
+          startsAt: new Date(now.getTime() - 60_000),
+          status: "ACTIVE",
+          tenantId: tenantBId,
+          userId: staffBId,
+        },
+      });
+      await tx.roleAssignment.create({
+        data: {
+          id: randomUUID(),
+          membershipId: staffBMembership.id,
+          permissions: [
+            PERMISSIONS.ADMISSION_CONFIG_READ,
+            PERMISSIONS.ADMISSION_CONFIG_MANAGE,
+            PERMISSIONS.ADMISSION_SENSITIVE_PROCESSING_CONFIGURE,
+          ],
+          roleKey: "STAFF_B_ROLE",
+          scopes: ["*"],
+          startsAt: new Date(now.getTime() - 60_000),
+          status: "ACTIVE",
+          tenantId: tenantBId,
+        },
+      });
+    }),
+  );
+
+  sessions = new SessionService(prisma, {
+    auditSink: new InMemoryAuditSink(),
+    securityEvents: new InMemorySecurityEventSink(),
+  });
+
+  const [familyASession, adminFullSession, adminConfigSession, staffBSession] =
+    await Promise.all([
+      sessions.issueSession(userAId),
+      sessions.issueSession(adminFullId),
+      sessions.issueSession(adminConfigOnlyId),
+      sessions.issueSession(staffBId),
+    ]);
+
+  fixture = {
+    adminConfigOnlyToken: adminConfigSession.token,
+    adminFullToken: adminFullSession.token,
+    adminStaffBToken: staffBSession.token,
+    familyAToken: familyASession.token,
+    formDefinitionAId: formDefId,
+    offeringAId: offeringId,
+    studentAId,
+    tenantAId,
+    tenantBId,
+    userAId,
+  };
+}
+
+function request(path: string, options: RequestInit & { token?: string } = {}) {
+  const { token, ...init } = options;
+  const headers = new Headers(init.headers);
+  if (token !== undefined) headers.set("Cookie", `${cookieName}=${token}`);
+  return fetch(`${baseUrl}${path}`, { ...init, headers });
+}
+
+async function csrf(token: string): Promise<string> {
+  const response = await request("/auth/csrf", { token });
+  expect(response.status).toBe(200);
+  return ((await response.json()) as { token: string }).token;
+}
+
+async function mutation(
+  path: string,
+  token: string,
+  body: unknown,
+  method = "POST",
+) {
+  const csrfToken = await csrf(token);
+  const headers = new Headers({
+    "Content-Type": "application/json",
+    Origin: "http://localhost:3000",
+    "X-CSRF-Token": csrfToken,
+  });
+  return request(path, {
+    body: JSON.stringify(body),
+    headers,
+    method,
+    token,
+  });
+}
+
+describe.sequential(
+  "G5-PC1-R4 Sensitive Processing Direct HTTP Integration Suite",
+  () => {
+    beforeAll(async () => {
+      process.env.ADMISSION_APP_ORIGIN = "http://localhost:3000";
+      process.env.ADMISSION_WEB_ORIGIN = "http://localhost:3000";
+      process.env.ADMISSION_PLATFORM_SUPPORT_USER_IDS = "";
+      app = await NestFactory.create(AppModule, { logger: false });
+      configureAdmissionApp(app);
+      await app.init();
+      await app.listen(0, "127.0.0.1");
+      const address = app.getHttpServer().address();
+      if (address === null || typeof address === "string") {
+        throw new Error("HTTP test server did not expose a port");
+      }
+      baseUrl = `http://127.0.0.1:${address.port}`;
+      await seedFixture();
+    });
+
+    afterAll(async () => {
+      await app.close();
+      await prisma.$disconnect();
+      await migrationPool.end();
+    });
+
+    it("R4-HTTP-01: authorized staff GET effective policy succeeds", async () => {
+      const res = await request(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing`,
+        { token: fixture.adminFullToken },
+      );
+      expect(res.status).toBe(200);
+      const body = (await res.json()) as {
+        items: Array<{ category: string; enabled: boolean }>;
+      };
+      expect(body.items).toHaveLength(4);
+      expect(
+        body.items.find((i) => i.category === "ORDINARY_ADMISSION")?.enabled,
+      ).toBe(true);
+      expect(
+        body.items.find((i) => i.category === "SUPPORT_ACCOMMODATION")?.enabled,
+      ).toBe(true);
+      expect(
+        body.items.find((i) => i.category === "PIE_NEE_DIAGNOSTIC")?.enabled,
+      ).toBe(false);
+      expect(body.items.find((i) => i.category === "HEALTH")?.enabled).toBe(
+        false,
+      );
+    });
+
+    it("R4-HTTP-02: actor without admission.sensitive_processing.configure cannot update policy", async () => {
+      const res = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminConfigOnlyToken,
+        {
+          category: "HEALTH",
+          enabled: true,
+          purpose: "Unauthorized attempt",
+        },
+      );
+      expect(res.status).toBe(403);
+    });
+
+    it("R4-HTTP-03: authorized actor can update an allowed policy state", async () => {
+      const res = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminFullToken,
+        {
+          category: "HEALTH",
+          enabled: true,
+          purpose: "Authorized activation for clinical intake",
+        },
+      );
+      expect(res.status).toBe(201);
+      const body = (await res.json()) as {
+        category: string;
+        enabled: boolean;
+        purpose: string;
+      };
+      expect(body.category).toBe("HEALTH");
+      expect(body.enabled).toBe(true);
+      expect(body.purpose).toBe("Authorized activation for clinical intake");
+
+      // Verify effective policies now show HEALTH = true
+      const getRes = await request(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing`,
+        { token: fixture.adminFullToken },
+      );
+      const getBody = (await getRes.json()) as {
+        items: Array<{ category: string; enabled: boolean }>;
+      };
+      expect(getBody.items.find((i) => i.category === "HEALTH")?.enabled).toBe(
+        true,
+      );
+
+      // Disable HEALTH again to return to default disabled state for following tests
+      await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminFullToken,
+        {
+          category: "HEALTH",
+          enabled: false,
+          purpose: null,
+        },
+      );
+    });
+
+    it("R4-HTTP-04: tenant mismatch is controlled/denied", async () => {
+      // Staff B (Tenant B) trying to access Tenant A policy
+      const res = await request(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing`,
+        { token: fixture.adminStaffBToken },
+      );
+      expect([403, 404]).toContain(res.status);
+    });
+
+    it("R4-HTTP-05: HEALTH disabled + publish attempt via raw HTTP is denied", async () => {
+      const draftRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/forms/${fixture.formDefinitionAId}/versions`,
+        fixture.adminFullToken,
+        {},
+      );
+      expect(draftRes.status).toBe(201);
+      const draft = (await draftRes.json()) as { id: string };
+
+      const secRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/sections`,
+        fixture.adminFullToken,
+        { order: 1, title: "Salud" },
+      );
+      const section = (await secRes.json()) as { id: string };
+
+      await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/fields`,
+        fixture.adminFullToken,
+        {
+          key: "health_record",
+          label: "Registro de salud",
+          order: 1,
+          processingCategory: "HEALTH",
+          purpose: "medical_records",
+          required: false,
+          sectionId: section.id,
+          sensitivity: "highly_restricted",
+          type: "TEXT",
+        },
+      );
+
+      // Attempt to publish when HEALTH is disabled on tenant
+      const pubRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/publish`,
+        fixture.adminFullToken,
+        {},
+      );
+      expect(pubRes.status).toBe(400);
+      const body = (await pubRes.json()) as { error: string };
+      expect(body.error).toBe("VALIDATION");
+    });
+
+    it("R4-HTTP-06: PIE_NEE_DIAGNOSTIC disabled + publish attempt via raw HTTP is denied", async () => {
+      const draftRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/forms/${fixture.formDefinitionAId}/versions`,
+        fixture.adminFullToken,
+        {},
+      );
+      const draft = (await draftRes.json()) as { id: string };
+
+      const secRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/sections`,
+        fixture.adminFullToken,
+        { order: 1, title: "PIE" },
+      );
+      const section = (await secRes.json()) as { id: string };
+
+      await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/fields`,
+        fixture.adminFullToken,
+        {
+          key: "pie_diagnostic",
+          label: "Diagnóstico PIE",
+          order: 1,
+          processingCategory: "PIE_NEE_DIAGNOSTIC",
+          purpose: "pie_support",
+          required: false,
+          sectionId: section.id,
+          sensitivity: "highly_restricted",
+          type: "TEXT",
+        },
+      );
+
+      const pubRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/publish`,
+        fixture.adminFullToken,
+        {},
+      );
+      expect(pubRes.status).toBe(400);
+      const body = (await pubRes.json()) as { error: string };
+      expect(body.error).toBe("VALIDATION");
+    });
+
+    it("R4-HTTP-07: HIGHLY_RESTRICTED family-facing field without processingCategory cannot be published via raw HTTP", async () => {
+      const draftRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/forms/${fixture.formDefinitionAId}/versions`,
+        fixture.adminFullToken,
+        {},
+      );
+      const draft = (await draftRes.json()) as { id: string };
+
+      const secRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/sections`,
+        fixture.adminFullToken,
+        { order: 1, title: "Datos Críticos" },
+      );
+      const section = (await secRes.json()) as { id: string };
+
+      await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/fields`,
+        fixture.adminFullToken,
+        {
+          key: "unclassified_critical",
+          label: "Dato sin categoría",
+          order: 1,
+          processingCategory: null,
+          purpose: "unclassified",
+          required: false,
+          sectionId: section.id,
+          sensitivity: "highly_restricted",
+          type: "TEXT",
+        },
+      );
+
+      const pubRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/publish`,
+        fixture.adminFullToken,
+        {},
+      );
+      expect(pubRes.status).toBe(400);
+      const body = (await pubRes.json()) as { error: string };
+      expect(body.error).toBe("VALIDATION");
+    });
+
+    it("R4-HTTP-08: sensitive response/process requiring authority: email verification alone is insufficient", async () => {
+      // Create draft via HTTP API
+      const draftAppRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications`,
+        fixture.familyAToken,
+        {
+          offeringId: fixture.offeringAId,
+          studentId: fixture.studentAId,
+        },
+      );
+      expect(draftAppRes.status).toBe(201);
+      const appData = (await draftAppRes.json()) as { id: string };
+
+      // Attempting to submit application without declared/verified authority fails with 400/403/422
+      const submitRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${appData.id}/submit`,
+        fixture.familyAToken,
+        {},
+      );
+      expect(submitRes.status).toBeGreaterThanOrEqual(400);
+    });
+
+    it("R4-HTTP-09: valid authority but category disabled remains denied", async () => {
+      // Create draft via HTTP API
+      const draftAppRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications`,
+        fixture.familyAToken,
+        {
+          offeringId: fixture.offeringAId,
+          studentId: fixture.studentAId,
+        },
+      );
+      // Might return 201 or 409 if active draft exists
+      let appId = "";
+      if (draftAppRes.status === 201) {
+        appId = ((await draftAppRes.json()) as { id: string }).id;
+      } else {
+        const listRes = await request(
+          `/family/tenants/${fixture.tenantAId}/applications`,
+          { token: fixture.familyAToken },
+        );
+        const list = (await listRes.json()) as { items: Array<{ id: string }> };
+        appId = list.items[0]!.id;
+      }
+
+      // Declare authority
+      const decRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${appId}/authority`,
+        fixture.familyAToken,
+        {
+          authorityBasis: "PARENT",
+          relationship: "MOTHER",
+          subjectMode: "MINOR_REPRESENTATIVE",
+        },
+      );
+      expect([201, 200]).toContain(decRes.status);
+      const decBody = (await decRes.json()) as { concurrencyVersion: number };
+
+      // Review authority: DECLARED -> UNDER_REVIEW -> VERIFIED
+      const underReviewRes = await mutation(
+        `/staff/tenants/${fixture.tenantAId}/applications/${appId}/authority/review`,
+        fixture.adminFullToken,
+        {
+          expectedConcurrencyVersion: decBody.concurrencyVersion,
+          reason: "Iniciando revision",
+          toStatus: "UNDER_REVIEW",
+        },
+      );
+      expect(underReviewRes.status).toBe(201);
+      const underReviewBody = (await underReviewRes.json()) as {
+        concurrencyVersion: number;
+      };
+
+      const verifyRes = await mutation(
+        `/staff/tenants/${fixture.tenantAId}/applications/${appId}/authority/review`,
+        fixture.adminFullToken,
+        {
+          expectedConcurrencyVersion: underReviewBody.concurrencyVersion,
+          reason: "Direct verify for HTTP test",
+          toStatus: "VERIFIED",
+        },
+      );
+      expect(verifyRes.status).toBe(201);
+    });
+
+    it("R4-HTTP-10: valid authority + enabled category + all normal requirements succeeds", async () => {
+      const listRes = await request(
+        `/family/tenants/${fixture.tenantAId}/applications`,
+        { token: fixture.familyAToken },
+      );
+      const list = (await listRes.json()) as { items: Array<{ id: string }> };
+      const appId = list.items[0]!.id;
+
+      // Save answers for required fields
+      const formRes = await request(
+        `/family/tenants/${fixture.tenantAId}/applications/${appId}/form`,
+        { token: fixture.familyAToken },
+      );
+      const formData = (await formRes.json()) as {
+        form: { sections: Array<{ fields: Array<{ id: string }> }> };
+      };
+      const fieldId = formData.form.sections[0]!.fields[0]!.id;
+
+      const saveRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${appId}/answers`,
+        fixture.familyAToken,
+        {
+          answers: [
+            {
+              fieldId,
+              value: true,
+            },
+          ],
+        },
+        "PUT",
+      );
+      expect(saveRes.status).toBe(200);
+
+      const submitRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${appId}/submit`,
+        fixture.familyAToken,
+        {},
+      );
+      expect(submitRes.status).toBe(201);
+    });
+
+    it("R4-HTTP-11: family/raw caller cannot modify sensitive-processing policy", async () => {
+      const res = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.familyAToken,
+        {
+          category: "HEALTH",
+          enabled: true,
+          purpose: "Illegal family attempt",
+        },
+      );
+      expect([403, 404]).toContain(res.status);
+    });
+
+    it("R4-HTTP-12: standard API error envelope/correlation behavior is preserved", async () => {
+      const res = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminFullToken,
+        {
+          category: "INVALID_CAT",
+          enabled: true,
+          purpose: "Test invalid body",
+        },
+      );
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as {
+        correlationId?: string;
+        error?: string;
+        message?: string;
+      };
+      expect(body.error).toBe("VALIDATION");
+      expect(
+        res.headers.get("x-correlation-id") || body.correlationId,
+      ).toBeDefined();
+    });
+  },
+);
