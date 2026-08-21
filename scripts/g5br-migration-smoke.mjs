@@ -15,13 +15,13 @@ import { randomUUID } from "node:crypto";
 const root = process.cwd();
 const migrationRoot = resolve(root, "packages/database/prisma/migrations");
 const expected = "20260815090000_g5br_account_verification";
-const currentExpected = "20260816070000_g5pc1r12_authority_core";
+const currentExpected = "20260820090000_g5pc1r4_sensitive_processing";
 const migrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
   .sort();
-if (migrations.length !== 17 || migrations.at(-1) !== currentExpected) {
-  throw new Error(`Expected 17 migrations ending in ${currentExpected}`);
+if (migrations.length !== 18 || migrations.at(-1) !== currentExpected) {
+  throw new Error(`Expected 18 migrations ending in ${currentExpected}`);
 }
 const historicalMigrations = migrations.slice(0, 16);
 if (historicalMigrations.at(-1) !== expected) {

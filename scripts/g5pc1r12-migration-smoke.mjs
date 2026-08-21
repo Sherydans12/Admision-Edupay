@@ -18,7 +18,8 @@ const expected = "20260816070000_g5pc1r12_authority_core";
 const migrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .sort();
+  .sort()
+  .filter((migration) => migration <= expected);
 if (migrations.length !== 17 || migrations.at(-1) !== expected) {
   throw new Error(`Expected 17 migrations ending in ${expected}`);
 }
