@@ -188,8 +188,14 @@ export {
 } from "./operational-adapters.js";
 export {
   PERMISSIONS,
+  PROCESSING_CATEGORIES,
+  DOCUMENT_CLASSIFICATIONS,
+  SENSITIVE_PROCESSING_CATEGORIES,
+  RESTRICTED_DOCUMENT_CLASSIFICATIONS,
   SENSITIVITIES,
   type PermissionKey,
+  type ProcessingCategoryValue,
+  type DocumentClassificationValue,
   type Sensitivity,
 } from "./permission-catalog.js";
 export { getSessionConfig, type SessionConfig } from "./session-config.js";
@@ -325,3 +331,14 @@ export {
   type MembershipAccessDto,
   type RoleAssignmentDto,
 } from "./access-admin.js";
+export {
+  SensitiveProcessingService,
+  SensitiveProcessingValidationError,
+  assertDocumentRequirementProcessingAllowed,
+  assertFieldProcessingCategoryAllowed,
+  isCategoryEffectivelyEnabled,
+  type EffectivePolicyEntry,
+  type SensitiveProcessingErrorCode,
+  type SensitiveProcessingPolicyDto,
+  type UpdatePolicyInput,
+} from "./sensitive-processing.js";

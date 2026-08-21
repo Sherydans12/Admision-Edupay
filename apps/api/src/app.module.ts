@@ -39,6 +39,8 @@ import { DashboardController } from "./dashboard.controller.js";
 import { ApiOperationalDashboardService } from "./dashboard.service.js";
 import { ReportingAdminController } from "./reporting-admin.controller.js";
 import { IdentityController } from "./identity.controller.js";
+import { SensitiveProcessingController } from "./sensitive-processing.controller.js";
+import { ApiSensitiveProcessingService } from "./sensitive-processing.service.js";
 import {
   ApiAuditReadService,
   ApiReportingService,
@@ -117,6 +119,7 @@ const accountRegistrationProvider = {
     FamilyPortalController,
     DashboardController,
     ReportingAdminController,
+    SensitiveProcessingController,
   ],
   providers: [
     prismaProvider,
@@ -140,6 +143,7 @@ const accountRegistrationProvider = {
     ApiReportingService,
     ApiRoleAssignmentAdminService,
     ApiAuditReadService,
+    ApiSensitiveProcessingService,
     HealthService,
     RequestContextService,
   ],

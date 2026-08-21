@@ -15,9 +15,16 @@ import {
 } from "./intake.js";
 import {
   PERMISSIONS,
+  PROCESSING_CATEGORIES,
   SENSITIVITIES,
+  type ProcessingCategoryValue,
   type Sensitivity,
 } from "./permission-catalog.js";
+import {
+  assertFieldProcessingCategoryAllowed,
+  SensitiveProcessingValidationError,
+  type SensitiveProcessingPolicyDto,
+} from "./sensitive-processing.js";
 import type {
   FamilyExecutionContext,
   TenantExecutionContext,
@@ -57,6 +64,7 @@ export interface FormFieldInput {
   label: string;
   options?: FormOptionInput[] | null | undefined;
   order: number;
+  processingCategory?: ProcessingCategoryValue | null | undefined;
   purpose: string;
   required: boolean;
   sectionId: string;
@@ -82,6 +90,7 @@ export interface FormFieldDto {
   label: string;
   options: FormOptionInput[];
   order: number;
+  processingCategory: ProcessingCategoryValue | null;
   purpose: string;
   required: boolean;
   sensitivity: Sensitivity;
@@ -286,6 +295,8 @@ function mapField(field: FieldRecord): FormFieldDto {
     label: field.label,
     options: parseOptions(field.options),
     order: field.order,
+    processingCategory:
+      (field.processingCategory as ProcessingCategoryValue | null) ?? null,
     purpose: field.purpose,
     required: field.required,
     sensitivity: field.sensitivity as Sensitivity,
@@ -459,6 +470,16 @@ function normalizeFieldInput(input: FormFieldInput): FormFieldInput {
   if (!Object.values(SENSITIVITIES).includes(input.sensitivity)) {
     throw new IntakeValidationError("Invalid field sensitivity");
   }
+  const processingCategory =
+    input.processingCategory === undefined || input.processingCategory === null
+      ? null
+      : input.processingCategory;
+  if (
+    processingCategory !== null &&
+    !Object.values(PROCESSING_CATEGORIES).includes(processingCategory)
+  ) {
+    throw new IntakeValidationError("Invalid field processing category");
+  }
   const validation = input.validation ?? null;
   if (validation !== null) {
     if (input.type !== "TEXT" && input.type !== "TEXTAREA") {
@@ -490,6 +511,7 @@ function normalizeFieldInput(input: FormFieldInput): FormFieldInput {
     key,
     label,
     options: validateOptions(input.type, input.options),
+    processingCategory,
     purpose,
     validation,
   };
@@ -795,6 +817,7 @@ export class FormService {
                       ? Prisma.JsonNull
                       : asJson(field.options),
                   order: field.order,
+                  processingCategory: field.processingCategory,
                   purpose: field.purpose,
                   required: field.required,
                   sectionId: sectionIds.get(section.id) as string,
@@ -1054,6 +1077,7 @@ export class FormService {
               ? Prisma.JsonNull
               : asJson(normalized.options),
           order: normalized.order,
+          processingCategory: normalized.processingCategory ?? null,
           purpose: normalized.purpose,
           required: normalized.required,
           sectionId: normalized.sectionId,
@@ -1130,6 +1154,7 @@ export class FormService {
               ? Prisma.JsonNull
               : asJson(normalized.options),
           order: normalized.order,
+          processingCategory: normalized.processingCategory ?? null,
           purpose: normalized.purpose,
           required: normalized.required,
           sectionId: normalized.sectionId,
@@ -1233,6 +1258,38 @@ export class FormService {
       if (version === null) throw new IntakeNotFoundError();
       const mapped = mapVersion(version);
       validatePublishedStructure(mapped);
+
+      const policyRows = await transaction.sensitiveProcessingPolicy.findMany({
+        where: { tenantId: context.tenantId },
+      });
+      const policies: SensitiveProcessingPolicyDto[] = policyRows.map(
+        (row) => ({
+          activatedAt: row.activatedAt?.toISOString() ?? null,
+          activatedBy: row.activatedBy,
+          category: row.category as ProcessingCategoryValue,
+          enabled: row.enabled,
+          id: row.id,
+          purpose: row.purpose,
+          tenantId: row.tenantId,
+        }),
+      );
+      for (const section of mapped.sections) {
+        for (const field of section.fields) {
+          try {
+            assertFieldProcessingCategoryAllowed(
+              field.sensitivity,
+              field.processingCategory,
+              policies,
+            );
+          } catch (cause) {
+            if (cause instanceof SensitiveProcessingValidationError) {
+              throw new IntakeValidationError(cause.message);
+            }
+            throw cause;
+          }
+        }
+      }
+
       const publishedAt = new Date();
       await transaction.formVersion.update({
         data: { lifecycle: "PUBLISHED", publishedAt },

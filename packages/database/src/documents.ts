@@ -14,11 +14,20 @@ import {
   type ObjectStorage,
 } from "./operational-adapters.js";
 import {
+  DOCUMENT_CLASSIFICATIONS,
   PERMISSIONS,
+  PROCESSING_CATEGORIES,
   SENSITIVITIES,
+  type DocumentClassificationValue,
   type PermissionKey,
+  type ProcessingCategoryValue,
   type Sensitivity,
 } from "./permission-catalog.js";
+import {
+  assertDocumentRequirementProcessingAllowed,
+  SensitiveProcessingValidationError,
+  type SensitiveProcessingPolicyDto,
+} from "./sensitive-processing.js";
 import type {
   FamilyExecutionContext,
   TenantExecutionContext,
@@ -54,10 +63,12 @@ export interface DocumentRequirementVersionInput {
     value: ConditionValue | ConditionValue[];
   } | null;
   correctionWindowBusinessDays: number;
+  documentClassification?: DocumentClassificationValue;
   equivalentOptions?: EquivalentOptionInput[] | null;
   instruction?: string | null;
   maxAgeDays?: number | null;
   maxFileSizeBytes: number;
+  processingCategory?: ProcessingCategoryValue | null;
   required: boolean;
   scope?: {
     academicYearId?: string | null;
@@ -576,12 +587,16 @@ function mapRequirementVersion(version: RequirementVersionRecord) {
             value: version.conditionValue as ConditionValue | ConditionValue[],
           },
     correctionWindowBusinessDays: version.correctionWindowBusinessDays,
+    documentClassification:
+      version.documentClassification as DocumentClassificationValue,
     equivalentOptions: parseEquivalentOptions(version.equivalentOptions),
     id: version.id,
     instruction: version.instruction,
     lifecycle: version.lifecycle,
     maxAgeDays: version.maxAgeDays,
     maxFileSizeBytes: Number(version.maxFileSizeBytes),
+    processingCategory:
+      (version.processingCategory as ProcessingCategoryValue | null) ?? null,
     publishedAt: version.publishedAt?.toISOString() ?? null,
     required: version.required,
     scope: {
@@ -956,6 +971,42 @@ export class DocumentService {
       });
       if (version === null) throw new IntakeNotFoundError();
       await this.validatePersistedVersionForPublish(transaction, version);
+
+      const policyRows = await transaction.sensitiveProcessingPolicy.findMany({
+        where: { tenantId: context.tenantId },
+      });
+      const policies: SensitiveProcessingPolicyDto[] = policyRows.map(
+        (row) => ({
+          activatedAt: row.activatedAt?.toISOString() ?? null,
+          activatedBy: row.activatedBy,
+          category: row.category as ProcessingCategoryValue,
+          enabled: row.enabled,
+          id: row.id,
+          purpose: row.purpose,
+          tenantId: row.tenantId,
+        }),
+      );
+      const personalityReportEnabled =
+        await this.isPersonalityReportEnabledForVersionScope(
+          transaction,
+          context.tenantId,
+          version,
+        );
+      try {
+        assertDocumentRequirementProcessingAllowed(
+          version.sensitivity,
+          version.processingCategory as ProcessingCategoryValue | null,
+          version.documentClassification as DocumentClassificationValue,
+          policies,
+          personalityReportEnabled,
+        );
+      } catch (cause) {
+        if (cause instanceof SensitiveProcessingValidationError) {
+          throw new IntakeValidationError(cause.message);
+        }
+        throw cause;
+      }
+
       const current = await transaction.documentRequirementVersion.findFirst({
         where: {
           documentRequirementId: version.documentRequirementId,
@@ -2092,6 +2143,28 @@ export class DocumentService {
     if (!Object.values(SENSITIVITIES).includes(input.sensitivity)) {
       throw new IntakeValidationError("Invalid document sensitivity");
     }
+    const processingCategory =
+      input.processingCategory === undefined ||
+      input.processingCategory === null
+        ? null
+        : input.processingCategory;
+    if (
+      processingCategory !== null &&
+      !Object.values(PROCESSING_CATEGORIES).includes(processingCategory)
+    ) {
+      throw new IntakeValidationError(
+        "Invalid document requirement processing category",
+      );
+    }
+    const documentClassification =
+      input.documentClassification ?? DOCUMENT_CLASSIFICATIONS.GENERIC;
+    if (
+      !Object.values(DOCUMENT_CLASSIFICATIONS).includes(documentClassification)
+    ) {
+      throw new IntakeValidationError(
+        "Invalid document requirement classification",
+      );
+    }
     if (
       (input.validityRule === "MAX_AGE_DAYS") !==
       (input.maxAgeDays !== null && input.maxAgeDays !== undefined)
@@ -2132,6 +2205,7 @@ export class DocumentService {
       ...input,
       allowedFileTypes,
       condition: input.condition ?? null,
+      documentClassification,
       equivalentOptions,
       instruction:
         input.instruction === null || input.instruction === undefined
@@ -2139,6 +2213,7 @@ export class DocumentService {
           : safeText(input.instruction, "document instruction", 1000, true) ||
             null,
       maxAgeDays: input.maxAgeDays ?? null,
+      processingCategory,
       scope: {
         academicYearId: input.scope?.academicYearId ?? null,
         courseLevelId: input.scope?.courseLevelId ?? null,
@@ -2165,6 +2240,7 @@ export class DocumentService {
           ? Prisma.DbNull
           : asJson(input.condition.value),
       correctionWindowBusinessDays: input.correctionWindowBusinessDays,
+      documentClassification: input.documentClassification,
       documentRequirementId: requirementId,
       equivalentOptions:
         input.equivalentOptions === null
@@ -2173,6 +2249,7 @@ export class DocumentService {
       instruction: input.instruction,
       maxAgeDays: input.maxAgeDays,
       maxFileSizeBytes: input.maxFileSizeBytes,
+      processingCategory: input.processingCategory,
       required: input.required,
       scopeAcademicYearId: input.scope.academicYearId,
       scopeCourseLevelId: input.scope.courseLevelId,
@@ -2272,6 +2349,30 @@ export class DocumentService {
       validateCondition(field, input.condition.operator, input.condition.value);
     }
     void tenantId;
+  }
+
+  private async isPersonalityReportEnabledForVersionScope(
+    transaction: Prisma.TransactionClient,
+    tenantId: string,
+    version: {
+      scopeAcademicYearId: string | null;
+      scopeCourseLevelId: string | null;
+      scopeOfferingId: string | null;
+      scopeProcessId: string | null;
+    },
+  ): Promise<boolean> {
+    if (version.scopeOfferingId === null) return false;
+    const existing = await transaction.documentRequirementVersion.findFirst({
+      where: {
+        documentClassification:
+          DOCUMENT_CLASSIFICATIONS.PERSONALITY_DEVELOPMENT_REPORT,
+        lifecycle: "PUBLISHED",
+        scopeOfferingId: version.scopeOfferingId,
+        tenantId,
+      },
+      take: 1,
+    });
+    return existing !== null;
   }
 
   private async validatePersistedVersionForPublish(

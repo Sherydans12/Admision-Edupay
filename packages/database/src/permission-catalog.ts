@@ -1,6 +1,8 @@
 export const PERMISSIONS = {
   ADMISSION_CONFIG_MANAGE: "admission.config.manage",
   ADMISSION_CONFIG_READ: "admission.config.read",
+  ADMISSION_SENSITIVE_PROCESSING_CONFIGURE:
+    "admission.sensitive_processing.configure",
   ACTIVITY_CLOSE: "activity.close",
   ACTIVITY_DEFINITION_MANAGE: "activity.definition.manage",
   ACTIVITY_DEFINITION_PUBLISH: "activity.definition.publish",
@@ -64,3 +66,38 @@ export const SENSITIVITIES = {
 } as const;
 
 export type Sensitivity = (typeof SENSITIVITIES)[keyof typeof SENSITIVITIES];
+
+export const PROCESSING_CATEGORIES = {
+  ORDINARY_ADMISSION: "ORDINARY_ADMISSION",
+  SUPPORT_ACCOMMODATION: "SUPPORT_ACCOMMODATION",
+  PIE_NEE_DIAGNOSTIC: "PIE_NEE_DIAGNOSTIC",
+  HEALTH: "HEALTH",
+} as const;
+
+export type ProcessingCategoryValue =
+  (typeof PROCESSING_CATEGORIES)[keyof typeof PROCESSING_CATEGORIES];
+
+/**
+ * Categories that are disabled by default and require explicit tenant policy
+ * activation before publication or submission is allowed (R4-003, R4-004).
+ */
+export const SENSITIVE_PROCESSING_CATEGORIES = [
+  PROCESSING_CATEGORIES.PIE_NEE_DIAGNOSTIC,
+  PROCESSING_CATEGORIES.HEALTH,
+] as const;
+
+export const DOCUMENT_CLASSIFICATIONS = {
+  GENERIC: "GENERIC",
+  PERSONALITY_DEVELOPMENT_REPORT: "PERSONALITY_DEVELOPMENT_REPORT",
+} as const;
+
+export type DocumentClassificationValue =
+  (typeof DOCUMENT_CLASSIFICATIONS)[keyof typeof DOCUMENT_CLASSIFICATIONS];
+
+/**
+ * Document classifications that are disabled by default and require explicit
+ * per-scope activation (R4-010).
+ */
+export const RESTRICTED_DOCUMENT_CLASSIFICATIONS = [
+  DOCUMENT_CLASSIFICATIONS.PERSONALITY_DEVELOPMENT_REPORT,
+] as const;

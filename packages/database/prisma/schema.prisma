@@ -112,6 +112,20 @@ enum ApplicationAuthorityStatus {
   REJECTED
 }
 
+/// Semantic processing category separate from technical sensitivity (R4-001).
+enum ProcessingCategory {
+  ORDINARY_ADMISSION
+  SUPPORT_ACCOMMODATION
+  PIE_NEE_DIAGNOSTIC
+  HEALTH
+}
+
+/// Institutional document classification distinct from health/PIE (R4-010).
+enum DocumentClassification {
+  GENERIC
+  PERSONALITY_DEVELOPMENT_REPORT
+}
+
 enum AdmissionRecommendationOption {
   RECOMENDAR_ADMISION
   NO_RECOMENDAR_ADMISION
@@ -361,6 +375,7 @@ model PlatformUser {
   applicationAuthorities     ApplicationAuthority[]
   activityRescheduleRequests ActivityRescheduleRequest[]
   activityAppointments       ActivityAppointment[]
+  activatedSensitiveProcessingPolicies SensitiveProcessingPolicy[] @relation("SensitiveProcessingPolicyActivator")
 
   @@map("platform_users")
 }
@@ -461,6 +476,7 @@ model Tenant {
   operationalTasks                OperationalTask[]
   manualContacts                  ManualContact[]
   auditEvents                     AuditEvent[]
+  sensitiveProcessingPolicies     SensitiveProcessingPolicy[]
 
   @@map("tenants")
 }
@@ -1399,6 +1415,8 @@ model DocumentRequirementVersion {
   required                     Boolean                      @default(false)
   instruction                  String?                      @db.VarChar(1000)
   sensitivity                  String                       @db.VarChar(40)
+  processingCategory           ProcessingCategory?          @map("processing_category")
+  documentClassification       DocumentClassification       @default(GENERIC) @map("document_classification")
   scopeAcademicYearId          String?                      @map("scope_academic_year_id") @db.Uuid
   scopeProcessId               String?                      @map("scope_process_id") @db.Uuid
   scopeCourseLevelId           String?                      @map("scope_course_level_id") @db.Uuid
@@ -1623,6 +1641,7 @@ model FormField {
   type                          FormFieldType
   required                      Boolean                      @default(false)
   sensitivity                   String                       @db.VarChar(40)
+  processingCategory            ProcessingCategory?          @map("processing_category")
   purpose                       String                       @db.VarChar(160)
   order                         Int
   options                       Json?
@@ -1810,4 +1829,25 @@ model ManualContact {
   @@unique([tenantId, id])
   @@index([tenantId, applicationId, contactedAt])
   @@map("manual_contacts")
+}
+
+/// Tenant-scoped policy controlling which sensitive processing categories are
+/// enabled. Absence of a row means disabled for HEALTH/PIE (fail-closed, R4-003/004).
+/// ORDINARY_ADMISSION and SUPPORT_ACCOMMODATION are implicitly always enabled.
+model SensitiveProcessingPolicy {
+  id          String             @id @default(uuid()) @db.Uuid
+  tenantId    String             @map("tenant_id") @db.Uuid
+  category    ProcessingCategory
+  enabled     Boolean            @default(false)
+  purpose     String?            @db.VarChar(200)
+  activatedBy String?            @map("activated_by") @db.Uuid
+  activatedAt DateTime?          @map("activated_at") @db.Timestamptz(3)
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime           @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  activator   PlatformUser?      @relation("SensitiveProcessingPolicyActivator", fields: [activatedBy], references: [id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, category])
+  @@map("sensitive_processing_policies")
 }
