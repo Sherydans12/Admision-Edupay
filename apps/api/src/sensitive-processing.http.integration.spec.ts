@@ -946,5 +946,244 @@ describe.sequential(
       const body = (await res.json()) as { error?: string };
       expect(body.error).toBe("VALIDATION");
     });
+
+    it("R4-CLEAR-HTTP-01: clear stored sensitive answer when category is disabled allows successful submission", async () => {
+      // 1. Enable HEALTH on tenant
+      const enableRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminFullToken,
+        {
+          category: "HEALTH",
+          enabled: true,
+          purpose: "Captura de antecedentes médicos para clearance",
+        },
+      );
+      expect(enableRes.status).toBe(201);
+
+      // 2. Create dedicated form definition with HEALTH and ORDINARY fields
+      const formDefRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/forms`,
+        fixture.adminFullToken,
+        {
+          name: "Formulario Clear Sensible",
+          purpose: "admission_application",
+        },
+      );
+      const formDef = (await formDefRes.json()) as { id: string };
+
+      const draftRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/forms/${formDef.id}/versions`,
+        fixture.adminFullToken,
+        {},
+      );
+      const draft = (await draftRes.json()) as { id: string };
+
+      const secRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/sections`,
+        fixture.adminFullToken,
+        { order: 1, title: "Salud y Obligatorios" },
+      );
+      const section = (await secRes.json()) as { id: string };
+
+      const healthFieldRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/fields`,
+        fixture.adminFullToken,
+        {
+          key: "health_clear_test",
+          label: "Condición médica",
+          order: 1,
+          processingCategory: "HEALTH",
+          purpose: "medical_records",
+          required: false,
+          sectionId: section.id,
+          sensitivity: "highly_restricted",
+          type: "TEXT",
+        },
+      );
+      const healthField = (await healthFieldRes.json()) as { id: string };
+
+      const boolFieldRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/fields`,
+        fixture.adminFullToken,
+        {
+          key: "confirmed_terms_clear",
+          label: "Acepta términos",
+          order: 2,
+          processingCategory: "ORDINARY_ADMISSION",
+          purpose: "admission_application",
+          required: true,
+          sectionId: section.id,
+          sensitivity: "restricted",
+          type: "BOOLEAN",
+        },
+      );
+      const boolField = (await boolFieldRes.json()) as { id: string };
+
+      // Publish version
+      const pubRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/publish`,
+        fixture.adminFullToken,
+        {},
+      );
+      expect([200, 201]).toContain(pubRes.status);
+
+      // Assign to offering
+      const assignRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/offerings/${fixture.offeringAId}/form-version`,
+        fixture.adminFullToken,
+        { formVersionId: draft.id },
+        "PUT",
+      );
+      expect(assignRes.status).toBe(200);
+
+      // 3. Create a fresh student and draft application for family A
+      const studentRes = await migrationPool.query(
+        `INSERT INTO students (id, family_profile_id, given_name, family_name, date_of_birth)
+         VALUES ($1, (SELECT id FROM family_profiles WHERE user_id = $2 LIMIT 1), 'EstudianteClear', 'Prueba', DATE '2016-06-15')
+         RETURNING id`,
+        [randomUUID(), fixture.userAId],
+      );
+      const studentId = studentRes.rows[0].id as string;
+
+      const draftAppRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications`,
+        fixture.familyAToken,
+        {
+          offeringId: fixture.offeringAId,
+          studentId,
+        },
+      );
+      expect(draftAppRes.status).toBe(201);
+      const app = (await draftAppRes.json()) as { id: string };
+
+      // Declare and verify authority
+      const decRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${app.id}/authority`,
+        fixture.familyAToken,
+        {
+          authorityBasis: "PARENT",
+          relationship: "MOTHER",
+          subjectMode: "MINOR_REPRESENTATIVE",
+        },
+      );
+      expect([200, 201]).toContain(decRes.status);
+      const decBody = (await decRes.json()) as { concurrencyVersion: number };
+
+      const underReviewRes = await mutation(
+        `/staff/tenants/${fixture.tenantAId}/applications/${app.id}/authority/review`,
+        fixture.adminFullToken,
+        {
+          expectedConcurrencyVersion: decBody.concurrencyVersion,
+          reason: "Reviewing for clear test",
+          toStatus: "UNDER_REVIEW",
+        },
+      );
+      const underReviewBody = (await underReviewRes.json()) as {
+        concurrencyVersion: number;
+      };
+
+      const verifyRes = await mutation(
+        `/staff/tenants/${fixture.tenantAId}/applications/${app.id}/authority/review`,
+        fixture.adminFullToken,
+        {
+          expectedConcurrencyVersion: underReviewBody.concurrencyVersion,
+          reason: "Verified for clear test",
+          toStatus: "VERIFIED",
+        },
+      );
+      expect(verifyRes.status).toBe(201);
+
+      // 4. Save HEALTH answer + required bool answer when HEALTH is enabled
+      const saveActiveRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${app.id}/answers`,
+        fixture.familyAToken,
+        {
+          answers: [
+            { fieldId: healthField.id, value: "Asma leve controlada" },
+            { fieldId: boolField.id, value: true },
+          ],
+        },
+        "PUT",
+      );
+      expect(saveActiveRes.status).toBe(200);
+
+      // Verify answer exists in form
+      const formActiveRes = await request(
+        `/family/tenants/${fixture.tenantAId}/applications/${app.id}/form`,
+        { token: fixture.familyAToken },
+      );
+      expect(formActiveRes.status).toBe(200);
+      const formActiveData = (await formActiveRes.json()) as {
+        answers: Array<{ fieldId: string; value: unknown }>;
+      };
+      expect(
+        formActiveData.answers.find((a) => a.fieldId === healthField.id)?.value,
+      ).toBe("Asma leve controlada");
+
+      // 5. Disable HEALTH category on tenant
+      const disableRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminFullToken,
+        {
+          category: "HEALTH",
+          enabled: false,
+          purpose: null,
+        },
+      );
+      expect(disableRes.status).toBe(201);
+
+      // 6. Proving: disabled category + new non-null sensitive value is still denied (400)
+      const saveDeniedRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${app.id}/answers`,
+        fixture.familyAToken,
+        {
+          answers: [
+            { fieldId: healthField.id, value: "Nuevo dato sensible bloqueado" },
+          ],
+        },
+        "PUT",
+      );
+      expect(saveDeniedRes.status).toBe(400);
+
+      // 7. Proving: submitting application while disabled sensitive answer exists is denied (400)
+      const submitBlockedRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${app.id}/submit`,
+        fixture.familyAToken,
+        {},
+      );
+      expect(submitBlockedRes.status).toBe(400);
+
+      // 8. PUT answer with value=null to clear the sensitive answer
+      const clearRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${app.id}/answers`,
+        fixture.familyAToken,
+        {
+          answers: [{ fieldId: healthField.id, value: null }],
+        },
+        "PUT",
+      );
+      expect(clearRes.status).toBe(200);
+
+      // 9. Prove answer for healthField is now absent in form
+      const formClearedRes = await request(
+        `/family/tenants/${fixture.tenantAId}/applications/${app.id}/form`,
+        { token: fixture.familyAToken },
+      );
+      expect(formClearedRes.status).toBe(200);
+      const formClearedData = (await formClearedRes.json()) as {
+        answers: Array<{ fieldId: string; value: unknown }>;
+      };
+      expect(
+        formClearedData.answers.find((a) => a.fieldId === healthField.id),
+      ).toBeUndefined();
+
+      // 10. Submit application now succeeds (201) because no disabled sensitive answers remain
+      const submitSuccessRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${app.id}/submit`,
+        fixture.familyAToken,
+        {},
+      );
+      expect(submitSuccessRes.status).toBe(201);
+    });
   },
 );

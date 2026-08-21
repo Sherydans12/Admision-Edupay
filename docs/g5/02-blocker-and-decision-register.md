@@ -250,6 +250,26 @@ técnica EduPay siguen fuera de alcance.
 | Evidencia RLS (`R4-RLS-01..08`) | `DIRECT_EVIDENCE_COMPLETE / 8 RLS Tests PASS` | 55/55 RLS tests workspace PASS |
 | Migration 18 | `IMMUTABLE / INTACT` | Sin modificaciones al schema DDL |
 | Migration 19 | `ABSENT / NOT AUTHORIZED` | No autorizada ni requerida |
-| `Q-106` / `LP3-ART-006` / `C-013` | `SIN CAMBIO` | Procedimientos legales e institucionales permanecen abiertos |
 | `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |
 
+## Addendum G5-PC1-R4H3 — UX de eliminación de respuestas sensibles deshabilitadas y alineación canónica (2026-08-21)
+
+| Item | Disposición canónica | Implicación |
+| --- | --- | --- |
+| `PC1-R12` | `COMPLETE / TECHNICALLY_ACCEPTED` | Núcleo de autoridad por postulación y estudiante adulto técnicamente aceptado |
+| `PC1-TECH-001` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Identificador único y DOB nullable revisados |
+| `PC1-TECH-002` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Historial append-only de autoridad revisado |
+| `PC1-TECH-004` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Guard de autoridad en submit y handoff revisado |
+| `PC1-TECH-005` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Evidencia documental privada para autoridad revisada |
+| `PC1-TECH-006` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Estudiante >=18 autodeclaración revisada |
+| `Q-106` | `TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING / PILOT_PRECONDITION` | Procedimiento legal e institucional definitivo permanece abierto |
+| `PC1-R4` | `IMPLEMENTED / DIRECT_EVIDENCE_COMPLETE / MINIMUM_UX_COMPLETE / PENDING HUMAN FINAL REVIEW` | Categorías de tratamiento sensible + guards + UX completa + suites directas |
+| `PC1-TECH-003` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | Guard central de captura sensible en tiempo de ejecución |
+| `PC1-TECH-010` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | HEALTH fail-closed con opción explícita de eliminación |
+| `PC1-TECH-011` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | PIE/NEE fail-closed con opción explícita de eliminación |
+| `PC1-TECH-012` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | Informe de personalidad con scope puntual a oferta |
+| `R4-CLEAR-HTTP-01` | `PASS` | Eliminación de respuesta previa sensible vía `value = null` permite submit |
+| Migration 17 | `IMMUTABLE / INTACT` | `20260816070000_g5pc1r12_authority_core` |
+| Migration 18 | `IMMUTABLE / INTACT` | `20260820090000_g5pc1r4_sensitive_processing` |
+| Migration 19 | `ABSENT / NOT AUTHORIZED` | No autorizada ni requerida |
+| `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |

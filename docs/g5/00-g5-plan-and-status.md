@@ -377,3 +377,32 @@ G5-PC1-R4H2 resuelve de manera definitiva el hallazgo de revisión humana indepe
    - Migration 19 ausente.
    - Sin nuevas categorías de datos.
 
+## Addendum G5-PC1-R4H3 — UX de eliminación de respuestas sensibles deshabilitadas (2026-08-21)
+
+G5-PC1-R4H3 cierra el micro-ajuste de UX en el flujo familiar de postulación:
+1. **Comportamiento UX de campos sensibles deshabilitados:**
+   - Si un campo sensible (`HEALTH` o `PIE_NEE_DIAGNOSTIC`) está deshabilitado por política institucional y **no contiene respuesta previa**: muestra únicamente el aviso de bloqueo fail-closed sin input activo.
+   - Si dicho campo **contiene una respuesta previamente persistida**: muestra aviso seguro explicativo (*"Esta información fue registrada anteriormente, pero esta categoría ya no está habilitada. Debes eliminar la respuesta guardada para continuar."*) y ofrece la acción explícita *"Eliminar respuesta guardada"*.
+   - **Privacidad y minimización:** no se muestra ni expone el valor sensible almacenado dentro del aviso ni en el formulario.
+   - **Acción explícita:** al accionar la eliminación, envía `PUT /answers` con `value = null`, actualiza el estado local de respuestas y desbloquea el flujo de envío de postulación.
+2. **Evidencia automatizada directa:**
+   - Suite HTTP directa `apps/api/src/sensitive-processing.http.integration.spec.ts`: 14/14 pruebas aprobadas (incluyendo `R4-CLEAR-HTTP-01`).
+   - `WEB_BEHAVIORAL_AUTOMATED_TEST = EVIDENCE_GAP / NO_EXISTING_HARNESS`.
+   - `pnpm --filter @admission/web typecheck` y `pnpm --filter @admission/web build`: 100% PASS.
+
+### Disposiciones canónicas
+
+| ID | Estado canónico |
+| --- | --- |
+| `PC1-R12` | `COMPLETE / TECHNICALLY_ACCEPTED` |
+| `PC1-TECH-001` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-002` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-004` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-005` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-006` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `Q-106` | `TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING / PILOT_PRECONDITION` |
+| `PC1-R4` | `IMPLEMENTED / DIRECT_EVIDENCE_COMPLETE / MINIMUM_UX_COMPLETE / PENDING HUMAN FINAL REVIEW` |
+| `PC1-TECH-003` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
+| `PC1-TECH-010` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
+| `PC1-TECH-011` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
+| `PC1-TECH-012` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |

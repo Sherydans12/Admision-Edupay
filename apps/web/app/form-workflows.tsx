@@ -243,6 +243,24 @@ export function FamilyApplicationFlow({
           ),
         );
 
+  async function clearAnswer(fieldId: string) {
+    setError("");
+    try {
+      await mutation(apiBase, `${basePath}/answers`, "PUT", {
+        answers: [{ fieldId, value: null }],
+      });
+      setAnswers((current) => {
+        const next = { ...current };
+        delete next[fieldId];
+        return next;
+      });
+      setMessage("Respuesta eliminada correctamente.");
+    } catch {
+      setError("No fue posible eliminar la respuesta guardada.");
+      window.setTimeout(() => errorRef.current?.focus(), 0);
+    }
+  }
+
   async function persist(goToDocuments = false) {
     if (!data) return false;
     setError("");
@@ -405,6 +423,7 @@ export function FamilyApplicationFlow({
               key={field.id}
               field={field}
               value={answers[field.id]}
+              onClear={() => void clearAnswer(field.id)}
               onChange={(value) =>
                 setAnswers((current) => ({ ...current, [field.id]: value }))
               }
@@ -547,17 +566,45 @@ export function FamilyApplicationFlow({
 function DynamicField({
   disabledCategory = false,
   field,
+  onClear,
   onChange,
   value,
 }: {
   disabledCategory?: boolean;
   field: FormField;
+  onClear?: () => void;
   onChange: (value: AnswerValue) => void;
   value: AnswerValue | undefined;
 }) {
   const id = `field-${field.id}`;
+  const hasStoredValue = value !== undefined && value !== null && value !== "";
 
   if (disabledCategory) {
+    if (hasStoredValue) {
+      return (
+        <div
+          className="dynamic-field field-blocked alert alert-warning"
+          role="status"
+        >
+          <strong>{field.label}</strong>
+          <p className="warning-copy">
+            Esta información fue registrada anteriormente, pero esta categoría
+            ya no está habilitada. Debes eliminar la respuesta guardada para
+            continuar.
+          </p>
+          {onClear ? (
+            <button
+              className="button button-secondary"
+              onClick={onClear}
+              type="button"
+            >
+              Eliminar respuesta guardada
+            </button>
+          ) : null}
+        </div>
+      );
+    }
+
     return (
       <div
         className="dynamic-field field-blocked alert alert-warning"
