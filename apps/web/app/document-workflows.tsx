@@ -8,12 +8,19 @@ interface RequirementVersion {
   allowedFileTypes: Array<"PDF" | "JPEG" | "PNG">;
   allowsEquivalent: boolean;
   correctionWindowBusinessDays: number;
+  documentClassification?: "GENERIC" | "PERSONALITY_DEVELOPMENT_REPORT";
   equivalentOptions: { code: string; label: string }[];
   id: string;
   instruction: string | null;
   lifecycle: "DRAFT" | "PUBLISHED" | "ARCHIVED";
   maxAgeDays: number | null;
   maxFileSizeBytes: number;
+  processingCategory?:
+    | "ORDINARY_ADMISSION"
+    | "SUPPORT_ACCOMMODATION"
+    | "PIE_NEE_DIAGNOSTIC"
+    | "HEALTH"
+    | null;
   required: boolean;
   sensitivity: "internal" | "restricted" | "highly_restricted";
   validityRule: "NONE" | "LATEST_AVAILABLE" | "MAX_AGE_DAYS";
@@ -603,6 +610,8 @@ export function AdminDocumentRequirements({
           correctionWindowBusinessDays: Number(
             form.get("correctionWindowBusinessDays"),
           ),
+          documentClassification:
+            String(form.get("documentClassification") ?? "") || "GENERIC",
           equivalentOptions: allowsEquivalent ? equivalentOptions : null,
           instruction: String(form.get("instruction") ?? "") || null,
           maxAgeDays:
@@ -610,6 +619,8 @@ export function AdminDocumentRequirements({
               ? Number(form.get("maxAgeDays"))
               : null,
           maxFileSizeBytes: Number(form.get("maxFileSizeMb")) * 1_048_576,
+          processingCategory:
+            String(form.get("processingCategory") ?? "") || null,
           required: form.get("required") === "on",
           scope: {
             academicYearId: String(form.get("academicYearId") ?? "") || null,
@@ -739,6 +750,31 @@ export function AdminDocumentRequirements({
               <option value="internal">Interna</option>
               <option value="restricted">Restringida</option>
               <option value="highly_restricted">Altamente restringida</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Clasificación documental</span>
+            <select defaultValue="GENERIC" name="documentClassification">
+              <option value="GENERIC">Genérico (GENERIC)</option>
+              <option value="PERSONALITY_DEVELOPMENT_REPORT">
+                Informe de Personalidad / Desarrollo
+                (PERSONALITY_DEVELOPMENT_REPORT)
+              </option>
+            </select>
+          </label>
+          <label className="field">
+            <span>Categoría de tratamiento sensible</span>
+            <select defaultValue="ORDINARY_ADMISSION" name="processingCategory">
+              <option value="ORDINARY_ADMISSION">
+                Admisión ordinaria (ORDINARY_ADMISSION)
+              </option>
+              <option value="SUPPORT_ACCOMMODATION">
+                Ajustes razonables / Apoyos (SUPPORT_ACCOMMODATION)
+              </option>
+              <option value="PIE_NEE_DIAGNOSTIC">
+                Diagnóstico PIE / NEE (PIE_NEE_DIAGNOSTIC)
+              </option>
+              <option value="HEALTH">Salud / Datos médicos (HEALTH)</option>
             </select>
           </label>
           <label className="checkbox-row">

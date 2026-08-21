@@ -31,6 +31,12 @@ interface FormField {
   label: string;
   options: { label: string; order: number; value: string }[];
   order: number;
+  processingCategory?:
+    | "ORDINARY_ADMISSION"
+    | "SUPPORT_ACCOMMODATION"
+    | "PIE_NEE_DIAGNOSTIC"
+    | "HEALTH"
+    | null;
   purpose: string;
   required: boolean;
   sensitivity: "internal" | "restricted" | "highly_restricted";
@@ -811,6 +817,7 @@ export function AdminFormBuilder({
       label: data.get("label"),
       options: type === "SELECT" || type === "RADIO" ? options : null,
       order,
+      processingCategory: String(data.get("processingCategory") ?? "") || null,
       purpose: data.get("purpose"),
       required: data.get("required") === "on",
       sectionId: String(data.get("sectionId")),
@@ -1299,6 +1306,24 @@ function BuilderFieldForm({
           <option value="internal">internal</option>
           <option value="restricted">restricted</option>
           <option value="highly_restricted">highly_restricted</option>
+        </select>
+      </label>
+      <label className="field">
+        <span>Categoría de tratamiento sensible</span>
+        <select
+          defaultValue={field?.processingCategory ?? "ORDINARY_ADMISSION"}
+          name="processingCategory"
+        >
+          <option value="ORDINARY_ADMISSION">
+            Admisión ordinaria (ORDINARY_ADMISSION)
+          </option>
+          <option value="SUPPORT_ACCOMMODATION">
+            Ajustes razonables / Apoyo (SUPPORT_ACCOMMODATION)
+          </option>
+          <option value="PIE_NEE_DIAGNOSTIC">
+            Diagnóstico PIE / NEE (PIE_NEE_DIAGNOSTIC)
+          </option>
+          <option value="HEALTH">Salud / Datos médicos (HEALTH)</option>
         </select>
       </label>
       <label className="field">

@@ -2362,17 +2362,13 @@ export class DocumentService {
     },
   ): Promise<boolean> {
     if (version.scopeOfferingId === null) return false;
-    const existing = await transaction.documentRequirementVersion.findFirst({
+    const offering = await transaction.admissionOffering.findFirst({
       where: {
-        documentClassification:
-          DOCUMENT_CLASSIFICATIONS.PERSONALITY_DEVELOPMENT_REPORT,
-        lifecycle: "PUBLISHED",
-        scopeOfferingId: version.scopeOfferingId,
+        id: version.scopeOfferingId,
         tenantId,
       },
-      take: 1,
     });
-    return existing !== null;
+    return offering !== null;
   }
 
   private async validatePersistedVersionForPublish(

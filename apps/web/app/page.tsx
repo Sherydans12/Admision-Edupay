@@ -34,6 +34,7 @@ import {
   PlatformSupportWorkspace,
   StaffReportsWorkspace,
 } from "./reporting-admin-workflows";
+import { AdminSensitiveProcessingWorkspace } from "./sensitive-processing-workflows";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
@@ -54,6 +55,7 @@ type AdminSection =
   | "audit"
   | "forms"
   | "documents"
+  | "sensitiveProcessing"
   | "campus"
   | "academicYear"
   | "courseLevel"
@@ -924,6 +926,7 @@ function AdminView({
     { key: "audit", label: "Auditoría" },
     { key: "forms", label: "Formularios" },
     { key: "documents", label: "Documentos" },
+    { key: "sensitiveProcessing", label: "Tratamiento sensible" },
     { key: "activities", label: "Actividades" },
     { key: "campus", label: "Sede" },
     { key: "academicYear", label: "Año" },
@@ -976,6 +979,11 @@ function AdminView({
           />
         ) : adminSection === "documents" ? (
           <AdminDocumentRequirements apiBase={API_BASE} tenantId={tenantId} />
+        ) : adminSection === "sensitiveProcessing" ? (
+          <AdminSensitiveProcessingWorkspace
+            apiBase={API_BASE}
+            tenantId={tenantId}
+          />
         ) : adminSection === "activities" ? (
           <AdminActivityWorkspace apiBase={API_BASE} tenantId={tenantId} />
         ) : adminSection === "access" ? (
@@ -1100,7 +1108,13 @@ function AdminForm({
 }: {
   adminSection: Exclude<
     AdminSection,
-    "access" | "audit" | "forms" | "documents" | "activities" | "support"
+    | "access"
+    | "audit"
+    | "forms"
+    | "documents"
+    | "sensitiveProcessing"
+    | "activities"
+    | "support"
   >;
   configuration: Configuration | null;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
