@@ -21,8 +21,13 @@ import {
   SensitiveProcessingService,
   isCategoryEffectivelyEnabled,
 } from "./sensitive-processing.js";
+import { ApplicationAuthorityService } from "./application-authority.js";
+import { AssistanceService } from "./assistance.js";
+import { IntakeService } from "./intake.js";
 import {
+  runWithFamilyContext,
   runWithTenantContext,
+  type FamilyExecutionContext,
   type TenantExecutionContext,
 } from "./tenant-execution-context.js";
 import { withTenantTransaction } from "./tenant-transaction.js";
@@ -383,113 +388,944 @@ describe("R4-POL-UPD — Policy update and audit", () => {
   });
 });
 
-// ─── Authority integration ────────────────────────────────────────────────────
+// ─── Authority & Sensitive Capture Integration ───────────────────────────────
 
-describe("R4-AUTH — Authority != processing authorization", () => {
-  it("R4-AUTH-01: email verified only does NOT satisfy sensitive authority", () => {
-    // The SensitiveProcessingValidationError codes are distinct from
-    // authority verification. Authority is checked separately by
-    // assertApplicationAuthorityForCriticalAction in forms/documents.
-    expect(true).toBe(true);
+async function createSensitiveApplicationFixture(options?: {
+  enableHealth?: boolean;
+  enablePie?: boolean;
+  healthPurpose?: string;
+  piePurpose?: string;
+  studentDob?: Date;
+  tenantId?: `${string}-${string}-${string}-${string}-${string}`;
+}) {
+  const tenantId = options?.tenantId ?? tenantAId;
+  const admin = adminCtx(tenantId);
+  const sp = new SensitiveProcessingService(prisma);
+  const forms = new FormService(prisma);
+  const authorities = new ApplicationAuthorityService(prisma);
+  const intake = new IntakeService(prisma);
+
+  if (options?.enableHealth) {
+    await runWithTenantContext(admin, () =>
+      sp.updatePolicy(admin, {
+        category: "HEALTH",
+        enabled: true,
+        purpose: options.healthPurpose ?? "Valid health purpose",
+      }),
+    );
+  }
+  if (options?.enablePie) {
+    await runWithTenantContext(admin, () =>
+      sp.updatePolicy(admin, {
+        category: "PIE_NEE_DIAGNOSTIC",
+        enabled: true,
+        purpose: options.piePurpose ?? "Valid pie purpose",
+      }),
+    );
+  }
+
+  const userId = randomUUID();
+  const familyProfileId = randomUUID();
+  const studentId = randomUUID();
+  const dob = options?.studentDob ?? new Date("2015-05-10");
+
+  await prisma.platformUser.create({
+    data: {
+      emailNormalized: `fam-${userId}@example.invalid`,
+      emailVerifiedAt: new Date(),
+      id: userId,
+    },
   });
 
-  it("R4-AUTH-03: valid authority + category disabled → still denied", async () => {
-    const c = adminCtx();
-    const sp = new SensitiveProcessingService(prisma);
-    await runWithTenantContext(c, () =>
-      sp.updatePolicy(c, {
+  await prisma.familyProfile.create({
+    data: {
+      displayName: "Familia Perez",
+      id: familyProfileId,
+      userId,
+    },
+  });
+
+  await prisma.student.create({
+    data: {
+      dateOfBirth: dob,
+      familyProfileId,
+      familyName: "Perez",
+      givenName: "Juan",
+      id: studentId,
+    },
+  });
+
+  const { campus, level, process, year } = await runWithTenantContext(
+    admin,
+    () =>
+      withTenantTransaction(prisma, async (tx) => {
+        const cmp = await tx.campus.create({
+          data: {
+            code: `CMP-${randomUUID().slice(0, 6)}`,
+            name: "Campus Test",
+            tenantId,
+          },
+        });
+        const yr = await tx.academicYear.create({
+          data: {
+            code: `YR-${randomUUID().slice(0, 6)}`,
+            label: "2026",
+            status: "OPEN",
+            tenantId,
+          },
+        });
+        const lvl = await tx.courseLevel.create({
+          data: {
+            code: `LVL-${randomUUID().slice(0, 6)}`,
+            name: "Level 1",
+            tenantId,
+          },
+        });
+        const prc = await tx.admissionProcess.create({
+          data: {
+            academicYearId: yr.id,
+            code: `PRC-${randomUUID().slice(0, 6)}`,
+            name: "Process 2026",
+            status: "PUBLISHED",
+            tenantId,
+          },
+        });
+        return { campus: cmp, level: lvl, process: prc, year: yr };
+      }),
+  );
+
+  const formDef = await runWithTenantContext(admin, () =>
+    forms.createDefinition(admin, {
+      name: `Form-${randomUUID()}`,
+      purpose: "admission",
+    }),
+  );
+  const formVer = await runWithTenantContext(admin, () =>
+    forms.createDraftVersion(admin, formDef.id),
+  );
+  const section = await runWithTenantContext(admin, () =>
+    forms.createSection(admin, formVer.id, {
+      order: 1,
+      title: "Datos Médicos",
+    }),
+  );
+  const healthField = await runWithTenantContext(admin, () =>
+    forms.createField(admin, formVer.id, {
+      key: "health_allergies",
+      label: "Alergias",
+      order: 1,
+      processingCategory: "HEALTH",
+      purpose: "medical_records",
+      required: false,
+      sectionId: section.id,
+      sensitivity: "highly_restricted",
+      type: "TEXT",
+    }),
+  );
+  const pieField = await runWithTenantContext(admin, () =>
+    forms.createField(admin, formVer.id, {
+      key: "pie_nee",
+      label: "Diagnóstico PIE",
+      order: 2,
+      processingCategory: "PIE_NEE_DIAGNOSTIC",
+      purpose: "pie_support",
+      required: false,
+      sectionId: section.id,
+      sensitivity: "highly_restricted",
+      type: "TEXT",
+    }),
+  );
+  const ordinaryField = await runWithTenantContext(admin, () =>
+    forms.createField(admin, formVer.id, {
+      key: "ordinary_comments",
+      label: "Comentarios",
+      order: 3,
+      processingCategory: "ORDINARY_ADMISSION",
+      purpose: "general_info",
+      required: false,
+      sectionId: section.id,
+      sensitivity: "internal",
+      type: "TEXT",
+    }),
+  );
+
+  // If health or pie were disabled, temporarily enable to publish form version
+  if (!options?.enableHealth) {
+    await runWithTenantContext(admin, () =>
+      sp.updatePolicy(admin, {
+        category: "HEALTH",
+        enabled: true,
+        purpose: "Publish enable",
+      }),
+    );
+  }
+  if (!options?.enablePie) {
+    await runWithTenantContext(admin, () =>
+      sp.updatePolicy(admin, {
+        category: "PIE_NEE_DIAGNOSTIC",
+        enabled: true,
+        purpose: "Publish enable",
+      }),
+    );
+  }
+  await runWithTenantContext(admin, () =>
+    forms.publishVersion(admin, formVer.id),
+  );
+  if (!options?.enableHealth) {
+    await runWithTenantContext(admin, () =>
+      sp.updatePolicy(admin, {
+        category: "HEALTH",
+        enabled: false,
+        purpose: null,
+      }),
+    );
+  }
+  if (!options?.enablePie) {
+    await runWithTenantContext(admin, () =>
+      sp.updatePolicy(admin, {
         category: "PIE_NEE_DIAGNOSTIC",
         enabled: false,
         purpose: null,
       }),
     );
-    const forms = new FormService(prisma);
-    const def = await runWithTenantContext(c, () =>
-      forms.createDefinition(c, { name: "R4-auth-03", purpose: "admission" }),
-    );
-    const ver = await runWithTenantContext(c, () =>
-      forms.createDraftVersion(c, def.id),
-    );
-    const sec = await runWithTenantContext(c, () =>
-      forms.createSection(c, ver.id, { order: 1, title: "S" }),
-    );
-    await runWithTenantContext(c, () =>
-      forms.createField(c, ver.id, {
-        key: "pie_field",
-        label: "PIE field",
-        order: 1,
-        processingCategory: "PIE_NEE_DIAGNOSTIC",
-        purpose: "test",
-        required: false,
-        sectionId: sec.id,
-        sensitivity: "highly_restricted" as const,
-        type: "TEXT",
+  }
+
+  const offering = await runWithTenantContext(admin, () =>
+    withTenantTransaction(prisma, async (tx) => {
+      const createdOffering = await tx.admissionOffering.create({
+        data: {
+          academicYearId: year.id,
+          availabilityCategory: "LIMITED_CAPACITY",
+          campusId: campus.id,
+          code: `OFF-${randomUUID().slice(0, 6)}`,
+          courseLevelId: level.id,
+          formVersionId: formVer.id,
+          processId: process.id,
+          status: "PUBLISHED",
+          tenantId,
+          title: "Offering 2026",
+        },
+      });
+      await tx.admissionCapacity.create({
+        data: {
+          configuredCapacity: 10,
+          offeringId: createdOffering.id,
+          tenantId,
+        },
+      });
+      return createdOffering;
+    }),
+  );
+
+  const familyCtx: FamilyExecutionContext = {
+    actorId: userId,
+    contextOrigin: "synthetic_test",
+    correlationId: `fam-${randomUUID()}`,
+    familyCapabilities: [
+      PERMISSIONS.APPLICATION_CREATE,
+      PERMISSIONS.APPLICATION_READ,
+      PERMISSIONS.APPLICATION_WRITE,
+      PERMISSIONS.APPLICATION_SUBMIT,
+      PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+      PERMISSIONS.APPLICATION_AUTHORITY_READ,
+      PERMISSIONS.FAMILY_PROFILE_READ,
+      PERMISSIONS.FAMILY_PROFILE_WRITE,
+      PERMISSIONS.STUDENT_READ,
+      PERMISSIONS.STUDENT_WRITE,
+    ],
+    purpose: "family_admission",
+    source: "authenticated_request",
+  };
+
+  const publicApplicantCtx: TenantExecutionContext = {
+    actorId: userId,
+    capabilities: [
+      PERMISSIONS.OFFERING_PUBLIC_READ,
+      PERMISSIONS.APPLICATION_CREATE,
+    ],
+    contextOrigin: "public_admission",
+    correlationId: `pub-${randomUUID()}`,
+    purpose: "family_admission",
+    scopes: ["*"],
+    source: "authenticated_request",
+    tenantId,
+  };
+
+  const applicantCtx: TenantExecutionContext = {
+    actorId: userId,
+    capabilities: [
+      PERMISSIONS.APPLICATION_CREATE,
+      PERMISSIONS.APPLICATION_READ,
+      PERMISSIONS.APPLICATION_WRITE,
+      PERMISSIONS.APPLICATION_SUBMIT,
+      PERMISSIONS.APPLICATION_AUTHORITY_DECLARE,
+      PERMISSIONS.APPLICATION_AUTHORITY_READ,
+    ],
+    contextOrigin: "family_application",
+    correlationId: `app-${randomUUID()}`,
+    purpose: "family_admission",
+    scopes: ["*"],
+    source: "authenticated_request",
+    tenantId,
+  };
+
+  const application = await runWithFamilyContext(familyCtx, () =>
+    runWithTenantContext(publicApplicantCtx, () =>
+      intake.createApplicationDraft(familyCtx, publicApplicantCtx, {
+        offeringId: offering.id,
+        studentId,
       }),
-    );
+    ),
+  );
+
+  return {
+    admin,
+    applicantCtx,
+    application,
+    authorities,
+    dob,
+    familyCtx,
+    familyProfileId,
+    forms,
+    healthField,
+    offering,
+    ordinaryField,
+    pieField,
+    sp,
+    studentId,
+    tenantId,
+    userId,
+  };
+}
+
+async function verifyAuthority(
+  fixture: Awaited<ReturnType<typeof createSensitiveApplicationFixture>>,
+  options?: {
+    basis?: "PARENT" | "LEGAL_REPRESENTATIVE";
+    mode?: "MINOR_REPRESENTATIVE" | "ADULT_STUDENT_SELF";
+    relationship?: "MOTHER" | "FATHER" | "SELF";
+  },
+) {
+  const staffCtx = ctx(fixture.tenantId, [
+    PERMISSIONS.APPLICATION_AUTHORITY_REVIEW,
+    PERMISSIONS.APPLICATION_AUTHORITY_READ,
+  ]);
+  const isAdult = options?.mode === "ADULT_STUDENT_SELF";
+  const declared = await runWithFamilyContext(fixture.familyCtx, () =>
+    runWithTenantContext(fixture.applicantCtx, () =>
+      fixture.authorities.declareApplicationAuthority(
+        fixture.familyCtx,
+        fixture.applicantCtx,
+        fixture.application.id,
+        {
+          authorityBasis: isAdult ? "SELF" : (options?.basis ?? "PARENT"),
+          relationship: isAdult ? "SELF" : (options?.relationship ?? "MOTHER"),
+          subjectMode: options?.mode ?? "MINOR_REPRESENTATIVE",
+        },
+        new Date(),
+      ),
+    ),
+  );
+
+  await runWithTenantContext(staffCtx, () =>
+    fixture.authorities.reviewApplicationAuthority(
+      staffCtx,
+      fixture.application.id,
+      {
+        expectedConcurrencyVersion: declared.concurrencyVersion!,
+        reason: "Reviewing for test",
+        toStatus: "UNDER_REVIEW",
+      },
+      new Date(),
+    ),
+  );
+
+  const underReview = await runWithTenantContext(staffCtx, () =>
+    fixture.authorities.getStaffAuthority(staffCtx, fixture.application.id),
+  );
+
+  const verified = await runWithTenantContext(staffCtx, () =>
+    fixture.authorities.reviewApplicationAuthority(
+      staffCtx,
+      fixture.application.id,
+      {
+        expectedConcurrencyVersion: underReview.concurrencyVersion!,
+        reason: "Verified for test",
+        toStatus: "VERIFIED",
+      },
+      new Date(),
+    ),
+  );
+
+  return verified;
+}
+
+describe("R4-AUTH — Direct Sensitive Capture Authority Guards", () => {
+  it("R4-AUTH-01: email verified but no VERIFIED authority → saving HEALTH answer denied", async () => {
+    const fixture = await createSensitiveApplicationFixture({
+      enableHealth: true,
+    });
     await expect(
-      runWithTenantContext(c, () => forms.publishVersion(c, ver.id)),
-    ).rejects.toThrow(/PIE_NEE_DIAGNOSTIC.*disabled/i);
+      runWithFamilyContext(fixture.familyCtx, () =>
+        runWithTenantContext(fixture.applicantCtx, () =>
+          fixture.forms.saveAnswers(
+            fixture.familyCtx,
+            fixture.applicantCtx,
+            fixture.application.id,
+            [{ fieldId: fixture.healthField.id, value: "Asma leve" }],
+          ),
+        ),
+      ),
+    ).rejects.toThrow();
+
+    const answers = await prisma.applicationDraftAnswer.findMany({
+      where: {
+        applicationId: fixture.application.id,
+        fieldId: fixture.healthField.id,
+      },
+    });
+    expect(answers).toHaveLength(0);
   });
 
-  it("R4-AUTH-04: authority verified + category enabled → publishing and capture permitted", async () => {
-    const c = adminCtx();
-    const sp = new SensitiveProcessingService(prisma);
-    await runWithTenantContext(c, () =>
-      sp.updatePolicy(c, {
-        category: "HEALTH",
-        enabled: true,
-        purpose: "Authorized for nurse intake",
-      }),
+  it("R4-AUTH-02: DECLARED authority → sensitive save denied", async () => {
+    const fixture = await createSensitiveApplicationFixture({
+      enableHealth: true,
+    });
+    await runWithFamilyContext(fixture.familyCtx, () =>
+      runWithTenantContext(fixture.applicantCtx, () =>
+        fixture.authorities.declareApplicationAuthority(
+          fixture.familyCtx,
+          fixture.applicantCtx,
+          fixture.application.id,
+          {
+            authorityBasis: "PARENT",
+            relationship: "MOTHER",
+            subjectMode: "MINOR_REPRESENTATIVE",
+          },
+          new Date(),
+        ),
+      ),
     );
-    const forms = new FormService(prisma);
-    const def = await runWithTenantContext(c, () =>
-      forms.createDefinition(c, { name: "R4-auth-04", purpose: "admission" }),
-    );
-    const ver = await runWithTenantContext(c, () =>
-      forms.createDraftVersion(c, def.id),
-    );
-    const sec = await runWithTenantContext(c, () =>
-      forms.createSection(c, ver.id, { order: 1, title: "S" }),
-    );
-    await runWithTenantContext(c, () =>
-      forms.createField(c, ver.id, {
-        key: "health_field_auth4",
-        label: "Salud Alergias",
-        order: 1,
-        processingCategory: "HEALTH",
-        purpose: "test",
-        required: false,
-        sectionId: sec.id,
-        sensitivity: "highly_restricted" as const,
-        type: "TEXT",
-      }),
-    );
-    const published = await runWithTenantContext(c, () =>
-      forms.publishVersion(c, ver.id),
-    );
-    expect(published.lifecycle).toBe("PUBLISHED");
 
-    // Reset HEALTH to false
-    await runWithTenantContext(c, () =>
-      sp.updatePolicy(c, {
+    await expect(
+      runWithFamilyContext(fixture.familyCtx, () =>
+        runWithTenantContext(fixture.applicantCtx, () =>
+          fixture.forms.saveAnswers(
+            fixture.familyCtx,
+            fixture.applicantCtx,
+            fixture.application.id,
+            [{ fieldId: fixture.healthField.id, value: "Alergia penicilina" }],
+          ),
+        ),
+      ),
+    ).rejects.toThrow();
+
+    const answers = await prisma.applicationDraftAnswer.findMany({
+      where: {
+        applicationId: fixture.application.id,
+        fieldId: fixture.healthField.id,
+      },
+    });
+    expect(answers).toHaveLength(0);
+  });
+
+  it("R4-AUTH-03: VERIFIED authority + category disabled → sensitive save denied", async () => {
+    const fixture = await createSensitiveApplicationFixture({
+      enableHealth: false,
+    });
+    await verifyAuthority(fixture);
+
+    await expect(
+      runWithFamilyContext(fixture.familyCtx, () =>
+        runWithTenantContext(fixture.applicantCtx, () =>
+          fixture.forms.saveAnswers(
+            fixture.familyCtx,
+            fixture.applicantCtx,
+            fixture.application.id,
+            [{ fieldId: fixture.healthField.id, value: "Alergia polen" }],
+          ),
+        ),
+      ),
+    ).rejects.toThrow(/disabled/i);
+
+    const answers = await prisma.applicationDraftAnswer.findMany({
+      where: {
+        applicationId: fixture.application.id,
+        fieldId: fixture.healthField.id,
+      },
+    });
+    expect(answers).toHaveLength(0);
+  });
+
+  it("R4-AUTH-04: VERIFIED authority + category enabled → sensitive answer persists successfully", async () => {
+    const fixture = await createSensitiveApplicationFixture({
+      enableHealth: true,
+    });
+    await verifyAuthority(fixture);
+
+    const saved = await runWithFamilyContext(fixture.familyCtx, () =>
+      runWithTenantContext(fixture.applicantCtx, () =>
+        fixture.forms.saveAnswers(
+          fixture.familyCtx,
+          fixture.applicantCtx,
+          fixture.application.id,
+          [
+            {
+              fieldId: fixture.healthField.id,
+              value: "Sin alergias conocidas",
+            },
+          ],
+        ),
+      ),
+    );
+
+    expect(
+      saved.answers.find((a) => a.fieldId === fixture.healthField.id)?.value,
+    ).toBe("Sin alergias conocidas");
+
+    const reloaded = await runWithFamilyContext(fixture.familyCtx, () =>
+      runWithTenantContext(fixture.applicantCtx, () =>
+        fixture.forms.getFamilyForm(
+          fixture.familyCtx,
+          fixture.applicantCtx,
+          fixture.application.id,
+        ),
+      ),
+    );
+    expect(
+      reloaded.answers.find((a) => a.fieldId === fixture.healthField.id)?.value,
+    ).toBe("Sin alergias conocidas");
+  });
+
+  it("R4-AUTH-05: adult >=18 VERIFIED SELF → sensitive save succeeds when category enabled", async () => {
+    const fixture = await createSensitiveApplicationFixture({
+      enableHealth: true,
+      studentDob: new Date("2000-01-01"),
+    });
+    await verifyAuthority(fixture, { mode: "ADULT_STUDENT_SELF" });
+
+    const saved = await runWithFamilyContext(fixture.familyCtx, () =>
+      runWithTenantContext(fixture.applicantCtx, () =>
+        fixture.forms.saveAnswers(
+          fixture.familyCtx,
+          fixture.applicantCtx,
+          fixture.application.id,
+          [
+            {
+              fieldId: fixture.healthField.id,
+              value: "Tratamiento activo adulto",
+            },
+          ],
+        ),
+      ),
+    );
+
+    expect(
+      saved.answers.find((a) => a.fieldId === fixture.healthField.id)?.value,
+    ).toBe("Tratamiento activo adulto");
+
+    const reloaded = await runWithFamilyContext(fixture.familyCtx, () =>
+      runWithTenantContext(fixture.applicantCtx, () =>
+        fixture.forms.getFamilyForm(
+          fixture.familyCtx,
+          fixture.applicantCtx,
+          fixture.application.id,
+        ),
+      ),
+    );
+    expect(
+      reloaded.answers.find((a) => a.fieldId === fixture.healthField.id)?.value,
+    ).toBe("Tratamiento activo adulto");
+  });
+
+  it("R4-AUTH-06: authority belonging to another application cannot authorize sensitive save", async () => {
+    const fixture1 = await createSensitiveApplicationFixture({
+      enableHealth: true,
+    });
+    const fixture2 = await createSensitiveApplicationFixture({
+      enableHealth: true,
+    });
+    await verifyAuthority(fixture1);
+
+    await expect(
+      runWithFamilyContext(fixture2.familyCtx, () =>
+        runWithTenantContext(fixture2.applicantCtx, () =>
+          fixture2.forms.saveAnswers(
+            fixture2.familyCtx,
+            fixture2.applicantCtx,
+            fixture2.application.id,
+            [{ fieldId: fixture2.healthField.id, value: "Dato no autorizado" }],
+          ),
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+
+  it("R4-AUTH-07: authority from another tenant cannot authorize sensitive save", async () => {
+    const fixtureA = await createSensitiveApplicationFixture({
+      enableHealth: true,
+      tenantId: tenantAId,
+    });
+    const fixtureB = await createSensitiveApplicationFixture({
+      enableHealth: true,
+      tenantId: tenantBId,
+    });
+    await verifyAuthority(fixtureA);
+
+    await expect(
+      runWithFamilyContext(fixtureB.familyCtx, () =>
+        runWithTenantContext(fixtureB.applicantCtx, () =>
+          fixtureB.forms.saveAnswers(
+            fixtureB.familyCtx,
+            fixtureB.applicantCtx,
+            fixtureB.application.id,
+            [{ fieldId: fixtureB.healthField.id, value: "Dato cross tenant" }],
+          ),
+        ),
+      ),
+    ).rejects.toThrow();
+  });
+});
+
+describe("R4-ASSISTED — Assisted sensitive capture guards", () => {
+  it("R4-ASSISTED-01: staff operator + verified family authority allows sensitive save; staff operator alone without family authority is denied", async () => {
+    const fixture = await createSensitiveApplicationFixture({
+      enableHealth: true,
+    });
+    const staffId = randomUUID();
+    const staffCtx: TenantExecutionContext = {
+      actorId: staffId,
+      capabilities: [
+        PERMISSIONS.APPLICATION_ASSIST,
+        PERMISSIONS.APPLICATION_AUTHORITY_READ,
+        PERMISSIONS.APPLICATION_AUTHORITY_REVIEW,
+        PERMISSIONS.APPLICATION_READ,
+        PERMISSIONS.APPLICATION_WRITE,
+      ],
+      contextOrigin: "synthetic_test",
+      correlationId: `assist-${randomUUID()}`,
+      purpose: "assisted_capture",
+      scopes: ["*"],
+      source: "authenticated_request",
+      tenantId: fixture.tenantId,
+    };
+
+    // Create assisted session and application
+    const assistanceService = new AssistanceService(
+      prisma,
+      fixture.forms,
+      createDocService(),
+    );
+    const session = await runWithTenantContext(staffCtx, () =>
+      assistanceService.startSession(staffCtx, {
+        adultPresentConfirmed: true,
+        authorizationConfirmed: true,
+        familyProfileId: fixture.familyProfileId,
+      }),
+    );
+
+    const student2Res = await migrationPool.query(
+      `INSERT INTO students (id, family_profile_id, given_name, family_name, date_of_birth)
+       VALUES ($1, $2, 'Hermano', 'Perez', DATE '2015-05-10') RETURNING id`,
+      [randomUUID(), fixture.familyProfileId],
+    );
+    const student2Id = student2Res.rows[0].id as string;
+
+    const assistedApp = await runWithTenantContext(staffCtx, () =>
+      assistanceService.createAssistedApplicationDraft(staffCtx, session.id, {
+        offeringId: fixture.offering.id,
+        studentId: student2Id,
+      }),
+    );
+
+    // Attempting to save sensitive answer without family authority is denied
+    await expect(
+      runWithTenantContext(staffCtx, () =>
+        fixture.forms.saveAssistedAnswers(
+          staffCtx,
+          fixture.familyProfileId,
+          session.id,
+          assistedApp.id,
+          [{ fieldId: fixture.healthField.id, value: "Assisted health data" }],
+        ),
+      ),
+    ).rejects.toThrow();
+
+    // Verify authority for the assisted application
+    const declared = await runWithFamilyContext(fixture.familyCtx, () =>
+      runWithTenantContext(fixture.applicantCtx, () =>
+        fixture.authorities.declareApplicationAuthority(
+          fixture.familyCtx,
+          fixture.applicantCtx,
+          assistedApp.id,
+          {
+            authorityBasis: "PARENT",
+            relationship: "MOTHER",
+            subjectMode: "MINOR_REPRESENTATIVE",
+          },
+          new Date(),
+        ),
+      ),
+    );
+
+    await runWithTenantContext(staffCtx, () =>
+      fixture.authorities.reviewApplicationAuthority(
+        staffCtx,
+        assistedApp.id,
+        {
+          expectedConcurrencyVersion: declared.concurrencyVersion!,
+          reason: "Verify assisted",
+          toStatus: "UNDER_REVIEW",
+        },
+        new Date(),
+      ),
+    );
+    const underReview = await runWithTenantContext(staffCtx, () =>
+      fixture.authorities.getStaffAuthority(staffCtx, assistedApp.id),
+    );
+    await runWithTenantContext(staffCtx, () =>
+      fixture.authorities.reviewApplicationAuthority(
+        staffCtx,
+        assistedApp.id,
+        {
+          expectedConcurrencyVersion: underReview.concurrencyVersion!,
+          reason: "Verify assisted final",
+          toStatus: "VERIFIED",
+        },
+        new Date(),
+      ),
+    );
+
+    // Now saveAssistedAnswers succeeds
+    const saved = await runWithTenantContext(staffCtx, () =>
+      fixture.forms.saveAssistedAnswers(
+        staffCtx,
+        fixture.familyProfileId,
+        session.id,
+        assistedApp.id,
+        [{ fieldId: fixture.healthField.id, value: "Assisted health data" }],
+      ),
+    );
+
+    expect(
+      saved.answers.find((a) => a.fieldId === fixture.healthField.id)?.value,
+    ).toBe("Assisted health data");
+
+    // Assert operator was NOT made authority principal
+    const authority = await runWithTenantContext(staffCtx, () =>
+      fixture.authorities.getStaffAuthority(staffCtx, assistedApp.id),
+    );
+    expect(authority.authorityUserId).toBe(fixture.userId);
+    expect(authority.authorityUserId).not.toBe(staffId);
+  });
+});
+
+describe("R4-POLICY-REGRESSION — Policy disabled after publish regression", () => {
+  it("R4-REG-01: enable HEALTH → publish → draft → verify authority → disable HEALTH → saveAnswer denied fail-closed", async () => {
+    const fixture = await createSensitiveApplicationFixture({
+      enableHealth: true,
+    });
+    await verifyAuthority(fixture);
+
+    // Now tenant disables HEALTH policy
+    await runWithTenantContext(fixture.admin, () =>
+      fixture.sp.updatePolicy(fixture.admin, {
         category: "HEALTH",
         enabled: false,
         purpose: null,
       }),
     );
+
+    // Attempting to save HEALTH answer now fails-closed
+    await expect(
+      runWithFamilyContext(fixture.familyCtx, () =>
+        runWithTenantContext(fixture.applicantCtx, () =>
+          fixture.forms.saveAnswers(
+            fixture.familyCtx,
+            fixture.applicantCtx,
+            fixture.application.id,
+            [
+              {
+                fieldId: fixture.healthField.id,
+                value: "Post-disable attempt",
+              },
+            ],
+          ),
+        ),
+      ),
+    ).rejects.toThrow(/disabled/i);
+
+    const answers = await prisma.applicationDraftAnswer.findMany({
+      where: {
+        applicationId: fixture.application.id,
+        fieldId: fixture.healthField.id,
+      },
+    });
+    expect(answers).toHaveLength(0);
   });
 
-  it("R4-AUTH-05: authority revoked or rejected blocks operations requiring authority", () => {
-    // Authority state machine is orthogonal to category policy
-    expect(true).toBe(true);
+  it("R4-REG-02: enable PIE → publish → draft → verify authority → disable PIE → saveAnswer denied fail-closed", async () => {
+    const fixture = await createSensitiveApplicationFixture({
+      enablePie: true,
+    });
+    await verifyAuthority(fixture);
+
+    // Tenant disables PIE policy
+    await runWithTenantContext(fixture.admin, () =>
+      fixture.sp.updatePolicy(fixture.admin, {
+        category: "PIE_NEE_DIAGNOSTIC",
+        enabled: false,
+        purpose: null,
+      }),
+    );
+
+    // Attempting to save PIE answer now fails-closed
+    await expect(
+      runWithFamilyContext(fixture.familyCtx, () =>
+        runWithTenantContext(fixture.applicantCtx, () =>
+          fixture.forms.saveAnswers(
+            fixture.familyCtx,
+            fixture.applicantCtx,
+            fixture.application.id,
+            [{ fieldId: fixture.pieField.id, value: "PIE diag post-disable" }],
+          ),
+        ),
+      ),
+    ).rejects.toThrow(/disabled/i);
+
+    const answers = await prisma.applicationDraftAnswer.findMany({
+      where: {
+        applicationId: fixture.application.id,
+        fieldId: fixture.pieField.id,
+      },
+    });
+    expect(answers).toHaveLength(0);
+  });
+});
+
+describe("R4-PURPOSE — Purpose validation invariants", () => {
+  it("R4-PUR-01: enable HEALTH with null purpose is denied", async () => {
+    const admin = adminCtx(tenantAId);
+    const sp = new SensitiveProcessingService(prisma);
+    await expect(
+      runWithTenantContext(admin, () =>
+        sp.updatePolicy(admin, {
+          category: "HEALTH",
+          enabled: true,
+          purpose: null,
+        }),
+      ),
+    ).rejects.toThrow(/purpose/i);
   });
 
-  it("R4-AUTH-06: email verification alone does not satisfy authority requirement", () => {
-    expect(true).toBe(true);
+  it("R4-PUR-02: enable HEALTH with empty purpose is denied", async () => {
+    const admin = adminCtx(tenantAId);
+    const sp = new SensitiveProcessingService(prisma);
+    await expect(
+      runWithTenantContext(admin, () =>
+        sp.updatePolicy(admin, {
+          category: "HEALTH",
+          enabled: true,
+          purpose: "   ",
+        }),
+      ),
+    ).rejects.toThrow(/purpose/i);
   });
 
-  it("R4-AUTH-07: tenant isolation enforced during authority operations", () => {
-    expect(true).toBe(true);
+  it("R4-PUR-03: enable PIE with null purpose is denied", async () => {
+    const admin = adminCtx(tenantAId);
+    const sp = new SensitiveProcessingService(prisma);
+    await expect(
+      runWithTenantContext(admin, () =>
+        sp.updatePolicy(admin, {
+          category: "PIE_NEE_DIAGNOSTIC",
+          enabled: true,
+          purpose: null,
+        }),
+      ),
+    ).rejects.toThrow(/purpose/i);
+  });
+
+  it("R4-PUR-04: enable HEALTH with valid purpose passes", async () => {
+    const admin = adminCtx(tenantAId);
+    const sp = new SensitiveProcessingService(prisma);
+    const res = await runWithTenantContext(admin, () =>
+      sp.updatePolicy(admin, {
+        category: "HEALTH",
+        enabled: true,
+        purpose: "Valid medical purpose",
+      }),
+    );
+    expect(res.enabled).toBe(true);
+    expect(res.purpose).toBe("Valid medical purpose");
+  });
+
+  it("R4-PUR-05: disable HEALTH with null purpose passes", async () => {
+    const admin = adminCtx(tenantAId);
+    const sp = new SensitiveProcessingService(prisma);
+    const res = await runWithTenantContext(admin, () =>
+      sp.updatePolicy(admin, {
+        category: "HEALTH",
+        enabled: false,
+        purpose: null,
+      }),
+    );
+    expect(res.enabled).toBe(false);
+  });
+});
+
+describe("R4-NULL-CLEAR — Clearing sensitive answers", () => {
+  it("R4-CLR-01: null value clears sensitive answer even if category subsequently disabled", async () => {
+    const fixture = await createSensitiveApplicationFixture({
+      enableHealth: true,
+    });
+    await verifyAuthority(fixture);
+
+    // Save answer while enabled
+    await runWithFamilyContext(fixture.familyCtx, () =>
+      runWithTenantContext(fixture.applicantCtx, () =>
+        fixture.forms.saveAnswers(
+          fixture.familyCtx,
+          fixture.applicantCtx,
+          fixture.application.id,
+          [{ fieldId: fixture.healthField.id, value: "Alergia mariscos" }],
+        ),
+      ),
+    );
+
+    // Disable HEALTH category
+    await runWithTenantContext(fixture.admin, () =>
+      fixture.sp.updatePolicy(fixture.admin, {
+        category: "HEALTH",
+        enabled: false,
+        purpose: null,
+      }),
+    );
+
+    // Clear answer with null value
+    const result = await runWithFamilyContext(fixture.familyCtx, () =>
+      runWithTenantContext(fixture.applicantCtx, () =>
+        fixture.forms.saveAnswers(
+          fixture.familyCtx,
+          fixture.applicantCtx,
+          fixture.application.id,
+          [{ fieldId: fixture.healthField.id, value: null }],
+        ),
+      ),
+    );
+
+    const cleared = result.answers.find(
+      (a) => a.fieldId === fixture.healthField.id,
+    );
+    expect(cleared).toBeUndefined();
+
+    const inDb = await prisma.applicationDraftAnswer.findMany({
+      where: {
+        applicationId: fixture.application.id,
+        fieldId: fixture.healthField.id,
+      },
+    });
+    expect(inDb).toHaveLength(0);
   });
 });
 
@@ -676,6 +1512,14 @@ describe("R4-PER — Personality report", () => {
 describe("R4-DOC — Document sensitive processing guards", () => {
   it("R4-DOC-01: Document Requirement with HEALTH disabled is denied on publish", async () => {
     const c = adminCtx();
+    const sp = new SensitiveProcessingService(prisma);
+    await runWithTenantContext(c, () =>
+      sp.updatePolicy(c, {
+        category: "HEALTH",
+        enabled: false,
+        purpose: null,
+      }),
+    );
     const docs = createDocService();
     const req = await runWithTenantContext(c, () =>
       docs.createRequirement(c, {
@@ -706,6 +1550,14 @@ describe("R4-DOC — Document sensitive processing guards", () => {
 
   it("R4-DOC-02: Document Requirement with PIE_NEE_DIAGNOSTIC disabled is denied on publish", async () => {
     const c = adminCtx();
+    const sp = new SensitiveProcessingService(prisma);
+    await runWithTenantContext(c, () =>
+      sp.updatePolicy(c, {
+        category: "PIE_NEE_DIAGNOSTIC",
+        enabled: false,
+        purpose: null,
+      }),
+    );
     const docs = createDocService();
     const req = await runWithTenantContext(c, () =>
       docs.createRequirement(c, {
@@ -828,8 +1680,9 @@ describe("R4-SEC — Cross-tenant isolation", () => {
   });
 
   it("R4-SEC-02: tenant B cannot read tenant A policies", async () => {
+    const freshTenantB = randomUUID();
     const cA = adminCtx(tenantAId);
-    const cB = readCtx(tenantBId);
+    const cB = readCtx(freshTenantB);
     const sp = new SensitiveProcessingService(prisma);
 
     // Enable HEALTH on tenant A

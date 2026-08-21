@@ -22,7 +22,10 @@ import {
 } from "./permission-catalog.js";
 import {
   assertFieldProcessingCategoryAllowed,
+  assertSensitiveProcessingAllowedForApplicationField,
+  isCategoryEffectivelyEnabled,
   SensitiveProcessingValidationError,
+  type EffectivePolicyEntry,
   type SensitiveProcessingPolicyDto,
 } from "./sensitive-processing.js";
 import type {
@@ -119,6 +122,7 @@ export interface FormVersionDto {
 export interface FamilyFormDto {
   answers: Array<{ fieldId: string; value: AnswerValue }>;
   applicationId: string;
+  effectivePolicies?: EffectivePolicyEntry[];
   form: FormVersionDto;
 }
 
@@ -700,6 +704,26 @@ function isUniqueViolation(error: unknown): boolean {
     "code" in error &&
     (error as { code?: string }).code === "P2002"
   );
+}
+
+function mapPolicy(policy: {
+  activatedAt: Date | null;
+  activatedBy: string | null;
+  category: string;
+  enabled: boolean;
+  id: string;
+  purpose: string | null;
+  tenantId: string;
+}): SensitiveProcessingPolicyDto {
+  return {
+    activatedAt: policy.activatedAt?.toISOString() ?? null,
+    activatedBy: policy.activatedBy,
+    category: policy.category as ProcessingCategoryValue,
+    enabled: policy.enabled,
+    id: policy.id,
+    purpose: policy.purpose,
+    tenantId: policy.tenantId,
+  };
 }
 
 export class FormService {
@@ -1407,6 +1431,7 @@ export class FormService {
       include: {
         academicYear: true,
         draftAnswers: true,
+        familyProfile: true,
         formVersion: { include: versionInclude },
         offering: {
           include: {
@@ -1441,12 +1466,27 @@ export class FormService {
         throw new IntakeValidationError(
           "Legacy development draft has no form version and cannot continue",
         );
+      const policies = (
+        await transaction.sensitiveProcessingPolicy.findMany({
+          where: { tenantId: applicantContext.tenantId },
+        })
+      ).map(mapPolicy);
+      const effectivePolicies: EffectivePolicyEntry[] = [
+        PROCESSING_CATEGORIES.ORDINARY_ADMISSION,
+        PROCESSING_CATEGORIES.SUPPORT_ACCOMMODATION,
+        PROCESSING_CATEGORIES.PIE_NEE_DIAGNOSTIC,
+        PROCESSING_CATEGORIES.HEALTH,
+      ].map((category) => ({
+        category,
+        enabled: isCategoryEffectivelyEnabled(category, policies),
+      }));
       return {
         answers: application.draftAnswers.map((answer) => ({
           fieldId: answer.fieldId,
           value: answer.value as AnswerValue,
         })),
         applicationId,
+        effectivePolicies,
         form: mapVersion(application.formVersion),
       };
     });
@@ -1481,12 +1521,27 @@ export class FormService {
           "Assisted draft has no form version and cannot continue",
         );
       }
+      const policies = (
+        await transaction.sensitiveProcessingPolicy.findMany({
+          where: { tenantId: context.tenantId },
+        })
+      ).map(mapPolicy);
+      const effectivePolicies: EffectivePolicyEntry[] = [
+        PROCESSING_CATEGORIES.ORDINARY_ADMISSION,
+        PROCESSING_CATEGORIES.SUPPORT_ACCOMMODATION,
+        PROCESSING_CATEGORIES.PIE_NEE_DIAGNOSTIC,
+        PROCESSING_CATEGORIES.HEALTH,
+      ].map((category) => ({
+        category,
+        enabled: isCategoryEffectivelyEnabled(category, policies),
+      }));
       return {
         answers: application.draftAnswers.map((answer) => ({
           fieldId: answer.fieldId,
           value: answer.value as AnswerValue,
         })),
         applicationId,
+        effectivePolicies,
         form: mapVersion(application.formVersion),
       };
     });
@@ -1601,6 +1656,20 @@ export class FormService {
           });
           continue;
         }
+
+        const field = fields.get(answer.fieldId);
+        if (field !== undefined) {
+          await assertSensitiveProcessingAllowedForApplicationField(
+            transaction,
+            {
+              applicationId,
+              familyAuthorityUserId: application.familyProfile.userId,
+              field,
+              tenantId: applicantContext.tenantId,
+            },
+          );
+        }
+
         await transaction.applicationDraftAnswer.upsert({
           create: {
             applicationId,
@@ -1637,12 +1706,27 @@ export class FormService {
         where: { applicationId },
         orderBy: { createdAt: "asc" },
       });
+      const policies = (
+        await transaction.sensitiveProcessingPolicy.findMany({
+          where: { tenantId: applicantContext.tenantId },
+        })
+      ).map(mapPolicy);
+      const effectivePolicies: EffectivePolicyEntry[] = [
+        PROCESSING_CATEGORIES.ORDINARY_ADMISSION,
+        PROCESSING_CATEGORIES.SUPPORT_ACCOMMODATION,
+        PROCESSING_CATEGORIES.PIE_NEE_DIAGNOSTIC,
+        PROCESSING_CATEGORIES.HEALTH,
+      ].map((category) => ({
+        category,
+        enabled: isCategoryEffectivelyEnabled(category, policies),
+      }));
       return {
         answers: answers.map((answer) => ({
           fieldId: answer.fieldId,
           value: answer.value as AnswerValue,
         })),
         applicationId,
+        effectivePolicies,
         form,
       };
     });
@@ -1653,6 +1737,7 @@ export class FormService {
       Awaited<ReturnType<FormService["loadOwnedApplication"]>>
     >,
     validatedAnswers?: Map<string, AnswerValue>,
+    policies?: readonly SensitiveProcessingPolicyDto[],
   ): ReviewDto {
     if (application.formVersion === null)
       throw new IntakeValidationError(
@@ -1671,7 +1756,12 @@ export class FormService {
     const missingRequired: ReviewDto["missingRequired"] = [];
     const sections = form.sections.map((section) => ({
       fields: section.fields.map((field) => {
-        const applicable = applicability.get(field.id) ?? true;
+        const categoryEnabled =
+          policies !== undefined && field.processingCategory
+            ? isCategoryEffectivelyEnabled(field.processingCategory, policies)
+            : true;
+        const applicable =
+          categoryEnabled && (applicability.get(field.id) ?? true);
         const value = answers.get(field.id);
         if (applicable && field.required && answerIsMissing(value)) {
           missingRequired.push({
@@ -1724,7 +1814,12 @@ export class FormService {
         applicationId,
       );
       if (application === null) throw new IntakeNotFoundError();
-      return this.buildReview(application);
+      const policies = (
+        await transaction.sensitiveProcessingPolicy.findMany({
+          where: { tenantId: applicantContext.tenantId },
+        })
+      ).map(mapPolicy);
+      return this.buildReview(application, undefined, policies);
     });
   }
 
@@ -1945,11 +2040,33 @@ export class FormService {
           }
           answerMap.set(answer.fieldId, validateAnswer(field, answer.value));
         }
-        const review = this.buildReview(application, answerMap);
+        const policies = (
+          await transaction.sensitiveProcessingPolicy.findMany({
+            where: { tenantId: applicantContext.tenantId },
+          })
+        ).map(mapPolicy);
+        const review = this.buildReview(application, answerMap, policies);
         if (review.missingRequired.length > 0)
           throw new IntakeValidationError(
             "Required applicable answers are missing",
           );
+        for (const [fieldId] of answerMap) {
+          const field = fields.get(fieldId);
+          if (
+            field?.processingCategory &&
+            (field.processingCategory === "HEALTH" ||
+              field.processingCategory === "PIE_NEE_DIAGNOSTIC")
+          ) {
+            if (
+              !isCategoryEffectivelyEnabled(field.processingCategory, policies)
+            ) {
+              throw new SensitiveProcessingValidationError(
+                "PROCESSING_CATEGORY_DISABLED",
+                `Processing category ${field.processingCategory} is disabled for this tenant`,
+              );
+            }
+          }
+        }
         const applicability = calculateApplicability(form, answerMap);
         const documentReadiness = await evaluateDocumentSubmissionReadiness(
           transaction,

@@ -11,6 +11,24 @@ export const updatePolicySchema = z
   .object({
     category: z.enum(PROCESSING_CATEGORY_VALUES),
     enabled: z.boolean(),
-    purpose: z.string().min(1).max(200).nullable(),
+    purpose: z.string().max(200).nullable().optional(),
   })
-  .strict();
+  .strict()
+  .refine(
+    (data) => {
+      if (
+        data.enabled &&
+        (data.category === "HEALTH" || data.category === "PIE_NEE_DIAGNOSTIC")
+      ) {
+        return (
+          typeof data.purpose === "string" && data.purpose.trim().length > 0
+        );
+      }
+      return true;
+    },
+    {
+      message:
+        "Explicit purpose is required when enabling sensitive processing category",
+      path: ["purpose"],
+    },
+  );

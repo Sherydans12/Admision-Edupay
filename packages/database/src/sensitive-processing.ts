@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "./generated/prisma/client.js";
+import { assertApplicationAuthorityForCriticalAction } from "./application-authority.js";
 import { authorizeOrThrow } from "./authorization.js";
 import {
   DOCUMENT_CLASSIFICATIONS,
@@ -30,7 +31,8 @@ export type SensitiveProcessingErrorCode =
   | "SENSITIVE_PROCESSING_NOT_ALLOWED"
   | "DOCUMENT_CLASSIFICATION_DISABLED"
   | "INVALID_PROCESSING_CATEGORY"
-  | "INVALID_DOCUMENT_CLASSIFICATION";
+  | "INVALID_DOCUMENT_CLASSIFICATION"
+  | "INVALID_PROCESSING_PURPOSE";
 
 export interface SensitiveProcessingPolicyDto {
   activatedAt: string | null;
@@ -229,6 +231,77 @@ export function assertDocumentRequirementProcessingAllowed(
   }
 }
 
+/**
+ * Fail-closed sensitive capture guard for application form fields.
+ * For HEALTH and PIE_NEE_DIAGNOSTIC, requires both:
+ * 1. The category is currently effectively enabled for the tenant.
+ * 2. A valid, verified ApplicationAuthority exists for the application.
+ */
+export async function assertSensitiveProcessingAllowedForApplicationField(
+  transaction: Prisma.TransactionClient,
+  input: {
+    applicationId: string;
+    familyAuthorityUserId?: string;
+    field: {
+      id?: string;
+      label?: string;
+      processingCategory?: ProcessingCategoryValue | string | null;
+      sensitivity?: string;
+    };
+    now?: Date;
+    tenantId: string;
+  },
+): Promise<void> {
+  const category = input.field.processingCategory;
+
+  if (
+    input.field.sensitivity === SENSITIVITIES.HIGHLY_RESTRICTED &&
+    !category
+  ) {
+    throw new SensitiveProcessingValidationError(
+      "PROCESSING_CATEGORY_REQUIRED",
+      "HIGHLY_RESTRICTED field requires an explicit processing category",
+    );
+  }
+
+  if (
+    !category ||
+    IMPLICITLY_ENABLED_CATEGORIES.includes(category as ProcessingCategoryValue)
+  ) {
+    return;
+  }
+
+  if (
+    category === PROCESSING_CATEGORIES.HEALTH ||
+    category === PROCESSING_CATEGORIES.PIE_NEE_DIAGNOSTIC
+  ) {
+    const rows = await transaction.sensitiveProcessingPolicy.findMany({
+      where: { tenantId: input.tenantId },
+    });
+    const policies = rows.map(mapPolicy);
+    if (
+      !isCategoryEffectivelyEnabled(
+        category as ProcessingCategoryValue,
+        policies,
+      )
+    ) {
+      throw new SensitiveProcessingValidationError(
+        "PROCESSING_CATEGORY_DISABLED",
+        `Processing category ${category} is disabled for this tenant`,
+      );
+    }
+
+    await assertApplicationAuthorityForCriticalAction(transaction, {
+      applicationId: input.applicationId,
+      ...(input.familyAuthorityUserId !== undefined
+        ? { expectedAuthorityUserId: input.familyAuthorityUserId }
+        : {}),
+      now: input.now ?? new Date(),
+      tenantId: input.tenantId,
+    });
+  }
+}
+
 export class SensitiveProcessingService {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -279,6 +352,30 @@ export class SensitiveProcessingService {
       );
     }
 
+    if (
+      input.enabled &&
+      SENSITIVE_PROCESSING_CATEGORIES.includes(
+        input.category as (typeof SENSITIVE_PROCESSING_CATEGORIES)[number],
+      )
+    ) {
+      if (
+        input.purpose === null ||
+        input.purpose === undefined ||
+        typeof input.purpose !== "string" ||
+        input.purpose.trim() === "" ||
+        input.purpose.trim().length > 200
+      ) {
+        throw new SensitiveProcessingValidationError(
+          "INVALID_PROCESSING_PURPOSE",
+          `Explicit purpose is required when enabling sensitive processing category ${input.category}`,
+        );
+      }
+    }
+
+    const normalizedPurpose = input.enabled
+      ? (input.purpose?.trim() ?? null)
+      : input.purpose?.trim() || null;
+
     return withTenantTransaction(this.prisma, async (transaction) => {
       const existing = await transaction.sensitiveProcessingPolicy.findUnique({
         where: {
@@ -298,7 +395,7 @@ export class SensitiveProcessingService {
           activatedBy: input.enabled ? context.actorId : null,
           category: input.category,
           enabled: input.enabled,
-          purpose: input.purpose,
+          purpose: normalizedPurpose,
           tenantId: context.tenantId,
         },
         update: {
@@ -306,7 +403,7 @@ export class SensitiveProcessingService {
             ? { activatedAt: now, activatedBy: context.actorId }
             : {}),
           enabled: input.enabled,
-          purpose: input.purpose,
+          purpose: normalizedPurpose,
         },
         where: {
           tenantId_category: {

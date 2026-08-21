@@ -336,6 +336,7 @@ export {
   SensitiveProcessingValidationError,
   assertDocumentRequirementProcessingAllowed,
   assertFieldProcessingCategoryAllowed,
+  assertSensitiveProcessingAllowedForApplicationField,
   isCategoryEffectivelyEnabled,
   type EffectivePolicyEntry,
   type SensitiveProcessingErrorCode,

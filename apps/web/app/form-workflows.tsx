@@ -154,6 +154,7 @@ export function FamilyApplicationFlow({
 }) {
   const [data, setData] = useState<{
     answers: { fieldId: string; value: AnswerValue }[];
+    effectivePolicies?: { category: string; enabled: boolean }[];
     form: FormVersion;
   } | null>(null);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
@@ -174,6 +175,17 @@ export function FamilyApplicationFlow({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const basePath = `/family/tenants/${tenantId}/applications/${applicationId}`;
 
+  const disabledCategories = useMemo(() => {
+    const map = new Map(
+      data?.effectivePolicies?.map((p) => [p.category, p.enabled]),
+    );
+    const set = new Set<string>();
+    for (const [cat, enabled] of map.entries()) {
+      if (!enabled) set.add(cat);
+    }
+    return set;
+  }, [data]);
+
   const load = useCallback(async () => {
     setData(null);
     setAnswers({});
@@ -184,6 +196,7 @@ export function FamilyApplicationFlow({
     try {
       const result = await request<{
         answers: { fieldId: string; value: AnswerValue }[];
+        effectivePolicies?: { category: string; enabled: boolean }[];
         form: FormVersion;
       }>(apiBase, `${basePath}/form`);
       setData(result);
@@ -234,13 +247,16 @@ export function FamilyApplicationFlow({
     if (!data) return false;
     setError("");
     try {
-      const visibleFieldIds = new Set(
-        applicableSections.flatMap((item) =>
-          item.fields.map((field) => field.id),
-        ),
-      );
+      const operableFields = applicableSections
+        .flatMap((item) => item.fields)
+        .filter(
+          (field) =>
+            !field.processingCategory ||
+            !disabledCategories.has(field.processingCategory),
+        );
+      const operableFieldIds = new Set(operableFields.map((field) => field.id));
       const payload = Object.entries(answers)
-        .filter(([fieldId]) => visibleFieldIds.has(fieldId))
+        .filter(([fieldId]) => operableFieldIds.has(fieldId))
         .map(([fieldId, value]) => ({ fieldId, value }));
       if (payload.length > 0)
         await mutation(apiBase, `${basePath}/answers`, "PUT", {
@@ -381,6 +397,11 @@ export function FamilyApplicationFlow({
           ) : null}
           {section.fields.map((field) => (
             <DynamicField
+              disabledCategory={
+                field.processingCategory
+                  ? disabledCategories.has(field.processingCategory)
+                  : false
+              }
               key={field.id}
               field={field}
               value={answers[field.id]}
@@ -524,15 +545,34 @@ export function FamilyApplicationFlow({
 }
 
 function DynamicField({
+  disabledCategory = false,
   field,
   onChange,
   value,
 }: {
+  disabledCategory?: boolean;
   field: FormField;
   onChange: (value: AnswerValue) => void;
   value: AnswerValue | undefined;
 }) {
   const id = `field-${field.id}`;
+
+  if (disabledCategory) {
+    return (
+      <div
+        className="dynamic-field field-blocked alert alert-warning"
+        role="status"
+      >
+        <strong>{field.label}</strong>
+        <p className="muted">
+          Captura no habilitada: el tratamiento de datos para la categoría{" "}
+          <code>{field.processingCategory}</code> se encuentra actualmente
+          deshabilitado por la institución.
+        </p>
+      </div>
+    );
+  }
+
   const required = field.required ? (
     <span aria-hidden="true" className="required-mark">
       {" "}

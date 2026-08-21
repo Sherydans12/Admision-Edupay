@@ -53,6 +53,15 @@ export const formFieldSchema = z
     label: text(200),
     options: z.array(optionSchema).max(50).nullable().optional(),
     order: z.number().int().positive(),
+    processingCategory: z
+      .enum([
+        "ORDINARY_ADMISSION",
+        "SUPPORT_ACCOMMODATION",
+        "PIE_NEE_DIAGNOSTIC",
+        "HEALTH",
+      ])
+      .nullable()
+      .optional(),
     purpose: text(160),
     required: z.boolean(),
     sectionId: uuid,

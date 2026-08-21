@@ -613,30 +613,92 @@ describe.sequential(
       expect(body.error).toBe("VALIDATION");
     });
 
-    it("R4-HTTP-08: sensitive response/process requiring authority: email verification alone is insufficient", async () => {
-      // Create draft via HTTP API
-      const draftAppRes = await mutation(
-        `/family/tenants/${fixture.tenantAId}/applications`,
-        fixture.familyAToken,
+    it("R4-HTTP-08: sensitive response requiring authority: email verification alone is insufficient and save is denied", async () => {
+      // 1. Enable HEALTH temporarily to publish a form version with a HEALTH field
+      await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminFullToken,
         {
-          offeringId: fixture.offeringAId,
-          studentId: fixture.studentAId,
+          category: "HEALTH",
+          enabled: true,
+          purpose: "Publishing health form version",
         },
       );
-      expect(draftAppRes.status).toBe(201);
-      const appData = (await draftAppRes.json()) as { id: string };
 
-      // Attempting to submit application without declared/verified authority fails with 400/403/422
-      const submitRes = await mutation(
-        `/family/tenants/${fixture.tenantAId}/applications/${appData.id}/submit`,
-        fixture.familyAToken,
+      const formDefRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/forms`,
+        fixture.adminFullToken,
+        {
+          name: "Formulario Sensible R4",
+          purpose: "admission_application",
+        },
+      );
+      const formDef = (await formDefRes.json()) as { id: string };
+
+      const draftRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/forms/${formDef.id}/versions`,
+        fixture.adminFullToken,
         {},
       );
-      expect(submitRes.status).toBeGreaterThanOrEqual(400);
-    });
+      const draft = (await draftRes.json()) as { id: string };
 
-    it("R4-HTTP-09: valid authority but category disabled remains denied", async () => {
-      // Create draft via HTTP API
+      const secRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/sections`,
+        fixture.adminFullToken,
+        { order: 1, title: "Salud" },
+      );
+      const section = (await secRes.json()) as { id: string };
+
+      const fieldRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/fields`,
+        fixture.adminFullToken,
+        {
+          key: "health_allergies_http",
+          label: "Alergias del estudiante",
+          order: 1,
+          processingCategory: "HEALTH",
+          purpose: "medical_records",
+          required: false,
+          sectionId: section.id,
+          sensitivity: "highly_restricted",
+          type: "TEXT",
+        },
+      );
+      const healthField = (await fieldRes.json()) as { id: string };
+
+      const boolFieldRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/fields`,
+        fixture.adminFullToken,
+        {
+          key: "confirmed_info_http",
+          label: "Confirma información",
+          order: 2,
+          processingCategory: "ORDINARY_ADMISSION",
+          purpose: "admission_application",
+          required: true,
+          sectionId: section.id,
+          sensitivity: "restricted",
+          type: "BOOLEAN",
+        },
+      );
+      const boolField = (await boolFieldRes.json()) as { id: string };
+
+      await mutation(
+        `/admin/tenants/${fixture.tenantAId}/form-versions/${draft.id}/publish`,
+        fixture.adminFullToken,
+        {},
+      );
+
+      // Assign form version to the offering
+      const assignRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/offerings/${fixture.offeringAId}/form-version`,
+        fixture.adminFullToken,
+        { formVersionId: draft.id },
+        "PUT",
+      );
+      expect(assignRes.status).toBe(200);
+
+      // Create or get draft application for student A
       const draftAppRes = await mutation(
         `/family/tenants/${fixture.tenantAId}/applications`,
         fixture.familyAToken,
@@ -645,7 +707,6 @@ describe.sequential(
           studentId: fixture.studentAId,
         },
       );
-      // Might return 201 or 409 if active draft exists
       let appId = "";
       if (draftAppRes.status === 201) {
         appId = ((await draftAppRes.json()) as { id: string }).id;
@@ -657,6 +718,41 @@ describe.sequential(
         const list = (await listRes.json()) as { items: Array<{ id: string }> };
         appId = list.items[0]!.id;
       }
+
+      // Attempting to save HEALTH answer without declared/verified authority fails (409 or 400)
+      const saveRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${appId}/answers`,
+        fixture.familyAToken,
+        {
+          answers: [
+            {
+              fieldId: healthField.id,
+              value: "Alergias HTTP sin autoridad",
+            },
+          ],
+        },
+        "PUT",
+      );
+      expect(saveRes.status).toBeGreaterThanOrEqual(400);
+
+      // Prove ApplicationDraftAnswer was NOT written in the database
+      const dbCheck = await migrationPool.query(
+        "SELECT * FROM application_draft_answers WHERE application_id = $1 AND field_id = $2",
+        [appId, healthField.id],
+      );
+      expect(dbCheck.rows).toHaveLength(0);
+
+      // Store ids on fixture-scoped variables for next tests
+      (fixture as Record<string, unknown>).sensitiveAppId = appId;
+      (fixture as Record<string, unknown>).healthFieldId = healthField.id;
+      (fixture as Record<string, unknown>).boolFieldId = boolField.id;
+    });
+
+    it("R4-HTTP-09: valid authority but category disabled remains denied fail-closed", async () => {
+      const appId = (fixture as Record<string, unknown>)
+        .sensitiveAppId as string;
+      const healthFieldId = (fixture as Record<string, unknown>)
+        .healthFieldId as string;
 
       // Declare authority
       const decRes = await mutation(
@@ -696,33 +792,75 @@ describe.sequential(
         },
       );
       expect(verifyRes.status).toBe(201);
-    });
 
-    it("R4-HTTP-10: valid authority + enabled category + all normal requirements succeeds", async () => {
-      const listRes = await request(
-        `/family/tenants/${fixture.tenantAId}/applications`,
-        { token: fixture.familyAToken },
+      // Disable HEALTH category on tenant A
+      const disableRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminFullToken,
+        {
+          category: "HEALTH",
+          enabled: false,
+          purpose: null,
+        },
       );
-      const list = (await listRes.json()) as { items: Array<{ id: string }> };
-      const appId = list.items[0]!.id;
+      expect(disableRes.status).toBe(201);
 
-      // Save answers for required fields
-      const formRes = await request(
-        `/family/tenants/${fixture.tenantAId}/applications/${appId}/form`,
-        { token: fixture.familyAToken },
-      );
-      const formData = (await formRes.json()) as {
-        form: { sections: Array<{ fields: Array<{ id: string }> }> };
-      };
-      const fieldId = formData.form.sections[0]!.fields[0]!.id;
-
+      // Attempt to save sensitive answer while category is disabled → 400
       const saveRes = await mutation(
         `/family/tenants/${fixture.tenantAId}/applications/${appId}/answers`,
         fixture.familyAToken,
         {
           answers: [
             {
-              fieldId,
+              fieldId: healthFieldId,
+              value: "Alergias HTTP deshabilitado",
+            },
+          ],
+        },
+        "PUT",
+      );
+      expect(saveRes.status).toBe(400);
+
+      // Prove ApplicationDraftAnswer was NOT persisted
+      const dbCheck = await migrationPool.query(
+        "SELECT * FROM application_draft_answers WHERE application_id = $1 AND field_id = $2",
+        [appId, healthFieldId],
+      );
+      expect(dbCheck.rows).toHaveLength(0);
+    });
+
+    it("R4-HTTP-10: valid authority + enabled category + all normal requirements succeeds", async () => {
+      const appId = (fixture as Record<string, unknown>)
+        .sensitiveAppId as string;
+      const healthFieldId = (fixture as Record<string, unknown>)
+        .healthFieldId as string;
+      const boolFieldId = (fixture as Record<string, unknown>)
+        .boolFieldId as string;
+
+      // Enable HEALTH category on tenant A with explicit purpose
+      const enableRes = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminFullToken,
+        {
+          category: "HEALTH",
+          enabled: true,
+          purpose: "Atención de primeros auxilios",
+        },
+      );
+      expect(enableRes.status).toBe(201);
+
+      // Save sensitive answer + required boolean answer
+      const saveRes = await mutation(
+        `/family/tenants/${fixture.tenantAId}/applications/${appId}/answers`,
+        fixture.familyAToken,
+        {
+          answers: [
+            {
+              fieldId: healthFieldId,
+              value: "Sin alergias médicas conocidas",
+            },
+            {
+              fieldId: boolFieldId,
               value: true,
             },
           ],
@@ -730,7 +868,27 @@ describe.sequential(
         "PUT",
       );
       expect(saveRes.status).toBe(200);
+      const saveBody = (await saveRes.json()) as {
+        answers: Array<{ fieldId: string; value: unknown }>;
+      };
+      expect(
+        saveBody.answers.find((a) => a.fieldId === healthFieldId)?.value,
+      ).toBe("Sin alergias médicas conocidas");
 
+      // Verify answers are reloaded via HTTP GET /form
+      const formRes = await request(
+        `/family/tenants/${fixture.tenantAId}/applications/${appId}/form`,
+        { token: fixture.familyAToken },
+      );
+      expect(formRes.status).toBe(200);
+      const formData = (await formRes.json()) as {
+        answers: Array<{ fieldId: string; value: unknown }>;
+      };
+      expect(
+        formData.answers.find((a) => a.fieldId === healthFieldId)?.value,
+      ).toBe("Sin alergias médicas conocidas");
+
+      // Submit succeeds
       const submitRes = await mutation(
         `/family/tenants/${fixture.tenantAId}/applications/${appId}/submit`,
         fixture.familyAToken,
@@ -772,6 +930,21 @@ describe.sequential(
       expect(
         res.headers.get("x-correlation-id") || body.correlationId,
       ).toBeDefined();
+    });
+
+    it("R4-HTTP-13: enabling sensitive category with null purpose returns 400 validation error", async () => {
+      const res = await mutation(
+        `/admin/tenants/${fixture.tenantAId}/sensitive-processing/policy`,
+        fixture.adminFullToken,
+        {
+          category: "HEALTH",
+          enabled: true,
+          purpose: null,
+        },
+      );
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error?: string };
+      expect(body.error).toBe("VALIDATION");
     });
   },
 );

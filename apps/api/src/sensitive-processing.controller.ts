@@ -49,7 +49,7 @@ export class SensitiveProcessingController {
       this.sensitiveProcessing.updatePolicy(context, {
         category: input.category,
         enabled: input.enabled,
-        purpose: input.purpose,
+        purpose: input.purpose ?? null,
       }),
     );
   }

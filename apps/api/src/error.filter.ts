@@ -25,6 +25,7 @@ import {
   ReportExportLimitExceededError,
   ReportValidationError,
   RoleAssignmentChangedError,
+  SensitiveProcessingValidationError,
 } from "@admission/database";
 import { getCorrelationId } from "./correlation-context.js";
 import { StructuredLogger } from "./structured-logger.js";
@@ -151,6 +152,8 @@ function exceptionStatus(exception: unknown): number {
   if (exception instanceof AccountRegistrationValidationError)
     return HttpStatus.BAD_REQUEST;
   if (exception instanceof AccountVerificationError)
+    return HttpStatus.BAD_REQUEST;
+  if (exception instanceof SensitiveProcessingValidationError)
     return HttpStatus.BAD_REQUEST;
   return HttpStatus.INTERNAL_SERVER_ERROR;
 }

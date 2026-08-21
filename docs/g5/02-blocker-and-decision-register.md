@@ -237,6 +237,19 @@ técnica EduPay siguen fuera de alcance.
 | Evidencia directa RLS | `COMPLETE / PASS` | `packages/database/src/sensitive-processing.rls.integration.spec.ts` (8 pruebas) |
 | Evidencia directa HTTP | `COMPLETE / PASS` | `apps/api/src/sensitive-processing.http.integration.spec.ts` (12 pruebas) |
 | Evidencia directa integración | `COMPLETE / PASS` | `packages/database/src/sensitive-processing.integration.spec.ts` (37 pruebas) |
-| UI de configuración sensible | `COMPLETE` | `apps/web/app/sensitive-processing-workflows.tsx` y workflows de forms/documentos |
-| `Q-106` / `LP3-ART-006` / `C-013` | `SIN CAMBIO` | Procedimiento legal e institucional permanece abierto |
 | `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | Gates permanecen bloqueados |
+
+## Addendum G5-PC1-R4H2 — remediación de guard de captura sensible en tiempo de ejecución (2026-08-21)
+
+| Item | Disposición R4H2 | Implicación |
+| --- | --- | --- |
+| `PC1-TECH-003` (guard central captura sensible) | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | `assertSensitiveProcessingAllowedForApplicationField` ejecutado antes de persistir respuestas sensibles |
+| Invariante de propósito obligatorio | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | Habilitación de `HEALTH` o `PIE_NEE_DIAGNOSTIC` requiere `purpose` no vacío (<=200 chars); rechazo en dominio y API |
+| Evidencia directa en BD (`R4-AUTH-01..07`, etc.) | `DIRECT_EVIDENCE_COMPLETE / 47 DB Tests PASS` | Zero placeholder assertions; verificación en PostgreSQL directa |
+| Evidencia directa HTTP (`R4-HTTP-01..13`) | `DIRECT_EVIDENCE_COMPLETE / 13 HTTP Tests PASS` | Pruebas de boundary completas con suite Nest/PostgreSQL real |
+| Evidencia RLS (`R4-RLS-01..08`) | `DIRECT_EVIDENCE_COMPLETE / 8 RLS Tests PASS` | 55/55 RLS tests workspace PASS |
+| Migration 18 | `IMMUTABLE / INTACT` | Sin modificaciones al schema DDL |
+| Migration 19 | `ABSENT / NOT AUTHORIZED` | No autorizada ni requerida |
+| `Q-106` / `LP3-ART-006` / `C-013` | `SIN CAMBIO` | Procedimientos legales e institucionales permanecen abiertos |
+| `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |
+

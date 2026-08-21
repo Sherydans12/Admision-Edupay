@@ -350,3 +350,30 @@ G5-PC1-R4H completa la evidencia directa y la interfaz mínima autorizada:
    - Document Requirements (`apps/web/app/document-workflows.tsx`): selectores de `processingCategory` y `documentClassification`.
    - Workspace administrativo de tratamiento sensible (`apps/web/app/sensitive-processing-workflows.tsx` y `page.tsx`).
 5. **Smokes:** `pnpm g5pc1r4:migration:smoke` (Fresh 0→18 PASS, Incremental 17→18 PASS, Seals PASS). Migration 18 inalterada; Migration 19 ausente.
+
+## Addendum G5-PC1-R4H2 — corrección de guard de captura sensible y propósito obligatorio (2026-08-21)
+
+G5-PC1-R4H2 resuelve de manera definitiva el hallazgo de revisión humana independiente sobre la captura sensible en tiempo de ejecución:
+1. **Guard central de captura sensible (`assertSensitiveProcessingAllowedForApplicationField`):**
+   - Función de dominio reutilizable y centralizada invocada antes de persistir respuestas no nulas a campos con categoría `HEALTH` o `PIE_NEE_DIAGNOSTIC`.
+   - Exige concurrentemente: (A) categoría sensible efectivamente habilitada para el tenant (`SensitiveProcessingValidationError("PROCESSING_CATEGORY_DISABLED")`), y (B) `ApplicationAuthority` válida y verificada para el estudiante/familia (`ApplicationAuthorityConflictError`).
+   - `ORDINARY_ADMISSION` y `SUPPORT_ACCOMMODATION` preservan su comportamiento directo sin fricción.
+   - En captura asistida, el operador staff no sustituye al principal familiar; la autoridad familiar sobre la postulación es evaluada estrictamente.
+   - Eliminación / vaciado de respuestas (`value = null` o whitespace) permitido sin atrapar datos sensibles.
+2. **Invariante de propósito obligatorio:**
+   - La habilitación de `HEALTH` o `PIE_NEE_DIAGNOSTIC` exige `purpose` no nulo, no vacío y <= 200 caracteres tanto a nivel de dominio (`SensitiveProcessingService.updatePolicy`) como a nivel de API HTTP (`updatePolicySchema`).
+   - La deshabilitación permite `purpose: null`.
+3. **Frontend fail-closed (`apps/web/app/form-workflows.tsx`):**
+   - Si una categoría sensible está deshabilitada a nivel de tenant, los campos correspondientes muestran un aviso visual informativo, quedan deshabilitados para edición y son excluidos del payload de persistencia.
+4. **Evidencia automatizada directa:**
+   - `packages/database/src/sensitive-processing.integration.spec.ts`: 47/47 pruebas aprobadas (`R4-AUTH-01..07` directos con comprobación en DB, `R4-ASSISTED-01`, `R4-REG-01..02`, `R4-PUR-01..05`, `R4-CLR-01`, `R4-CAT-*`, `R4-POL-*`, `R4-PUB-*`, `R4-PER-*`, `R4-DOC-*`, `R4-SEC-*`).
+   - `apps/api/src/sensitive-processing.http.integration.spec.ts`: 13/13 pruebas HTTP aprobadas (`R4-HTTP-01..13`).
+   - `packages/database/src/sensitive-processing.rls.integration.spec.ts`: 8/8 pruebas RLS aprobadas (`pnpm test:rls` total 55/55 pruebas).
+   - `pnpm g5pc1r4:migration:smoke`: Fresh 0→18 = PASS, Incremental 17→18 = PASS, Seals = PASS.
+   - `pnpm test`: 40 suites, 601/601 pruebas aprobadas.
+5. **Invariantes arquitectónicas preservadas:**
+   - Migration 17 inmutable.
+   - Migration 18 inalterada.
+   - Migration 19 ausente.
+   - Sin nuevas categorías de datos.
+
