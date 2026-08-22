@@ -80,7 +80,8 @@ export type CapacityOfferConflictCode =
   | "OFFER_NOT_EXPIRED"
   | "OFFER_ALREADY_ACCEPTED"
   | "OFFER_EXPIRED"
-  | "APPLICATION_WITHDRAWN";
+  | "APPLICATION_WITHDRAWN"
+  | "BUSINESS_CALENDAR_NOT_CONFIGURED";
 
 export class CapacityOfferConflictError extends Error {
   constructor(readonly code: CapacityOfferConflictCode) {
@@ -130,5 +131,38 @@ export class ApplicationAuthorityValidationError extends Error {
   constructor(message = "Invalid application authority input") {
     super(message);
     this.name = "ApplicationAuthorityValidationError";
+  }
+}
+
+export type BusinessCalendarConflictCode =
+  | "BUSINESS_CALENDAR_NOT_CONFIGURED"
+  | "BUSINESS_CALENDAR_VERSION_CHANGED"
+  | "EXCLUDED_DATE_ALREADY_EXISTS";
+
+export class BusinessCalendarConflictError extends Error {
+  constructor(readonly code: BusinessCalendarConflictCode) {
+    super(code);
+    this.name = "BusinessCalendarConflictError";
+  }
+}
+
+export class BusinessCalendarValidationError extends Error {
+  constructor(message = "Invalid business calendar input") {
+    super(message);
+    this.name = "BusinessCalendarValidationError";
+  }
+}
+
+export class BusinessCalendarNotConfiguredError extends BusinessCalendarConflictError {
+  constructor() {
+    super("BUSINESS_CALENDAR_NOT_CONFIGURED");
+    this.name = "BusinessCalendarNotConfiguredError";
+  }
+}
+
+export class InvalidBusinessTimezoneError extends BusinessCalendarValidationError {
+  constructor(message = "Invalid IANA business timezone") {
+    super(message);
+    this.name = "InvalidBusinessTimezoneError";
   }
 }

@@ -263,13 +263,29 @@ técnica EduPay siguen fuera de alcance.
 | `PC1-TECH-005` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Evidencia documental privada para autoridad revisada |
 | `PC1-TECH-006` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Estudiante >=18 autodeclaración revisada |
 | `Q-106` | `TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING / PILOT_PRECONDITION` | Procedimiento legal e institucional definitivo permanece abierto |
-| `PC1-R4` | `IMPLEMENTED / DIRECT_EVIDENCE_COMPLETE / MINIMUM_UX_COMPLETE / PENDING HUMAN FINAL REVIEW` | Categorías de tratamiento sensible + guards + UX completa + suites directas |
-| `PC1-TECH-003` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | Guard central de captura sensible en tiempo de ejecución |
-| `PC1-TECH-010` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | HEALTH fail-closed con opción explícita de eliminación |
-| `PC1-TECH-011` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | PIE/NEE fail-closed con opción explícita de eliminación |
-| `PC1-TECH-012` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` | Informe de personalidad con scope puntual a oferta |
+| `PC1-R4` | `COMPLETE / TECHNICALLY_ACCEPTED` | Categorías de tratamiento sensible + guards + UX completa + suites directas |
+| `PC1-TECH-003` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Guard central de captura sensible en tiempo de ejecución |
+| `PC1-TECH-010` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | HEALTH fail-closed con opción explícita de eliminación |
+| `PC1-TECH-011` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | PIE/NEE fail-closed con opción explícita de eliminación |
+| `PC1-TECH-012` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Informe de personalidad con scope puntual a oferta |
 | `R4-CLEAR-HTTP-01` | `PASS` | Eliminación de respuesta previa sensible vía `value = null` permite submit |
 | Migration 17 | `IMMUTABLE / INTACT` | `20260816070000_g5pc1r12_authority_core` |
 | Migration 18 | `IMMUTABLE / INTACT` | `20260820090000_g5pc1r4_sensitive_processing` |
-| Migration 19 | `ABSENT / NOT AUTHORIZED` | No autorizada ni requerida |
 | `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |
+
+## Addendum G5-PC1-R3 — calendario laboral institucional, plazos y recordatorios (2026-08-21)
+
+| Item | Disposición canónica | Implicación |
+| --- | --- | --- |
+| `PC1-R3` | `COMPLETE / TECHNICALLY_REVIEWED` | Calendario laboral por tenant, plazos 23:59:59.999 y recordatorios 10:00:00.000 |
+| `PC1-TECH-007` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Calendario persistido por tenant + IANA timezone + exclusión de feriados explícita |
+| `PC1-TECH-008` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Plazo 3 días hábiles en ofertas y subsanaciones venciendo a las 23:59:59.999 local (día de emisión no cuenta) |
+| `PC1-TECH-009` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Recordatorio de oferta 1 día hábil antes a las 10:00:00.000 local vía outbox + worker dedicado |
+| Migration 19 | `APPLIED / SEALED / SMOKE PASS` | `20260821190000_g5pc1r3_business_calendar` (RLS + grants exclusivos a `admission_app`) |
+| Migration 20 | `ABSENT / NOT AUTHORIZED` | No creada ni autorizada |
+| Evidencia directa integración (`R3-CAL-*`, `R3-DL-*`, `R3-REM-*`, `R3-OFFER-*`) | `DIRECT_EVIDENCE_COMPLETE / 21 Tests PASS` | `packages/database/src/business-calendar.integration.spec.ts` |
+| Evidencia directa RLS (`R3-RLS-01..08`) | `DIRECT_EVIDENCE_COMPLETE / 8 Tests PASS` | `packages/database/src/business-calendar.rls.integration.spec.ts` |
+| Evidencia directa Worker (`R3-WORK-01..06`) | `DIRECT_EVIDENCE_COMPLETE / 5 Tests PASS` | `apps/worker/src/offer-reminder-worker.integration.spec.ts` |
+| Evidencia directa HTTP (`R3-HTTP-01..10`) | `DIRECT_EVIDENCE_COMPLETE / 10 Tests PASS` | `apps/api/src/business-calendar.http.integration.spec.ts` |
+| `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |
+

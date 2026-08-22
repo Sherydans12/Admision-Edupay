@@ -465,7 +465,7 @@ autorizada, con evidencia en [`17-g5pc1r12-authority-adult-core.md`](17-g5pc1r12
 
 | TECH | Estado post-R12 |
 | --- | --- |
-| `PC1-TECH-001`, `002`, `004`, `005`, `006` | `IMPLEMENTED / PENDING_HUMAN_TECHNICAL_REVIEW` |
+| `PC1-TECH-001`, `002`, `004`, `005`, `006` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
 | `PC1-TECH-003` | `NOT_IMPLEMENTED / DEFERRED_TO_PC1-R4` |
 | `PC1-TECH-007..015` | Sin cambio respecto de PC1D |
 
@@ -473,3 +473,21 @@ Migration 17 se limita a DOB nullable y autoridad/history/evidence con RLS; no i
 backfill, gate sensible genérico, calendario, providers ni EduPay. `Q-106` no se cierra:
 queda `TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING /
 PILOT_PRECONDITION`. `LP3-ART-006`, `C-013`, los exits y prohibiciones originales continúan.
+
+## Addendum post-R3 — disposición factual (2026-08-21)
+
+Este addendum registra la implementación de los grupos R4 y R3 autorizados, con evidencia en [`18-g5pc1r4-sensitive-processing-plan.md`](18-g5pc1r4-sensitive-processing-plan.md) y [`20-g5pc1r3-business-calendar-evidence.md`](20-g5pc1r3-business-calendar-evidence.md).
+
+| TECH | Estado post-R3 | Evidencia / Observaciones |
+| --- | --- | --- |
+| `PC1-TECH-001`..`006` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Migration 17 (`g5pc1r12_authority_core`) + suite de integración y RLS |
+| `PC1-TECH-003`, `010`, `011`, `012` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Migration 18 (`g5pc1r4_sensitive_processing`) + guards centrales + suite directa |
+| `PC1-TECH-007` (Business calendar per tenant) | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Migration 19 (`g5pc1r3_business_calendar`) + motor de calendario + RLS + API + UI |
+| `PC1-TECH-008` (3-business-day offer & doc deadlines at 23:59) | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Motor de cálculo civil + normalización 23:59:59.999 local en ofertas y subsanaciones |
+| `PC1-TECH-009` (Offer reminder 1-day prior at 10:00 local) | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Cálculo a las 10:00:00.000 local + outbox topic + OfferReminderWorker |
+| `PC1-TECH-013`..`015` | `PARTIAL / NOT_IMPLEMENTED` | Fuera de alcance en R3; pendientes para etapas posteriores |
+
+Migration 19 acotada estrictamente a `tenant_business_calendars` y `business_calendar_excluded_dates`.
+Migration 20 ausente y no autorizada.
+G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED`.
+

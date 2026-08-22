@@ -13,6 +13,11 @@ import {
   DevelopmentBusinessCalendar,
   type BusinessCalendar,
 } from "./documents.js";
+import {
+  calculateBusinessDeadline,
+  calculateOfferReminderAt,
+  OFFER_REMINDER_PREPARE_TOPIC,
+} from "./business-calendar.js";
 import type { Prisma, PrismaClient } from "./generated/prisma/client.js";
 import {
   PERMISSIONS,
@@ -26,6 +31,7 @@ import type {
 import { withTenantTransaction } from "./tenant-transaction.js";
 
 export const OFFER_EXPIRY_TOPIC = "admission.offer.expire";
+export { OFFER_REMINDER_PREPARE_TOPIC };
 export const DEFAULT_OFFER_VALIDITY_BUSINESS_DAYS = 3;
 
 export interface CapacityInput {
@@ -444,12 +450,55 @@ async function enqueueExpiry(
   });
 }
 
+async function enqueueOfferReminder(
+  transaction: Prisma.TransactionClient,
+  context: TenantExecutionContext,
+  input: { availableAt: Date; offerId: string; offerVersionId: string },
+): Promise<void> {
+  await transaction.outboxMessage.create({
+    data: {
+      availableAt: input.availableAt,
+      idempotencyKey: `offer-reminder-prepare:${input.offerVersionId}`,
+      payload: asJson({
+        correlationId: context.correlationId,
+        offerId: input.offerId,
+        offerVersionId: input.offerVersionId,
+      }),
+      tenantId: context.tenantId,
+      topic: OFFER_REMINDER_PREPARE_TOPIC,
+    },
+  });
+}
+
+async function resolveTenantCalendar(
+  transaction: Prisma.TransactionClient,
+  tenantId: string,
+): Promise<{ excludedDates: Set<string>; timezone: string }> {
+  const calendar = await transaction.tenantBusinessCalendar.findFirst({
+    where: { tenantId },
+  });
+  if (!calendar) {
+    throw new CapacityOfferConflictError("BUSINESS_CALENDAR_NOT_CONFIGURED");
+  }
+  const excludedRows = await transaction.businessCalendarExcludedDate.findMany({
+    select: { calendarDate: true },
+    where: { tenantId },
+  });
+  const excludedDates = new Set<string>();
+  for (const row of excludedRows) {
+    const d = row.calendarDate;
+    const iso = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+    excludedDates.add(iso);
+  }
+  return { excludedDates, timezone: calendar.timezone };
+}
+
 async function reserveAndIssue(
   transaction: Prisma.TransactionClient,
   context: TenantExecutionContext,
   input: {
     applicationId: string;
-    calendar: BusinessCalendar;
+    calendar?: BusinessCalendar | undefined;
     expectedCapacityVersion?: number | undefined;
     issuedAt: Date;
     offeringId: string;
@@ -512,10 +561,21 @@ async function reserveAndIssue(
       tenantId: context.tenantId,
     },
   });
-  const expiresAt = input.calendar.addBusinessDays(
+
+  const cal = await resolveTenantCalendar(transaction, context.tenantId);
+  const expiresAt = calculateBusinessDeadline(
     input.issuedAt,
     capacity.offerValidityBusinessDays,
+    cal,
+    cal.excludedDates,
   );
+  const reminderAt = calculateOfferReminderAt(
+    input.issuedAt,
+    expiresAt,
+    cal,
+    cal.excludedDates,
+  );
+
   const version = await transaction.admissionOfferVersion.create({
     data: {
       applicationId: input.applicationId,
@@ -543,6 +603,13 @@ async function reserveAndIssue(
     offerId: offer.id,
     offerVersionId: version.id,
   });
+  if (reminderAt !== null) {
+    await enqueueOfferReminder(transaction, context, {
+      availableAt: reminderAt,
+      offerId: offer.id,
+      offerVersionId: version.id,
+    });
+  }
   await recordAudit(transaction, context, {
     action: "SEAT_RESERVED",
     occurredAt: input.issuedAt,
@@ -1048,9 +1115,18 @@ export class CapacityOfferService {
           tenantId: context.tenantId,
         },
       });
-      const expiresAt = this.calendar.addBusinessDays(
+      const cal = await resolveTenantCalendar(transaction, context.tenantId);
+      const expiresAt = calculateBusinessDeadline(
         now,
         capacity.offerValidityBusinessDays,
+        cal,
+        cal.excludedDates,
+      );
+      const reminderAt = calculateOfferReminderAt(
+        now,
+        expiresAt,
+        cal,
+        cal.excludedDates,
       );
       const version = await transaction.admissionOfferVersion.create({
         data: {
@@ -1084,6 +1160,13 @@ export class CapacityOfferService {
         offerId,
         offerVersionId: version.id,
       });
+      if (reminderAt !== null) {
+        await enqueueOfferReminder(transaction, context, {
+          availableAt: reminderAt,
+          offerId,
+          offerVersionId: version.id,
+        });
+      }
       await recordAudit(transaction, context, {
         action: "SEAT_RESERVED",
         occurredAt: now,

@@ -218,6 +218,13 @@ describe.sequential("E5-E recommendation and direction", () => {
           },
         });
         offeringId = offering.id;
+        await transaction.tenantBusinessCalendar.create({
+          data: {
+            concurrencyVersion: 1,
+            tenantId,
+            timezone: "America/Santiago",
+          },
+        });
       }),
     );
     const submittedFixture = await createSubmittedApplication();

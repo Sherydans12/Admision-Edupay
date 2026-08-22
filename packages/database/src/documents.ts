@@ -3,11 +3,13 @@ import { createHash } from "node:crypto";
 import { Prisma, type PrismaClient } from "./generated/prisma/client.js";
 import { authorizeOrThrow, ForbiddenError } from "./authorization.js";
 import {
+  BusinessCalendarNotConfiguredError,
   IntakeConflictError,
   IntakeDuplicateError,
   IntakeNotFoundError,
   IntakeValidationError,
 } from "./domain-errors.js";
+import { calculateBusinessDeadline } from "./business-calendar.js";
 import {
   createOpaqueObjectKey,
   type MalwareScanner,
@@ -1810,9 +1812,28 @@ export class DocumentService {
         requirementVersion: submission.requirementVersion,
         sensitivity: submission.requirementVersion.sensitivity as Sensitivity,
       });
-      const correctionDueAt = this.calendar.addBusinessDays(
+      const calendarRow = await transaction.tenantBusinessCalendar.findFirst({
+        where: { tenantId: context.tenantId },
+      });
+      if (!calendarRow) {
+        throw new BusinessCalendarNotConfiguredError();
+      }
+      const excludedRows =
+        await transaction.businessCalendarExcludedDate.findMany({
+          select: { calendarDate: true },
+          where: { tenantId: context.tenantId },
+        });
+      const excludedDates = new Set<string>();
+      for (const row of excludedRows) {
+        const d = row.calendarDate;
+        const iso = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+        excludedDates.add(iso);
+      }
+      const correctionDueAt = calculateBusinessDeadline(
         now,
         submission.requirementVersion.correctionWindowBusinessDays,
+        calendarRow,
+        excludedDates,
       );
       await transaction.documentReview.create({
         data: {

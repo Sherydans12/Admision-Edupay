@@ -138,6 +138,9 @@ async function seedFixture() {
   const applicationIds = await runWithTenantContext(seedContext, () =>
     withTenantTransaction(prisma, async (transaction) => {
       await transaction.$executeRaw`
+        INSERT INTO tenant_business_calendars (id,tenant_id,timezone,concurrency_version)
+        VALUES (${randomUUID()},${tenantAId},'America/Santiago',1)`;
+      await transaction.$executeRaw`
         INSERT INTO campuses (id,tenant_id,code,name)
         VALUES (${campusId},${tenantAId},'E5F-HTTP-CAMPUS','Sede E5-F HTTP')`;
       await transaction.$executeRaw`

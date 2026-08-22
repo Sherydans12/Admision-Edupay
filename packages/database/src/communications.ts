@@ -17,6 +17,7 @@ import { PERMISSIONS } from "./permission-catalog.js";
 import { StructuredLogger } from "./structured-logger.js";
 import { getRequiredTenantContext } from "./tenant-execution-context.js";
 import { withTenantTransaction } from "./tenant-transaction.js";
+import { formatLocalizedDeadline } from "./business-calendar.js";
 
 export const COMMUNICATION_SEND_TOPIC = "admission.communication.send";
 
@@ -231,12 +232,17 @@ export class CommunicationService {
       if (existing) return existing;
 
       const app = offerVer.offer.application;
+      const cal = await tx.tenantBusinessCalendar.findFirst({
+        where: { tenantId: context.tenantId },
+      });
+      const tz = cal?.timezone ?? "America/Santiago";
+      const deadlineText = formatLocalizedDeadline(offerVer.expiresAt, tz);
 
       const comm = await tx.communication.create({
         data: {
           applicationId: offerVer.applicationId,
           audience: CommunicationAudience.FAMILY,
-          body: `Se ha emitido una Oferta de Admisión para ${app.student.givenName}. Vence el ${offerVer.expiresAt.toISOString()}. Ingrese al Portal Familiar para aceptar o rechazar la oferta. Aceptar la oferta no equivale a matrícula o pago.`,
+          body: `Se ha emitido una Oferta de Admisión para ${app.student.givenName}. Vence el ${deadlineText}. Ingrese al Portal Familiar para aceptar o rechazar la oferta. Aceptar la oferta no equivale a matrícula o pago.`,
           lifecycle: CommunicationLifecycle.PREPARED,
           offerVersionId: offerVer.id,
           payloadSnapshot: {
@@ -307,12 +313,17 @@ export class CommunicationService {
       if (existing) return existing;
 
       const app = offerVer.offer.application;
+      const cal = await tx.tenantBusinessCalendar.findFirst({
+        where: { tenantId: context.tenantId },
+      });
+      const tz = cal?.timezone ?? "America/Santiago";
+      const deadlineText = formatLocalizedDeadline(offerVer.expiresAt, tz);
 
       const comm = await tx.communication.create({
         data: {
           applicationId: offerVer.applicationId,
           audience: CommunicationAudience.FAMILY,
-          body: `Recordatorio: La Oferta de Admisión para ${app.student.givenName} vencerá el ${offerVer.expiresAt.toISOString()}. Por favor confirme su decisión en el Portal Familiar.`,
+          body: `Recordatorio: La Oferta de Admisión para ${app.student.givenName} vencerá el ${deadlineText}. Por favor confirme su decisión en el Portal Familiar.`,
           lifecycle: CommunicationLifecycle.PREPARED,
           offerVersionId: offerVer.id,
           payloadSnapshot: {
@@ -369,12 +380,19 @@ export class CommunicationService {
       if (submission.status !== "OBSERVADO") return undefined;
 
       const lastReview = submission.reviews[0];
+      const cal = await tx.tenantBusinessCalendar.findFirst({
+        where: { tenantId: context.tenantId },
+      });
+      const tz = cal?.timezone ?? "America/Santiago";
+      const deadlineText = submission.correctionDueAt
+        ? formatLocalizedDeadline(submission.correctionDueAt, tz)
+        : "No especificado";
 
       const comm = await tx.communication.create({
         data: {
           applicationId: submission.applicationId,
           audience: CommunicationAudience.FAMILY,
-          body: `Se ha registrado una observación en el documento '${submission.requirement.name}' para la postulación de ${submission.application.student.givenName}. Motivo: ${lastReview?.reason ?? "Formato o legibilidad no aprobada"}. Plazo máximo de subsanación: ${submission.correctionDueAt?.toISOString() ?? "No especificado"}.`,
+          body: `Se ha registrado una observación en el documento '${submission.requirement.name}' para la postulación de ${submission.application.student.givenName}. Motivo: ${lastReview?.reason ?? "Formato o legibilidad no aprobada"}. Plazo máximo de subsanación: ${deadlineText}.`,
           documentSubmissionId: submission.id,
           lifecycle: CommunicationLifecycle.PREPARED,
           payloadSnapshot: {

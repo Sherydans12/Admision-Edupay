@@ -376,6 +376,7 @@ model PlatformUser {
   activityRescheduleRequests ActivityRescheduleRequest[]
   activityAppointments       ActivityAppointment[]
   activatedSensitiveProcessingPolicies SensitiveProcessingPolicy[] @relation("SensitiveProcessingPolicyActivator")
+  createdBusinessCalendarExcludedDates BusinessCalendarExcludedDate[] @relation("BusinessCalendarExcludedDateCreator")
 
   @@map("platform_users")
 }
@@ -477,6 +478,8 @@ model Tenant {
   manualContacts                  ManualContact[]
   auditEvents                     AuditEvent[]
   sensitiveProcessingPolicies     SensitiveProcessingPolicy[]
+  businessCalendar                TenantBusinessCalendar?
+  businessCalendarExcludedDates   BusinessCalendarExcludedDate[]
 
   @@map("tenants")
 }
@@ -1850,4 +1853,35 @@ model SensitiveProcessingPolicy {
   @@unique([tenantId, id])
   @@unique([tenantId, category])
   @@map("sensitive_processing_policies")
+}
+
+/// Tenant-scoped institutional business calendar configuration (R3-001, R3-002).
+model TenantBusinessCalendar {
+  id                 String                         @id @default(uuid()) @db.Uuid
+  tenantId           String                         @unique @map("tenant_id") @db.Uuid
+  timezone           String                         @db.VarChar(80)
+  concurrencyVersion Int                            @default(1) @map("concurrency_version")
+  createdAt          DateTime                       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(3)
+  tenant             Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "tenant_business_calendars_tenant_fkey")
+  excludedDates      BusinessCalendarExcludedDate[]
+
+  @@map("tenant_business_calendars")
+}
+
+/// Explicit tenant-configured excluded civil dates (holidays, closures) (R3-004).
+model BusinessCalendarExcludedDate {
+  id           String                 @id @default(uuid()) @db.Uuid
+  tenantId     String                 @map("tenant_id") @db.Uuid
+  calendarDate DateTime               @map("calendar_date") @db.Date
+  reason       String                 @db.VarChar(200)
+  createdBy    String                 @map("created_by") @db.Uuid
+  createdAt    DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  tenant       Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Cascade, map: "business_calendar_excluded_dates_tenant_fkey")
+  calendar     TenantBusinessCalendar @relation(fields: [tenantId], references: [tenantId], onDelete: Cascade, map: "business_calendar_excluded_dates_calendar_fkey")
+  creator      PlatformUser           @relation("BusinessCalendarExcludedDateCreator", fields: [createdBy], references: [id], onDelete: Restrict, map: "business_calendar_excluded_dates_creator_fkey")
+
+  @@unique([tenantId, calendarDate])
+  @@index([tenantId, calendarDate])
+  @@map("business_calendar_excluded_dates")
 }

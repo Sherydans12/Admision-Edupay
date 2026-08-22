@@ -275,6 +275,13 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
     // Setup tenant A offerings
     await runWithTenantContext(admissionStaff(), () =>
       withTenantTransaction(prisma, async (tx) => {
+        await tx.tenantBusinessCalendar.create({
+          data: {
+            concurrencyVersion: 1,
+            tenantId,
+            timezone: "America/Santiago",
+          },
+        });
         const campus = await tx.campus.create({
           data: { code: "E5G-CAMPUS", name: "Sede E5G", tenantId },
         });
@@ -333,6 +340,13 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
       staffCtx(admissionUserId, [PERMISSIONS.APPLICATION_RECOMMEND], tenantBId),
       () =>
         withTenantTransaction(prisma, async (tx) => {
+          await tx.tenantBusinessCalendar.create({
+            data: {
+              concurrencyVersion: 1,
+              tenantId: tenantBId,
+              timezone: "America/Santiago",
+            },
+          });
           const campus = await tx.campus.create({
             data: { code: "E5GB-CAMPUS", name: "Sede B", tenantId: tenantBId },
           });

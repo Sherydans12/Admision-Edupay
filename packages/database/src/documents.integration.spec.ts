@@ -17,6 +17,7 @@ import {
   IntakeValidationError,
 } from "./domain-errors.js";
 import { FormService } from "./forms.js";
+import { getLocalDate } from "./business-calendar.js";
 import { IntakeService } from "./intake.js";
 import {
   InMemoryObjectStorage,
@@ -105,6 +106,7 @@ function familyContext(actorId: string): FamilyExecutionContext {
 
 async function clearTables(): Promise<void> {
   await migrationPool.query(`TRUNCATE TABLE
+    "business_calendar_excluded_dates", "tenant_business_calendars",
     "application_snapshots", "application_draft_answers", "document_reviews",
     "document_versions", "document_submissions", "applications", "assistance_sessions",
     "document_requirement_versions", "document_requirements", "audit_events",
@@ -224,6 +226,7 @@ async function seedFixture() {
     const offering = ids[`offering${suffix}`];
     await prisma.$transaction(async (transaction) => {
       await transaction.$executeRaw`SELECT set_config('admission.tenant_id', ${tenant}, true)`;
+      await transaction.$executeRaw`INSERT INTO tenant_business_calendars (id,tenant_id,timezone,concurrency_version) VALUES (${randomUUID()},${tenant},'America/Santiago',1)`;
       await transaction.$executeRaw`INSERT INTO campuses (id,tenant_id,code,name) VALUES (${campus},${tenant},${`CAMPUS-${suffix}`},${`Campus ${suffix}`})`;
       await transaction.$executeRaw`INSERT INTO academic_years (id,tenant_id,code,label,status) VALUES (${year},${tenant},${`YEAR-${suffix}`},${`Year ${suffix}`},'OPEN')`;
       await transaction.$executeRaw`INSERT INTO course_levels (id,tenant_id,code,name) VALUES (${level},${tenant},${`LEVEL-${suffix}`},${`Level ${suffix}`})`;
@@ -1245,7 +1248,9 @@ describe.sequential("E5-C review, replacement and readiness", () => {
         new Date("2026-08-14T15:00:00Z"),
       ),
     );
-    expect(observed.correctionDueAt.startsWith("2026-08-19")).toBe(true);
+    expect(
+      getLocalDate(new Date(observed.correctionDueAt), "America/Santiago"),
+    ).toBe("2026-08-19");
     const overdue = await runWithTenantContext(fixture.applicantA, () =>
       documents.listFamilyDocuments(
         fixture.familyA,

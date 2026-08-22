@@ -390,6 +390,36 @@ G5-PC1-R4H3 cierra el micro-ajuste de UX en el flujo familiar de postulación:
    - `WEB_BEHAVIORAL_AUTOMATED_TEST = EVIDENCE_GAP / NO_EXISTING_HARNESS`.
    - `pnpm --filter @admission/web typecheck` y `pnpm --filter @admission/web build`: 100% PASS.
 
+## Addendum G5-PC1-R3 — calendario laboral institucional, plazos y recordatorios (2026-08-21)
+
+G5-PC1-R3 implementa el soporte completo de calendario laboral por tenant, plazos de 3 días hábiles terminando a las 23:59:59.999 local, y recordatorios de oferta 1 día hábil antes a las 10:00:00.000 local:
+1. **Modelo de datos y migración 19 (`20260821190000_g5pc1r3_business_calendar`):**
+   - Tablas `tenant_business_calendars` y `business_calendar_excluded_dates` con RLS habilitado y forzado (`FORCE ROW LEVEL SECURITY`).
+   - Políticas RLS por tenant y grants exclusivos a `admission_app`.
+   - Migración 17 y 18 inmutables; Migración 20 ausente.
+2. **Motor de calendario laboral (`packages/database/src/business-calendar.ts`):**
+   - Validación de identificadores IANA canónicos; rechazo de offsets fijos.
+   - Cálculo civil sin contar el día de emisión como día 1.
+   - Cálculo exacto de expiración (23:59:59.999 local) y recordatorio (10:00:00.000 local).
+   - Formato localizado en español para comunicaciones institucionales.
+3. **Integración en dominios operativos y worker:**
+   - `CapacityOfferService`: resolución fail-closed de calendario, expiración a las 23:59:59.999 local y encolado outbox de recordatorio (`admission.offer.reminder.prepare`).
+   - `DocumentService`: plazo de subsanación a las 23:59:59.999 local.
+   - `OfferReminderWorker`: procesamiento asíncrono con leasing, reintentos y respeto de fronteras tenant.
+4. **API REST y UI administrativa:**
+   - `GET/POST /admin/tenants/:tenantId/business-calendar` con control de concurrencia optimista y CSRF.
+   - `GET/POST/DELETE /admin/tenants/:tenantId/business-calendar/excluded-dates`.
+   - Pestaña de administración web para gestión de calendario y feriados/exclusiones institucionales.
+5. **Evidencia automatizada directa:**
+   - `packages/database/src/business-calendar.integration.spec.ts`: 21/21 PASS.
+   - `packages/database/src/business-calendar.rls.integration.spec.ts`: 8/8 PASS.
+   - `apps/worker/src/offer-reminder-worker.integration.spec.ts`: 5/5 PASS.
+   - `apps/api/src/business-calendar.http.integration.spec.ts`: 10/10 PASS.
+   - `pnpm g5pc1r3:migration:smoke`: Fresh 0→19 PASS, Incremental 18→19 PASS, Seals PASS.
+   - `pnpm test`: 43 archivos de prueba, 638/638 PASS.
+   - `pnpm test:rls`: 7 suites, 63/63 PASS.
+   - CI Workflow actualizado con paso de smoke para Migration 19.
+
 ### Disposiciones canónicas
 
 | ID | Estado canónico |
@@ -401,8 +431,12 @@ G5-PC1-R4H3 cierra el micro-ajuste de UX en el flujo familiar de postulación:
 | `PC1-TECH-005` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
 | `PC1-TECH-006` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
 | `Q-106` | `TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING / PILOT_PRECONDITION` |
-| `PC1-R4` | `IMPLEMENTED / DIRECT_EVIDENCE_COMPLETE / MINIMUM_UX_COMPLETE / PENDING HUMAN FINAL REVIEW` |
-| `PC1-TECH-003` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
-| `PC1-TECH-010` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
-| `PC1-TECH-011` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
-| `PC1-TECH-012` | `IMPLEMENTED / PENDING HUMAN FINAL REVIEW` |
+| `PC1-R4` | `COMPLETE / TECHNICALLY_ACCEPTED` |
+| `PC1-TECH-003` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-010` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-011` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-012` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-R3` | `COMPLETE / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-007` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-008` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-009` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |

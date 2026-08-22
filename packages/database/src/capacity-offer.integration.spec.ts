@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   ApplicationAuthorityService,
+  calculateBusinessDeadline,
   CapacityOfferService,
   DevelopmentBusinessCalendar,
   PERMISSIONS,
@@ -309,6 +310,13 @@ beforeAll(async () => {
   );
   await runWithTenantContext(staff(), () =>
     withTenantTransaction(prisma, async (transaction) => {
+      await transaction.tenantBusinessCalendar.create({
+        data: {
+          concurrencyVersion: 1,
+          tenantId,
+          timezone: "America/Santiago",
+        },
+      });
       const campus = await transaction.campus.create({
         data: { code: "E5F-CAMPUS", name: "Sede E5-F", tenantId },
       });
@@ -492,7 +500,7 @@ describe.sequential("E5-F capacity, waitlist, offers and withdrawal", () => {
     });
     const issuedAt = new Date(offer.current.issuedAt);
     expect(new Date(offer.current.expiresAt)).toEqual(
-      calendar.addBusinessDays(issuedAt, 5),
+      calculateBusinessDeadline(issuedAt, 5, { timezone: "America/Santiago" }),
     );
     const outbox = await runWithTenantContext(staff(), () =>
       withTenantTransaction(prisma, (transaction) =>

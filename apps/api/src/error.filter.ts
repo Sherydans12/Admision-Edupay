@@ -12,6 +12,8 @@ import {
   AccessAdminValidationError,
   AccountRegistrationValidationError,
   AccountVerificationError,
+  BusinessCalendarConflictError,
+  BusinessCalendarValidationError,
   CapacityOfferConflictError,
   CapacityOfferValidationError,
   FunctionalHandoffConflictError,
@@ -79,7 +81,10 @@ export interface PublicErrorResponse {
     | "AUTHORITY_EVIDENCE_INVALID"
     | "AUTHORITY_PRINCIPAL_MISMATCH"
     | "REPORT_EXPORT_LIMIT_EXCEEDED"
-    | "ROLE_ASSIGNMENT_CHANGED";
+    | "ROLE_ASSIGNMENT_CHANGED"
+    | "BUSINESS_CALENDAR_NOT_CONFIGURED"
+    | "BUSINESS_CALENDAR_VERSION_CHANGED"
+    | "EXCLUDED_DATE_ALREADY_EXISTS";
 }
 
 @Catch()
@@ -111,11 +116,13 @@ export class GlobalErrorFilter implements ExceptionFilter {
                 ? { code: exception.code }
                 : exception instanceof ApplicationAuthorityConflictError
                   ? { code: exception.code }
-                  : exception instanceof ReportExportLimitExceededError
+                  : exception instanceof BusinessCalendarConflictError
                     ? { code: exception.code }
-                    : exception instanceof RoleAssignmentChangedError
+                    : exception instanceof ReportExportLimitExceededError
                       ? { code: exception.code }
-                      : {}),
+                      : exception instanceof RoleAssignmentChangedError
+                        ? { code: exception.code }
+                        : {}),
     });
   }
 }
@@ -128,6 +135,8 @@ function exceptionStatus(exception: unknown): number {
   if (exception instanceof RecommendationConflictError)
     return HttpStatus.CONFLICT;
   if (exception instanceof CapacityOfferConflictError)
+    return HttpStatus.CONFLICT;
+  if (exception instanceof BusinessCalendarConflictError)
     return HttpStatus.CONFLICT;
   if (exception instanceof FunctionalHandoffConflictError)
     return HttpStatus.CONFLICT;
@@ -145,6 +154,8 @@ function exceptionStatus(exception: unknown): number {
   if (exception instanceof CapacityOfferValidationError)
     return HttpStatus.BAD_REQUEST;
   if (exception instanceof ApplicationAuthorityValidationError)
+    return HttpStatus.BAD_REQUEST;
+  if (exception instanceof BusinessCalendarValidationError)
     return HttpStatus.BAD_REQUEST;
   if (exception instanceof ReportValidationError) return HttpStatus.BAD_REQUEST;
   if (exception instanceof AccessAdminValidationError)

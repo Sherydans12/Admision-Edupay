@@ -218,6 +218,13 @@ describe("E5-G Communications and Dashboard HTTP API", () => {
               tenantId: tenantAId,
             },
           });
+          await tx.tenantBusinessCalendar.create({
+            data: {
+              concurrencyVersion: 1,
+              tenantId: tenantAId,
+              timezone: "America/Santiago",
+            },
+          });
           const formDef = await tx.formDefinition.create({
             data: {
               name: "Form HTTP",

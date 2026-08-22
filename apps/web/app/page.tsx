@@ -35,6 +35,7 @@ import {
   StaffReportsWorkspace,
 } from "./reporting-admin-workflows";
 import { AdminSensitiveProcessingWorkspace } from "./sensitive-processing-workflows";
+import { AdminBusinessCalendarWorkspace } from "./business-calendar-workflows";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
@@ -56,6 +57,7 @@ type AdminSection =
   | "forms"
   | "documents"
   | "sensitiveProcessing"
+  | "businessCalendar"
   | "campus"
   | "academicYear"
   | "courseLevel"
@@ -927,6 +929,7 @@ function AdminView({
     { key: "forms", label: "Formularios" },
     { key: "documents", label: "Documentos" },
     { key: "sensitiveProcessing", label: "Tratamiento sensible" },
+    { key: "businessCalendar", label: "Calendario y plazos" },
     { key: "activities", label: "Actividades" },
     { key: "campus", label: "Sede" },
     { key: "academicYear", label: "Año" },
@@ -981,6 +984,11 @@ function AdminView({
           <AdminDocumentRequirements apiBase={API_BASE} tenantId={tenantId} />
         ) : adminSection === "sensitiveProcessing" ? (
           <AdminSensitiveProcessingWorkspace
+            apiBase={API_BASE}
+            tenantId={tenantId}
+          />
+        ) : adminSection === "businessCalendar" ? (
+          <AdminBusinessCalendarWorkspace
             apiBase={API_BASE}
             tenantId={tenantId}
           />
@@ -1113,6 +1121,7 @@ function AdminForm({
     | "forms"
     | "documents"
     | "sensitiveProcessing"
+    | "businessCalendar"
     | "activities"
     | "support"
   >;
