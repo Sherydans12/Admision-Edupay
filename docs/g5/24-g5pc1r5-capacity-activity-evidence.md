@@ -99,7 +99,7 @@ esa inspección visual; los flujos funcionales se validaron por HTTP. `axe`, mat
 | `pnpm lint` | `PASS`, 0 errores y 0 warnings |
 | `pnpm typecheck` | `PASS`, 4 proyectos |
 | `pnpm build` | `PASS`, database/web/API/worker; web prerenderiza 5 páginas |
-| `pnpm security:secrets` | `PASS`, 366 archivos versionados inspeccionados |
+| `pnpm security:secrets` | `PASS`, 372 archivos versionados inspeccionados |
 | `pnpm security:deps` | `PASS`, sin vulnerabilidades conocidas high/critical |
 | `pnpm e5i:boundary:check` | `E5I_NO_EXTERNAL_INTEGRATION=PASS` |
 | `pnpm g5or:operations:smoke` | `G5OR-OPS-01..14 PASS` |
