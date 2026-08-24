@@ -18,6 +18,10 @@ import { StructuredLogger } from "./structured-logger.js";
 import { getRequiredTenantContext } from "./tenant-execution-context.js";
 import { withTenantTransaction } from "./tenant-transaction.js";
 import { formatLocalizedDeadline } from "./business-calendar.js";
+import {
+  hashSuppressedEmail,
+  type EmailSuppressionHashOptions,
+} from "./email-delivery.js";
 
 export const COMMUNICATION_SEND_TOPIC = "admission.communication.send";
 
@@ -53,7 +57,10 @@ export interface ProcessOutboxSendInput {
 
 export interface RecordDeliveryEvidenceInput {
   communicationId: string;
-  evidence: Record<string, unknown>;
+  evidence: {
+    occurredAt: string;
+    source: "MANUAL_CONFIRMATION";
+  };
   providerReference?: string;
 }
 
@@ -66,6 +73,10 @@ export interface RecordManualContactInput {
   notes?: string;
   outcome: string;
   purpose: string;
+}
+
+export interface CommunicationServiceOptions {
+  suppressionHashes?: readonly EmailSuppressionHashOptions[];
 }
 
 async function recordAudit(
@@ -102,6 +113,7 @@ export class CommunicationService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly emailAdapter: EmailAdapter = new DevelopmentEmailAdapter(),
+    private readonly options: CommunicationServiceOptions = {},
   ) {}
 
   async prepareDecisionCommunication(
@@ -621,11 +633,44 @@ export class CommunicationService {
       const nextSequence = (comm.attempts[0]?.sequence ?? 0) + 1;
       const now = new Date();
 
-      const sendResult = await this.emailAdapter.send({
-        body: comm.body,
-        recipientEmail: comm.recipientEmail,
-        subject: comm.subject,
-      });
+      const suppressionHashes = this.options.suppressionHashes ?? [];
+      const suppressionCandidates = suppressionHashes.map(
+        (suppressionHash) => ({
+          channelHash: hashSuppressedEmail(
+            context.tenantId,
+            comm.recipientEmail,
+            suppressionHash,
+          ),
+          hashKeyVersion: suppressionHash.keyVersion,
+        }),
+      );
+      const suppressed =
+        suppressionCandidates.length === 0
+          ? false
+          : (await tx.communicationSuppression.findFirst({
+              select: { id: true },
+              where: {
+                OR: suppressionCandidates,
+                tenantId: context.tenantId,
+              },
+            })) !== null;
+      const sendResult = suppressed
+        ? {
+            provider: "suppression-registry",
+            providerReference: `suppressed-${comm.id}-${nextSequence}`,
+            sanitizedErrorCode: "RECIPIENT_SUPPRESSED",
+            status: "FAILED" as const,
+          }
+        : await this.emailAdapter.send({
+            body: comm.body,
+            idempotencyKey: `communication-${comm.id}-${nextSequence}`,
+            recipientEmail: comm.recipientEmail,
+            subject: comm.subject,
+            tags: [
+              { name: "tenant_id", value: context.tenantId },
+              { name: "communication_id", value: comm.id },
+            ],
+          });
 
       if (sendResult.status === "SENT") {
         await tx.communicationAttempt.create({
@@ -634,7 +679,7 @@ export class CommunicationService {
             communicationId: comm.id,
             completedAt: now,
             deliveryEvidence: {},
-            provider: "DEVELOPMENT_EMAIL_ADAPTER",
+            provider: sendResult.provider,
             providerReference: sendResult.providerReference,
             sequence: nextSequence,
             technicalStatus: CommunicationAttemptStatus.SENT,
@@ -668,7 +713,7 @@ export class CommunicationService {
             communicationId: comm.id,
             completedAt: now,
             deliveryEvidence: {},
-            provider: "DEVELOPMENT_EMAIL_ADAPTER",
+            provider: sendResult.provider,
             providerReference: sendResult.providerReference,
             sanitizedErrorCode: sendResult.sanitizedErrorCode ?? null,
             sequence: nextSequence,
@@ -758,7 +803,7 @@ export class CommunicationService {
           communicationId: comm.id,
           completedAt: now,
           deliveryEvidence: (params.evidence ?? {}) as Prisma.InputJsonValue,
-          provider: "DEVELOPMENT_EMAIL_ADAPTER",
+          provider: "manual-confirmation",
           providerReference: params.providerReference ?? null,
           sequence: nextSequence,
           technicalStatus: CommunicationAttemptStatus.DELIVERED,

@@ -33,3 +33,32 @@ export class NoopSecurityEventSink implements SecurityEventSink {
     // Deliberately empty: the caller can inject an append-only security sink.
   }
 }
+
+export class StructuredSecurityEventSink implements SecurityEventSink {
+  private readonly logger = new StructuredLogger("security-events");
+
+  record(event: SecurityEvent): void {
+    const metadata = {
+      correlationId: event.correlationId,
+      occurredAt: event.occurredAt.toISOString(),
+      ...(event.subjectId === undefined
+        ? {}
+        : { subjectHash: opaqueHash(event.subjectId) }),
+      ...(event.tenantId === undefined
+        ? {}
+        : { tenantHash: opaqueHash(event.tenantId) }),
+    };
+    if (event.result === "DENY") {
+      this.logger.warn(event.code, event.result, metadata);
+    } else {
+      this.logger.info(event.code, event.result, metadata);
+    }
+  }
+}
+
+function opaqueHash(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
+}
+import { createHash } from "node:crypto";
+
+import { StructuredLogger } from "./structured-logger.js";

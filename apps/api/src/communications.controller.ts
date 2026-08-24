@@ -21,8 +21,13 @@ const confirmSchema = z
 
 const deliveryEvidenceSchema = z
   .object({
-    evidence: z.record(z.string(), z.unknown()),
-    providerReference: z.string().optional(),
+    evidence: z
+      .object({
+        occurredAt: z.iso.datetime(),
+        source: z.literal("MANUAL_CONFIRMATION"),
+      })
+      .strict(),
+    providerReference: z.string().min(1).max(160).optional(),
   })
   .strict();
 

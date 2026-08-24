@@ -560,8 +560,8 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
         commService.recordDeliveryEvidence({
           communicationId: prepared.id,
           evidence: {
-            webhookEvent: "delivered",
-            timestamp: new Date().toISOString(),
+            occurredAt: new Date().toISOString(),
+            source: "MANUAL_CONFIRMATION",
           },
         }),
       );
@@ -572,8 +572,8 @@ describe.sequential("E5-G Communications, Family Portal, and Dashboard", () => {
         commService.recordDeliveryEvidence({
           communicationId: prepared.id,
           evidence: {
-            webhookEvent: "delivered",
-            timestamp: new Date().toISOString(),
+            occurredAt: new Date().toISOString(),
+            source: "MANUAL_CONFIRMATION",
           },
         }),
       );

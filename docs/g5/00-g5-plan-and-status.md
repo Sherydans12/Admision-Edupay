@@ -455,12 +455,14 @@ primary/backup tenant-scoped con capability `activity.perform`.
 Migration 20 (`20260824130000_g5pc1r5_capacity_activity_policy`) quedó sellada con RLS
 forzado, FKs tenant-scoped, constraints, grants mínimos, backfill técnico de source sin
 cambiar minutos y sin seed institucional. Las migraciones 17..19 permanecen inmutables y
-Migration 21 está ausente/no autorizada.
+Migration 21 fue autorizada posteriormente sólo para la foundation sintética de
+preproducción y se documenta de forma separada en
+[`28-g5p2-preproduction-foundation-evidence.md`](28-g5p2-preproduction-foundation-evidence.md).
 
 Evidencia final: `pnpm test` 44 archivos/656 pruebas; `pnpm test:rls` 8 suites/67
 pruebas; smoke fresh 0→20 e incremental 19→20; build/typecheck/lint/format/security,
 frontera EduPay y smokes operacionales/recovery en verde. Detalle en
 [`24-g5pc1r5-capacity-activity-evidence.md`](24-g5pc1r5-capacity-activity-evidence.md).
 
-`G5`, preproducción, datos reales, piloto, producción y EduPay permanecen
-`NOT AUTHORIZED`.
+La implementación de preproducción sintética fue autorizada posteriormente. Datos reales,
+piloto, producción real e integración técnica EduPay permanecen `NOT AUTHORIZED`.

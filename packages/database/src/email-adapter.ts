@@ -2,11 +2,14 @@ import { StructuredLogger } from "./structured-logger.js";
 
 export interface SendEmailInput {
   body: string;
+  idempotencyKey?: string;
   recipientEmail: string;
   subject: string;
+  tags?: ReadonlyArray<{ name: string; value: string }>;
 }
 
 export interface SendEmailResult {
+  provider: string;
   providerReference: string;
   status: "SENT" | "FAILED";
   sanitizedErrorCode?: string;
@@ -44,6 +47,7 @@ export class DevelopmentEmailAdapter implements EmailAdapter {
         recipientEmail: input.recipientEmail,
       });
       return {
+        provider: "development",
         providerReference: `dev-ref-failed-${Date.now()}`,
         sanitizedErrorCode: "INVALID_SYNTHETIC_RECIPIENT",
         status: "FAILED",
@@ -52,6 +56,7 @@ export class DevelopmentEmailAdapter implements EmailAdapter {
 
     if (this.forceFailure) {
       return {
+        provider: "development",
         providerReference: `dev-ref-failed-${Date.now()}`,
         sanitizedErrorCode: "SIMULATED_EMAIL_FAILURE",
         status: "FAILED",
@@ -66,6 +71,7 @@ export class DevelopmentEmailAdapter implements EmailAdapter {
     });
 
     return {
+      provider: "development",
       providerReference,
       status: "SENT",
     };

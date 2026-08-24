@@ -2,13 +2,16 @@ import { Module } from "@nestjs/common";
 
 import {
   createAppPrismaClient,
+  createProductionEmailAdapterFromEnv,
   AccountRegistrationService,
   DevelopmentIdentityEmailAdapter,
   NoopSecurityEventSink,
   PrismaAuditSink,
   PrismaClient,
   SessionService,
+  StructuredSecurityEventSink,
   SupportElevationService,
+  type IdentityEmailAdapter,
 } from "@admission/database";
 
 import { HealthController } from "./health.controller.js";
@@ -51,6 +54,8 @@ import {
   ApiReportingService,
   ApiRoleAssignmentAdminService,
 } from "./reporting-admin.service.js";
+import { ResendWebhookController } from "./resend-webhook.controller.js";
+import { ResendWebhookService } from "./resend-webhook.service.js";
 
 const prismaProvider = {
   provide: PrismaClient,
@@ -62,7 +67,10 @@ const sessionProvider = {
   useFactory: (prisma: PrismaClient, auditSink: PrismaAuditSink) =>
     new SessionService(prisma, {
       auditSink,
-      securityEvents: new NoopSecurityEventSink(),
+      securityEvents:
+        process.env.NODE_ENV === "production"
+          ? new StructuredSecurityEventSink()
+          : new NoopSecurityEventSink(),
     }),
   inject: [PrismaClient, PrismaAuditSink],
 };
@@ -76,13 +84,22 @@ const auditSinkProvider = {
 const supportElevationProvider = {
   provide: SupportElevationService,
   useFactory: (prisma: PrismaClient, auditSink: PrismaAuditSink) =>
-    new SupportElevationService(prisma, auditSink, new NoopSecurityEventSink()),
+    new SupportElevationService(
+      prisma,
+      auditSink,
+      process.env.NODE_ENV === "production"
+        ? new StructuredSecurityEventSink()
+        : new NoopSecurityEventSink(),
+    ),
   inject: [PrismaClient, PrismaAuditSink],
 };
 
 const identityEmailAdapterProvider = {
   provide: DevelopmentIdentityEmailAdapter,
-  useFactory: () => new DevelopmentIdentityEmailAdapter(),
+  useFactory: (): IdentityEmailAdapter =>
+    process.env.NODE_ENV === "production"
+      ? createProductionEmailAdapterFromEnv()
+      : new DevelopmentIdentityEmailAdapter(),
 };
 
 const accountRegistrationProvider = {
@@ -90,7 +107,7 @@ const accountRegistrationProvider = {
   useFactory: (
     prisma: PrismaClient,
     sessions: SessionService,
-    emailAdapter: DevelopmentIdentityEmailAdapter,
+    emailAdapter: IdentityEmailAdapter,
     auditSink: PrismaAuditSink,
   ) =>
     new AccountRegistrationService(
@@ -98,7 +115,9 @@ const accountRegistrationProvider = {
       sessions,
       emailAdapter,
       auditSink,
-      new NoopSecurityEventSink(),
+      process.env.NODE_ENV === "production"
+        ? new StructuredSecurityEventSink()
+        : new NoopSecurityEventSink(),
     ),
   inject: [
     PrismaClient,
@@ -126,6 +145,7 @@ const accountRegistrationProvider = {
     ReportingAdminController,
     SensitiveProcessingController,
     BusinessCalendarController,
+    ResendWebhookController,
   ],
   providers: [
     prismaProvider,
@@ -154,6 +174,7 @@ const accountRegistrationProvider = {
     ApiBusinessCalendarService,
     HealthService,
     RequestContextService,
+    ResendWebhookService,
   ],
 })
 export class AppModule {}

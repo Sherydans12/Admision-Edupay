@@ -6,6 +6,8 @@ services:
     build:
       context: .
       dockerfile: infrastructure/docker/Dockerfile.migrator
+      args:
+        IMAGE_READINESS: DEVELOPMENT READINESS IMAGE
     environment:
       DATABASE_MIGRATION_URL: postgresql://admission_migrator:admission_migrator_local_only@postgres:5432/admission_dev
     depends_on:
@@ -17,6 +19,9 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+      args:
+        IMAGE_READINESS: DEVELOPMENT READINESS IMAGE
+        RUNTIME_NODE_ENV: development
     environment:
       DATABASE_APP_URL: postgresql://admission_app:admission_app_local_only@postgres:5432/admission_dev
       DOCUMENT_STORAGE_LOCAL_ROOT: /app/document-storage
@@ -44,6 +49,9 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        IMAGE_READINESS: DEVELOPMENT READINESS IMAGE
+        RUNTIME_NODE_ENV: development
     environment:
       HOSTNAME: 0.0.0.0
       PORT: "3000"
@@ -67,6 +75,9 @@ services:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
+      args:
+        IMAGE_READINESS: DEVELOPMENT READINESS IMAGE
+        RUNTIME_NODE_ENV: development
     depends_on:
       migrator:
         condition: service_completed_successfully
