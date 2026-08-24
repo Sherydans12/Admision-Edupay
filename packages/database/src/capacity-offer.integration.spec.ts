@@ -384,6 +384,24 @@ describe.sequential("E5-F capacity, waitlist, offers and withdrawal", () => {
     ).rejects.toMatchObject({ code: "CAPACITY_VERSION_CHANGED" });
   });
 
+  it("R5-CAP-05: explicit capacity zero never behaves as unlimited", async () => {
+    const fixture = await createOffering(0);
+    expect(fixture.capacity).toMatchObject({
+      availableCount: 0,
+      configuredCapacity: 0,
+      consumedCount: 0,
+    });
+    const applicationId = await createSubmittedApplication(
+      fixture.offeringId,
+      fixture.formVersionId,
+    );
+    await expect(decide(applicationId, "APROBADO")).rejects.toMatchObject({
+      code: "NO_ADMISSION_SEAT_AVAILABLE",
+    });
+    const state = await rawState(applicationId);
+    expect(state.reservation).toBeNull();
+  });
+
   it("RES-01..04 and CON-01: twenty approvals cannot oversubscribe the last seat", async () => {
     const fixture = await createOffering(1);
     const applicationIds = await Promise.all(

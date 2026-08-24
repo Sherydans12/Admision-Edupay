@@ -1,6 +1,11 @@
 import { Prisma, type PrismaClient } from "./generated/prisma/client.js";
 import { authorizeOrThrow, ForbiddenError } from "./authorization.js";
 import {
+  assertExecutorCanPerform,
+  assertReadyActivityPolicy,
+  resolveActivityDuration,
+} from "./activity-policy.js";
+import {
   ActivityConflictError,
   IntakeNotFoundError,
   IntakeValidationError,
@@ -43,7 +48,7 @@ export interface ActivityDefinitionInput {
 }
 
 export interface ActivityVersionInput {
-  durationMinutes: number;
+  durationMinutes?: number | null | undefined;
   instructions?: string | null | undefined;
   lateToleranceMinutes?: number | undefined;
   maxNormalReschedules?: number | undefined;
@@ -92,6 +97,7 @@ export interface ActivityDefinitionDto {
 export interface ActivityVersionDto {
   archivedAt: string | null;
   durationMinutes: number;
+  durationSource: "TENANT_KIND_DEFAULT" | "VERSION_OVERRIDE";
   id: string;
   instructions: string | null;
   lateToleranceMinutes: number;
@@ -209,9 +215,11 @@ function cleanText(value: string, field: string, max: number): string {
 
 function validateConfiguration(input: ActivityVersionInput): void {
   if (
-    !Number.isInteger(input.durationMinutes) ||
-    input.durationMinutes <= 0 ||
-    input.durationMinutes > 1440
+    input.durationMinutes !== undefined &&
+    input.durationMinutes !== null &&
+    (!Number.isInteger(input.durationMinutes) ||
+      input.durationMinutes <= 0 ||
+      input.durationMinutes > 1440)
   ) {
     throw new IntakeValidationError(
       "Activity duration must be between 1 and 1440 minutes",
@@ -333,34 +341,6 @@ function canViewActivitySensitiveEvidence(
   }
 }
 
-async function assertAssignedExecutor(
-  transaction: Prisma.TransactionClient,
-  tenantId: string,
-  assignedUserId: string,
-  now = new Date(),
-): Promise<void> {
-  const executor = await transaction.platformUser.findFirst({
-    where: {
-      id: assignedUserId,
-      status: "ACTIVE",
-      memberships: {
-        some: {
-          OR: [{ endsAt: null }, { endsAt: { gt: now } }],
-          startsAt: { lte: now },
-          status: "ACTIVE",
-          tenantId,
-        },
-      },
-    },
-    select: { id: true },
-  });
-  if (executor === null) {
-    throw new IntakeValidationError(
-      "Assigned executor must be an active platform user with an active tenant membership",
-    );
-  }
-}
-
 function assertFamilyActivityPermission(context: FamilyExecutionContext): void {
   authorizeOrThrow(context, {
     permission: PERMISSIONS.ACTIVITY_READ,
@@ -446,6 +426,7 @@ function mapVersion(version: ActivityVersionRecord): ActivityVersionDto {
   return {
     archivedAt: version.archivedAt?.toISOString() ?? null,
     durationMinutes: version.durationMinutes,
+    durationSource: version.durationSource,
     id: version.id,
     instructions: version.instructions,
     lateToleranceMinutes: version.lateToleranceMinutes,
@@ -655,6 +636,13 @@ export async function pinApplicationActivities(
       selected.set(version.activityDefinitionId, version);
   }
   for (const version of selected.values()) {
+    await assertReadyActivityPolicy(
+      transaction,
+      input.tenantId,
+      version.definition.kind,
+      undefined,
+      now,
+    );
     await transaction.applicationActivity.create({
       data: {
         activityDefinitionId: version.activityDefinitionId,
@@ -747,10 +735,23 @@ export class ActivityService {
         where: { activityDefinitionId: definitionId },
         orderBy: { versionNumber: "desc" },
       });
+      const resolvedDuration =
+        source !== null && input.durationMinutes === undefined
+          ? {
+              durationMinutes: source.durationMinutes,
+              durationSource: source.durationSource,
+            }
+          : await resolveActivityDuration(
+              transaction,
+              context.tenantId,
+              definition.kind,
+              input.durationMinutes,
+            );
       const version = await transaction.activityDefinitionVersion.create({
         data: {
           activityDefinitionId: definitionId,
-          durationMinutes: input.durationMinutes,
+          durationMinutes: resolvedDuration.durationMinutes,
+          durationSource: resolvedDuration.durationSource,
           instructions:
             input.instructions === undefined || input.instructions === null
               ? (source?.instructions ?? null)
@@ -779,6 +780,18 @@ export class ActivityService {
         resourceId: version.id,
         resourceType: "ActivityDefinitionVersion",
       });
+      await recordActivityAudit(transaction, context, {
+        action: "ACTIVITY_VERSION_DURATION_RESOLVED",
+        metadata: {
+          durationMinutes: version.durationMinutes,
+          durationSource: version.durationSource,
+          ...(resolvedDuration.policyVersion === undefined
+            ? {}
+            : { policyVersion: resolvedDuration.policyVersion }),
+        },
+        resourceId: version.id,
+        resourceType: "ActivityDefinitionVersion",
+      });
       return mapVersion(version);
     });
   }
@@ -796,9 +809,16 @@ export class ActivityService {
         include: { definition: true },
       });
       if (existing === null) throw new IntakeNotFoundError();
+      const resolvedDuration = await resolveActivityDuration(
+        transaction,
+        context.tenantId,
+        existing.definition.kind,
+        input.durationMinutes,
+      );
       const updated = await transaction.activityDefinitionVersion.update({
         data: {
-          durationMinutes: input.durationMinutes,
+          durationMinutes: resolvedDuration.durationMinutes,
+          durationSource: resolvedDuration.durationSource,
           instructions:
             input.instructions === undefined || input.instructions === null
               ? null
@@ -813,6 +833,18 @@ export class ActivityService {
         },
         include: { definition: true },
         where: { id: versionId },
+      });
+      await recordActivityAudit(transaction, context, {
+        action: "ACTIVITY_VERSION_DURATION_RESOLVED",
+        metadata: {
+          durationMinutes: updated.durationMinutes,
+          durationSource: updated.durationSource,
+          ...(resolvedDuration.policyVersion === undefined
+            ? {}
+            : { policyVersion: resolvedDuration.policyVersion }),
+        },
+        resourceId: updated.id,
+        resourceType: "ActivityDefinitionVersion",
       });
       return mapVersion(updated);
     });
@@ -829,6 +861,11 @@ export class ActivityService {
         include: { definition: true },
       });
       if (existing === null) throw new IntakeNotFoundError();
+      await assertReadyActivityPolicy(
+        transaction,
+        context.tenantId,
+        existing.definition.kind,
+      );
       const published = await transaction.activityDefinitionVersion.update({
         data: { lifecycle: "PUBLISHED", publishedAt: new Date() },
         where: { id: versionId },
@@ -1107,6 +1144,7 @@ export class ActivityService {
             },
           },
           definitionVersion: true,
+          definition: true,
           currentAppointment: true,
         },
       });
@@ -1117,9 +1155,10 @@ export class ActivityService {
         PERMISSIONS.ACTIVITY_SCHEDULE,
         SENSITIVITIES.RESTRICTED,
       );
-      await assertAssignedExecutor(
+      await assertReadyActivityPolicy(
         transaction,
         context.tenantId,
+        activity.definition.kind,
         input.assignedUserId,
       );
       if (activity.status === "CERRADA")
@@ -1316,6 +1355,11 @@ export class ActivityService {
         (context.effectiveActorId ?? context.actorId)
       )
         throw new ActivityConflictError("ACTIVITY_APPOINTMENT_CHANGED");
+      await assertExecutorCanPerform(
+        transaction,
+        context.tenantId,
+        appointment.assignedUserId,
+      );
       const occurredAt = input.occurredAt ?? new Date();
       if (input.operationalOutcome === "INASISTENCIA") {
         const allowedAt =
@@ -1438,9 +1482,10 @@ export class ActivityService {
         PERMISSIONS.ACTIVITY_REPEAT,
         SENSITIVITIES.RESTRICTED,
       );
-      await assertAssignedExecutor(
+      await assertReadyActivityPolicy(
         transaction,
         context.tenantId,
+        activity.definition.kind,
         input.assignedUserId,
       );
       if (activity.status === "CERRADA")

@@ -5,6 +5,7 @@ import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { ForbiddenError } from "./authorization.js";
 import { ApplicationAuthorityService } from "./application-authority.js";
+import { CapacityOfferService } from "./capacity-offer.js";
 import { getRequiredEnvironment } from "./environment.js";
 import { FormService } from "./forms.js";
 import {
@@ -70,6 +71,8 @@ const allFormPermissions = [
   PERMISSIONS.FORM_PUBLISH,
   PERMISSIONS.FORM_READ,
   PERMISSIONS.APPLICATION_AUTHORITY_REVIEW,
+  PERMISSIONS.CAPACITY_MANAGE,
+  PERMISSIONS.CAPACITY_READ,
 ];
 const familyPermissions = [
   PERMISSIONS.APPLICATION_CREATE,
@@ -97,6 +100,7 @@ function tenantContext(
     correlationId: `synthetic-e5b-${randomUUID()}`,
     effectiveActorId: actorId,
     purpose: "e5b.form-submission.test",
+    scopes: ["*"],
     source: "trusted_job",
     tenantId,
   };
@@ -307,6 +311,7 @@ async function seed(): Promise<void> {
   const familyA = familyContext(userA.id);
   const familyB = familyContext(userB.id);
   const intake = new IntakeService(prisma);
+  const capacities = new CapacityOfferService(prisma);
 
   await runWithFamilyContext(familyA, async () => {
     await intake.getOrCreateFamilyProfile(familyA, "Adulto sintético E5B A");
@@ -377,8 +382,13 @@ async function seed(): Promise<void> {
       code: "E5B-OFFER",
       courseLevelId: level.id,
       processId: process.id,
-      status: "PUBLISHED",
       title: "Oferta sintética E5B",
+    });
+    await capacities.createCapacity(adminA, offering.id, {
+      configuredCapacity: 3,
+    });
+    await intake.publishOffering(adminA, offering.id, {
+      expectedOfferingVersion: offering.concurrencyVersion,
     });
     offeringId = offering.id;
   });
@@ -825,6 +835,29 @@ describe.sequential("E5-B versioned forms and submission", () => {
         ),
       ),
     ).rejects.toBeInstanceOf(IntakeValidationError);
+  });
+
+  it("R5-CAP-08B: assigning a form invalidates stale offering versions", async () => {
+    const forms = new FormService(prisma);
+    const before = await runWithTenantContext(fixture.adminA, () =>
+      withTenantTransaction(prisma, (transaction) =>
+        transaction.admissionOffering.findUniqueOrThrow({
+          where: { id: fixture.offeringId },
+        }),
+      ),
+    );
+    const replacement = await createPublishedForm(
+      fixture.adminA,
+      `Formulario R5 ${randomUUID()}`,
+    );
+    const assigned = await runWithTenantContext(fixture.adminA, () =>
+      forms.assignOfferingVersion(
+        fixture.adminA,
+        fixture.offeringId,
+        replacement.versionId,
+      ),
+    );
+    expect(assigned.concurrencyVersion).toBe(before.concurrencyVersion + 1);
   });
 
   it("E5B-FORM-09: offering cannot bind a version from another tenant", async () => {

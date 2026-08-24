@@ -252,6 +252,20 @@ técnica EduPay siguen fuera de alcance.
 | Migration 19 | `ABSENT / NOT AUTHORIZED` | No autorizada ni requerida |
 | `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |
 
+## Addendum G5-PC1-R5 — capacidad y configuración de actividades (2026-08-24)
+
+| Item | Disposición canónica | Implicación |
+| --- | --- | --- |
+| `R5-D-001..009` | `APPROVED / IMPLEMENTED` | Aprobación humana del 2026-08-24; alcance exacto del diseño R5 |
+| `PC1-R5` | `COMPLETE / TECHNICALLY_REVIEWED` | Alcance sintético aprobado implementado y regresión completa verde |
+| `PC1-TECH-013` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Capacity explícita; ausencia bloquea; cero válido; lifecycle y discovery fail-closed |
+| `PC1-TECH-014` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Defaults tenant/kind 30/60 y source/duración efectiva versionados |
+| `PC1-TECH-015` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | Primary/backup distintos, activos, tenant-scoped y con `activity.perform` |
+| Migration 20 | `CREATED / SEALED / SMOKE PASS / SYNTHETIC ONLY` | `20260824130000_g5pc1r5_capacity_activity_policy`; fresh 0→20 e incremental 19→20 |
+| Migration 21 | `ABSENT / NOT AUTHORIZED` | No creada ni autorizada |
+| Regresión | `PASS` | 44 archivos/656 tests; RLS 8 suites/67 tests; build y controles estáticos PASS |
+| `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | Preproducción, datos reales, piloto, producción y EduPay siguen `NOT AUTHORIZED` |
+
 ## Addendum G5-PC1-R4H3 — UX de eliminación de respuestas sensibles deshabilitadas y alineación canónica (2026-08-21)
 
 | Item | Disposición canónica | Implicación |
@@ -288,4 +302,3 @@ técnica EduPay siguen fuera de alcance.
 | Evidencia directa Worker (`R3-WORK-01..06`) | `DIRECT_EVIDENCE_COMPLETE / 5 Tests PASS` | `apps/worker/src/offer-reminder-worker.integration.spec.ts` |
 | Evidencia directa HTTP (`R3-HTTP-01..10`) | `DIRECT_EVIDENCE_COMPLETE / 10 Tests PASS` | `apps/api/src/business-calendar.http.integration.spec.ts` |
 | `G5-EXIT-10..12` / G5 | `BLOCKED / NOT REQUESTED` | G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED` |
-

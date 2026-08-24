@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { Prisma, PrismaClient } from "./generated/prisma/client.js";
 import { authorizeOrThrow } from "./authorization.js";
 import {
+  IntakeConflictError,
   IntakeDuplicateError,
   IntakeNotFoundError,
   IntakeValidationError,
@@ -115,10 +116,31 @@ export interface OfferingDto {
   availabilityLabel: string;
   campus: string;
   code: string;
+  concurrencyVersion: number;
   courseLevel: string;
   id: string;
   process: string;
+  status: "DRAFT" | "PUBLISHED" | "CLOSED";
   title: string;
+}
+
+export interface OfferingLifecycleCommandInput {
+  expectedOfferingVersion: number;
+}
+
+export type OfferingCapacityState =
+  | "CAPACITY_NOT_CONFIGURED"
+  | "CAPACITY_CONFIGURED_ZERO"
+  | "CAPACITY_CONFIGURED_POSITIVE";
+
+export interface OfferingReadinessDto {
+  blockers: Array<"CAPACITY_CONFIGURATION_REQUIRED">;
+  capacityState: OfferingCapacityState;
+  capacityVersion: number | null;
+  lifecycle: "DRAFT" | "PUBLISHED" | "CLOSED";
+  offeringId: string;
+  offeringVersion: number;
+  publishable: boolean;
 }
 
 export interface StudentDto {
@@ -262,9 +284,11 @@ function mapOffering(offering: OfferingWithProjection): OfferingDto {
     availabilityLabel: AVAILABILITY_LABELS[availabilityCategory],
     campus: offering.campus.name,
     code: offering.code,
+    concurrencyVersion: offering.concurrencyVersion,
     courseLevel: offering.courseLevel.name,
     id: offering.id,
     process: offering.process.name,
+    status: offering.status,
     title: offering.title,
   };
 }
@@ -539,6 +563,42 @@ async function ensureOfferingReferences(
   }
 }
 
+function assertOfferingVersion(value: number): void {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new IntakeValidationError("Invalid expectedOfferingVersion");
+  }
+}
+
+async function lockOffering(
+  transaction: Prisma.TransactionClient,
+  tenantId: string,
+  offeringId: string,
+): Promise<void> {
+  await transaction.$queryRaw`
+    SELECT id
+    FROM admission_offerings
+    WHERE tenant_id = ${tenantId}::uuid AND id = ${offeringId}::uuid
+    FOR UPDATE
+  `;
+}
+
+async function assertPublishedOfferingsHaveCapacity(
+  transaction: Prisma.TransactionClient,
+  scope: { academicYearId?: string; processId?: string },
+): Promise<void> {
+  const inconsistent = await transaction.admissionOffering.findFirst({
+    select: { id: true },
+    where: {
+      admissionCapacity: { is: null },
+      ...scope,
+      status: "PUBLISHED",
+    },
+  });
+  if (inconsistent !== null) {
+    throw new IntakeConflictError("PUBLISHED_OFFERING_CAPACITY_REQUIRED");
+  }
+}
+
 export class IntakeService {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -771,6 +831,38 @@ export class IntakeService {
     });
   }
 
+  async updateAcademicYear(
+    context: TenantExecutionContext,
+    academicYearId: string,
+    input: AcademicYearInput,
+  ): Promise<AcademicYearDto> {
+    assertConfigPermission(context);
+    const code = requireText(input.code, "code", 40);
+    const label = requireText(input.label, "label", 80);
+    return withTenantTransaction(this.prisma, async (transaction) => {
+      if (input.status === "OPEN") {
+        await assertPublishedOfferingsHaveCapacity(transaction, {
+          academicYearId,
+        });
+      }
+      const result = await transaction.academicYear.updateMany({
+        data: { code, label, status: input.status ?? "DRAFT" },
+        where: { id: academicYearId, tenantId: context.tenantId },
+      });
+      if (result.count !== 1) throw new IntakeNotFoundError();
+      const year = await transaction.academicYear.findUniqueOrThrow({
+        where: { id: academicYearId },
+      });
+      await recordAudit(transaction, context, {
+        action: "ADMISSION_ACADEMIC_YEAR_UPDATED",
+        resourceId: year.id,
+        resourceType: "AcademicYear",
+        result: "SUCCESS",
+      });
+      return year;
+    });
+  }
+
   async createAdmissionProcess(
     context: TenantExecutionContext,
     input: AdmissionProcessInput,
@@ -821,6 +913,9 @@ export class IntakeService {
         context.tenantId,
         input.academicYearId,
       );
+      if (input.status === "PUBLISHED") {
+        await assertPublishedOfferingsHaveCapacity(transaction, { processId });
+      }
       const result = await transaction.admissionProcess.updateMany({
         data: {
           academicYearId: input.academicYearId,
@@ -851,6 +946,9 @@ export class IntakeService {
     input: AdmissionOfferingInput,
   ): Promise<OfferingDto> {
     assertConfigPermission(context);
+    if (input.status !== undefined && input.status !== "DRAFT") {
+      throw new IntakeConflictError("OFFERING_EXPLICIT_PUBLISH_REQUIRED");
+    }
     const code = requireText(input.code, "code", 80);
     const title = requireText(input.title, "title", 160);
     return withTenantTransaction(this.prisma, async (transaction) => {
@@ -863,7 +961,7 @@ export class IntakeService {
           code,
           courseLevelId: input.courseLevelId,
           processId: input.processId,
-          status: input.status ?? "DRAFT",
+          status: "DRAFT",
           tenantId: context.tenantId,
           title,
         },
@@ -889,15 +987,23 @@ export class IntakeService {
     const title = requireText(input.title, "title", 160);
     return withTenantTransaction(this.prisma, async (transaction) => {
       await ensureOfferingReferences(transaction, context.tenantId, input);
+      await lockOffering(transaction, context.tenantId, offeringId);
+      const current = await transaction.admissionOffering.findFirst({
+        where: { id: offeringId, tenantId: context.tenantId },
+      });
+      if (current === null) throw new IntakeNotFoundError();
+      if (input.status !== undefined && input.status !== current.status) {
+        throw new IntakeConflictError("OFFERING_EXPLICIT_PUBLISH_REQUIRED");
+      }
       const result = await transaction.admissionOffering.updateMany({
         data: {
           academicYearId: input.academicYearId,
           availabilityCategory: input.availabilityCategory,
           campusId: input.campusId,
           code,
+          concurrencyVersion: { increment: 1 },
           courseLevelId: input.courseLevelId,
           processId: input.processId,
-          status: input.status ?? "DRAFT",
           title,
         },
         where: { id: offeringId, tenantId: context.tenantId },
@@ -914,6 +1020,161 @@ export class IntakeService {
         result: "SUCCESS",
       });
       return mapOffering(offering);
+    });
+  }
+
+  async publishOffering(
+    context: TenantExecutionContext,
+    offeringId: string,
+    input: OfferingLifecycleCommandInput,
+  ): Promise<OfferingDto> {
+    assertConfigPermission(context);
+    assertOfferingVersion(input.expectedOfferingVersion);
+    return withTenantTransaction(this.prisma, async (transaction) => {
+      // R5 lock order is stable: offering first, capacity second.
+      await lockOffering(transaction, context.tenantId, offeringId);
+      const offering = await transaction.admissionOffering.findFirst({
+        include: offeringProjection,
+        where: { id: offeringId, tenantId: context.tenantId },
+      });
+      if (offering === null) throw new IntakeNotFoundError();
+      if (offering.concurrencyVersion !== input.expectedOfferingVersion) {
+        throw new IntakeConflictError("OFFERING_VERSION_CHANGED");
+      }
+      if (offering.status !== "DRAFT") {
+        throw new IntakeValidationError(
+          "Only a DRAFT offering can be published",
+        );
+      }
+      const capacities = await transaction.$queryRaw<
+        Array<{
+          concurrency_version: number;
+          configured_capacity: number;
+          id: string;
+        }>
+      >`
+        SELECT id, configured_capacity, concurrency_version
+        FROM admission_capacities
+        WHERE tenant_id = ${context.tenantId}::uuid
+          AND offering_id = ${offeringId}::uuid
+        FOR UPDATE
+      `;
+      const capacity = capacities[0];
+      if (capacity === undefined) {
+        throw new IntakeConflictError("CAPACITY_CONFIGURATION_REQUIRED");
+      }
+      const result = await transaction.admissionOffering.updateMany({
+        data: {
+          concurrencyVersion: { increment: 1 },
+          status: "PUBLISHED",
+        },
+        where: {
+          concurrencyVersion: input.expectedOfferingVersion,
+          id: offeringId,
+          status: "DRAFT",
+          tenantId: context.tenantId,
+        },
+      });
+      if (result.count !== 1) {
+        throw new IntakeConflictError("OFFERING_VERSION_CHANGED");
+      }
+      const published = await transaction.admissionOffering.findUniqueOrThrow({
+        include: offeringProjection,
+        where: { id: offeringId },
+      });
+      await recordAudit(transaction, context, {
+        action: "ADMISSION_OFFERING_PUBLISHED",
+        metadata: {
+          capacityState:
+            capacity.configured_capacity === 0
+              ? "CAPACITY_CONFIGURED_ZERO"
+              : "CAPACITY_CONFIGURED_POSITIVE",
+          capacityVersion: String(capacity.concurrency_version),
+          offeringVersion: String(published.concurrencyVersion),
+        },
+        resourceId: offeringId,
+        resourceType: "AdmissionOffering",
+        result: "SUCCESS",
+      });
+      return mapOffering(published);
+    });
+  }
+
+  async closeOffering(
+    context: TenantExecutionContext,
+    offeringId: string,
+    input: OfferingLifecycleCommandInput,
+  ): Promise<OfferingDto> {
+    assertConfigPermission(context);
+    assertOfferingVersion(input.expectedOfferingVersion);
+    return withTenantTransaction(this.prisma, async (transaction) => {
+      await lockOffering(transaction, context.tenantId, offeringId);
+      const offering = await transaction.admissionOffering.findFirst({
+        where: { id: offeringId, tenantId: context.tenantId },
+      });
+      if (offering === null) throw new IntakeNotFoundError();
+      if (offering.concurrencyVersion !== input.expectedOfferingVersion) {
+        throw new IntakeConflictError("OFFERING_VERSION_CHANGED");
+      }
+      if (offering.status === "CLOSED") {
+        throw new IntakeValidationError("Offering is already closed");
+      }
+      const updated = await transaction.admissionOffering.update({
+        data: {
+          concurrencyVersion: { increment: 1 },
+          status: "CLOSED",
+        },
+        include: offeringProjection,
+        where: { id: offeringId },
+      });
+      await recordAudit(transaction, context, {
+        action: "ADMISSION_OFFERING_CLOSED",
+        metadata: { offeringVersion: String(updated.concurrencyVersion) },
+        resourceId: offeringId,
+        resourceType: "AdmissionOffering",
+        result: "SUCCESS",
+      });
+      return mapOffering(updated);
+    });
+  }
+
+  async getOfferingReadiness(
+    context: TenantExecutionContext,
+    offeringId: string,
+  ): Promise<OfferingReadinessDto> {
+    assertConfigPermission(context, "admission.config.read");
+    return withTenantTransaction(this.prisma, async (transaction) => {
+      const offering = await transaction.admissionOffering.findFirst({
+        include: {
+          admissionCapacity: {
+            select: {
+              concurrencyVersion: true,
+              configuredCapacity: true,
+            },
+          },
+        },
+        where: { id: offeringId, tenantId: context.tenantId },
+      });
+      if (offering === null) throw new IntakeNotFoundError();
+      const capacityState: OfferingCapacityState =
+        offering.admissionCapacity === null
+          ? "CAPACITY_NOT_CONFIGURED"
+          : offering.admissionCapacity.configuredCapacity === 0
+            ? "CAPACITY_CONFIGURED_ZERO"
+            : "CAPACITY_CONFIGURED_POSITIVE";
+      const blockers: OfferingReadinessDto["blockers"] =
+        capacityState === "CAPACITY_NOT_CONFIGURED"
+          ? ["CAPACITY_CONFIGURATION_REQUIRED"]
+          : [];
+      return {
+        blockers,
+        capacityState,
+        capacityVersion: offering.admissionCapacity?.concurrencyVersion ?? null,
+        lifecycle: offering.status,
+        offeringId: offering.id,
+        offeringVersion: offering.concurrencyVersion,
+        publishable: offering.status === "DRAFT" && blockers.length === 0,
+      };
     });
   }
 
@@ -952,7 +1213,10 @@ export class IntakeService {
       const offerings = await transaction.admissionOffering.findMany({
         include: publicOfferingProjection,
         orderBy: [{ title: "asc" }, { code: "asc" }],
-        where: { status: "PUBLISHED" },
+        where: {
+          admissionCapacity: { isNot: null },
+          status: "PUBLISHED",
+        },
       });
       return offerings
         .filter(
@@ -1017,6 +1281,7 @@ export class IntakeService {
             transaction.admissionOffering.findFirst({
               include: { academicYear: true, formVersion: true, process: true },
               where: {
+                admissionCapacity: { isNot: null },
                 id: input.offeringId,
                 status: "PUBLISHED",
               },

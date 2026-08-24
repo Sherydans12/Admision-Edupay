@@ -63,8 +63,9 @@ el commit exacto que se someta a revisión.
    `PC1-R3` tienen evidencia técnica aceptada/revisada.
 2. `PC1-TECH-001..012`, incluyendo `003`, figuran como
    `IMPLEMENTED / TECHNICALLY_REVIEWED` en el estado canónico posterior a R3.
-3. `PC1-TECH-013..015` permanecen parcial/no implementados y clasificados
-   `P0_PREPILOT`.
+3. En la auditoría inicial, `PC1-TECH-013..015` permanecían parcial/no implementados y
+   clasificados `P0_PREPILOT`; el addendum post-R5 al final registra su cierre técnico
+   posterior autorizado.
 4. El núcleo técnico de Q-106 existe, pero el procedimiento institucional/legal final y
    `LP3-ART-006` permanecen abiertos.
 5. `PREPILOT_LEGAL_ARTIFACTS = OPEN`; el registro vigente contiene 16 artefactos y
@@ -159,7 +160,7 @@ Snapshot canónico para este programa:
 | PC1-R4 | `COMPLETE / TECHNICALLY_ACCEPTED` |
 | PC1-R3 | `COMPLETE / TECHNICALLY_REVIEWED` |
 | PC1-TECH-001..012 | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
-| PC1-TECH-013..015 | `PARTIAL / NOT_IMPLEMENTED / P0_PREPILOT` |
+| PC1-TECH-013..015 | `IMPLEMENTED / TECHNICALLY_REVIEWED` post-R5 |
 | Q-106 | `TECHNICAL_CORE_IMPLEMENTED / FINAL_INSTITUTIONAL_LEGAL_PROCEDURE_PENDING / PILOT_PRECONDITION` |
 | C-013 | `INSTITUTIONALLY_VALIDATED / LEGAL_VALIDATION_PENDING` |
 | G5-EXIT-07 | `PASS_WITH_RESIDUAL` |
@@ -168,15 +169,17 @@ Snapshot canónico para este programa:
 | G5-EXIT-12 | `BLOCKED / DATED_AUTHORIZATION_ABSENT` |
 | G5 | `NO APROBADA / NOT REQUESTED` |
 
-## 5. Remediación técnica pendiente PC1-R5
+## 5. Remediación técnica PC1-R5
 
-La siguiente tabla es un backlog trazable, no autorización de ejecución.
+La siguiente tabla fue el backlog trazable de entrada. `R5-D-001..009` y Migration 20
+fueron aprobadas el 2026-08-24 sólo para datos sintéticos; el cierre está registrado en
+el addendum y la evidencia R5.
 
 | ID | Estado de entrada | Invariante requerido | Evidencia mínima de salida | Decisión previa |
 | --- | --- | --- | --- | --- |
-| `PC1-TECH-013` | `NOT_IMPLEMENTED / P0_PREPILOT` | ninguna offering puede quedar publicable/abierta sin capacidad de admisión explícita aplicable; `0 != ausencia` | pruebas domain/API/UI para create/update/publish/open/discovery, concurrencia, auditoría, cross-tenant y RLS | aprobar semántica de estados y alcance R5 |
-| `PC1-TECH-014` | `PARTIAL / P0_PREPILOT` | defaults configurables por tenant/kind: entrevista 30 y diagnóstico 60 para el piloto; override explícito y validado | pruebas de default, override, versionado/configuración, API/UI, auditoría y aislamiento | aprobar fuente y precedencia de defaults |
-| `PC1-TECH-015` | `PARTIAL / P0_PREPILOT` | cada función crítica aplicable tiene primary y backup activos, tenant-scoped y con capability; ausencia/failover deben ser explícitos | pruebas de asignación, cambio, ausencia, failover, membership/capability, sensibilidad, auditoría, RLS y API/UI | aprobar modelo, funciones críticas y eventual Migration 20 |
+| `PC1-TECH-013` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | ninguna offering puede quedar publicable/abierta sin capacidad de admisión explícita aplicable; `0 != ausencia` | domain/API/UI/RLS y regresión completa | `R5-D-001..003 APPROVED` |
+| `PC1-TECH-014` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | defaults configurables por tenant/kind: entrevista 30 y diagnóstico 60; override explícito y validado | default, override, versionado, API/UI y aislamiento | `R5-D-004..005 APPROVED` |
+| `PC1-TECH-015` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | cada función crítica aplicable tiene primary y backup activos, tenant-scoped y con capability | policy, assignment, capability, histórico, RLS y API/UI | `R5-D-006..009 APPROVED` |
 
 Antes de implementar R5 se debe producir un diseño acotado que declare:
 
@@ -555,15 +558,26 @@ capacidad, soporte y ausencia de reglas hardcodeadas del piloto.
 | --- | --- |
 | Programa documental | `CREATED / READY_FOR_HUMAN_REVIEW` |
 | Corrección CI | `REQUIRED / NOT CLOSED BY THIS DOCUMENT` |
-| PC1-R5 | `PROPOSED / NOT AUTHORIZED` |
-| Migration 20 | `ABSENT / NOT AUTHORIZED` |
+| PC1-R5 | `COMPLETE / TECHNICALLY_REVIEWED / SYNTHETIC DATA ONLY` |
+| Migration 20 | `CREATED / SEALED / SMOKE PASS / SYNTHETIC DATA ONLY` |
 | Preproducción sintética | `AUTHORIZATION TEMPLATE ONLY / NOT AUTHORIZED` |
 | LP3-ART-001..016 | `OPEN` |
 | G5-EXIT-10..12 | `BLOCKED` |
 | G5 / piloto / producción / datos reales | `NOT AUTHORIZED` |
 | EduPay | `OUT_OF_SCOPE UNTIL E7/G7` |
 
-La siguiente acción humana es revisar este programa y, de forma separada, decidir el
-cierre correctivo del CI y el alcance de diseño de PC1-R5. Ninguna plantilla incluida
-cuenta como aprobación mientras no esté completada, fechada y firmada por los roles
-requeridos.
+La siguiente acción humana es revisar el PR R5 y, de forma separada, decidir si autoriza
+una etapa de preproducción sintética. Ninguna plantilla restante cuenta como aprobación
+mientras no esté completada, fechada y firmada por los roles requeridos.
+
+## 18. Addendum de ejecución PC1-R5 (2026-08-24)
+
+La aprobación humana `R5-D-001..009` y Migration 20 exclusivamente sintética habilitó
+`PRG-02`. El incremento quedó implementado con lifecycle/capacity fail-closed, duración
+tenant/kind versionada y policy primary/backup tenant-scoped. La evidencia completa está
+en [`24-g5pc1r5-capacity-activity-evidence.md`](24-g5pc1r5-capacity-activity-evidence.md).
+
+La regresión final registra 656/656 tests generales, 67/67 RLS, smoke 0→20 y 19→20,
+build y controles de seguridad/operación/recovery en verde. Esto cierra `PC1-R5` dentro
+del alcance sintético aprobado; no cambia `G5-EXIT-10..12`, no selecciona infraestructura
+ni proveedores y no autoriza preproducción, datos reales, piloto, producción o EduPay.

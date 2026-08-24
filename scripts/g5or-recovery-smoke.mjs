@@ -288,8 +288,8 @@ async function main() {
       "SELECT count(*) FROM _prisma_migrations;",
     );
     assert(
-      migrationCount === "19",
-      `expected 19 migrations, got ${migrationCount}`,
+      migrationCount === "20",
+      `expected 20 migrations, got ${migrationCount}`,
     );
     console.log("G5OR-REC-01=PASS");
     await run(

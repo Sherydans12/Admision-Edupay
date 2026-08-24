@@ -787,6 +787,37 @@ h3 {
   display: grid;
   gap: 0.8rem;
 }
+.policy-console {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: #f8fbfa;
+}
+.policy-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.policy-card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.7rem;
+  background: white;
+}
+.badge-ready {
+  border-color: #89c8ad;
+  background: #e2f4ea;
+  color: #176340;
+}
+.badge-warning {
+  border-color: #e5c077;
+  background: #fff9ed;
+  color: #7d4c0b;
+}
 .activity-card {
   display: grid;
   gap: 0.8rem;
@@ -1002,6 +1033,21 @@ h3 {
   color: var(--teal-dark);
   font-size: 1.3rem;
   font-weight: 800;
+}
+.offering-readiness-panel {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border: 1px solid #bedcd4;
+  border-radius: 0.65rem;
+  background: #f6fbf9;
+}
+.offering-readiness-panel > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 .waitlist-table {
   display: grid;
@@ -1239,7 +1285,8 @@ h3 {
   .control-group,
   .scope-grid,
   .activity-action-row,
-  .recommendation-options {
+  .recommendation-options,
+  .policy-grid {
     grid-template-columns: 1fr;
     flex-direction: column;
   }
@@ -1247,6 +1294,7 @@ h3 {
     grid-template-columns: 1fr;
   }
   .offer-decision-heading,
+  .offering-readiness-panel > div,
   .capacity-edit-row,
   .reopen-row,
   .offer-admin-detail,

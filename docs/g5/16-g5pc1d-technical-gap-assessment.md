@@ -491,3 +491,22 @@ Migration 19 acotada estrictamente a `tenant_business_calendars` y `business_cal
 Migration 20 ausente y no autorizada.
 G5, datos reales, piloto, producción y EduPay permanecen `NOT AUTHORIZED`.
 
+## Addendum post-R5 — disposición factual (2026-08-24)
+
+Este addendum no reescribe la evaluación histórica anterior. Registra el cierre técnico
+posterior autorizado en
+[`24-g5pc1r5-capacity-activity-evidence.md`](24-g5pc1r5-capacity-activity-evidence.md).
+
+| TECH | Estado post-R5 | Evidencia / observaciones |
+| --- | --- | --- |
+| `PC1-TECH-013` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | lifecycle explícito, readiness, capacity ausente/cero/positiva, discovery y application guard |
+| `PC1-TECH-014` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | policy tenant/kind, baseline 30/60, override y source efectivo versionado |
+| `PC1-TECH-015` | `IMPLEMENTED / TECHNICALLY_REVIEWED` | primary/backup tenant-scoped con capability, concurrencia y guards fail-closed |
+
+Migration 20 fue autorizada sólo para datos sintéticos y quedó creada/sellada con smoke
+fresh e incremental. Migration 21 permanece ausente/no autorizada. La matriz ejecutiva
+original conserva valor histórico de gap de entrada; el estado canónico vigente para
+`013..015` es el de este addendum.
+
+G5, preproducción, datos reales, piloto, producción y EduPay permanecen
+`NOT AUTHORIZED`.

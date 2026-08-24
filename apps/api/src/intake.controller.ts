@@ -21,6 +21,7 @@ import {
   campusSchema,
   courseLevelSchema,
   draftSchema,
+  offeringLifecycleCommandSchema,
   offeringSchema,
   parseBody,
   parseUuid,
@@ -409,6 +410,66 @@ export class IntakeController {
         context,
         parseUuid(offeringId),
         parseBody(offeringSchema, body),
+      ),
+    );
+  }
+
+  @Get("admin/tenants/:tenantId/offerings/:offeringId/readiness")
+  async getOfferingReadiness(
+    @Req() request: RequestLike,
+    @Param("tenantId") tenantId: string,
+    @Param("offeringId") offeringId: string,
+  ) {
+    const context = await this.adminContext(
+      request,
+      tenantId,
+      "admission.config.read",
+    );
+    return this.inTenantContext(context, () =>
+      this.intake.getOfferingReadiness(context, parseUuid(offeringId)),
+    );
+  }
+
+  @Post("admin/tenants/:tenantId/offerings/:offeringId/publish")
+  async publishOffering(
+    @Req() request: RequestLike,
+    @Param("tenantId") tenantId: string,
+    @Param("offeringId") offeringId: string,
+    @Body() body: unknown,
+  ) {
+    await this.contexts.assertMutationSafe(request);
+    const context = await this.adminContext(
+      request,
+      tenantId,
+      "admission.config.manage",
+    );
+    return this.inTenantContext(context, () =>
+      this.intake.publishOffering(
+        context,
+        parseUuid(offeringId),
+        parseBody(offeringLifecycleCommandSchema, body),
+      ),
+    );
+  }
+
+  @Post("admin/tenants/:tenantId/offerings/:offeringId/close")
+  async closeOffering(
+    @Req() request: RequestLike,
+    @Param("tenantId") tenantId: string,
+    @Param("offeringId") offeringId: string,
+    @Body() body: unknown,
+  ) {
+    await this.contexts.assertMutationSafe(request);
+    const context = await this.adminContext(
+      request,
+      tenantId,
+      "admission.config.manage",
+    );
+    return this.inTenantContext(context, () =>
+      this.intake.closeOffering(
+        context,
+        parseUuid(offeringId),
+        parseBody(offeringLifecycleCommandSchema, body),
       ),
     );
   }

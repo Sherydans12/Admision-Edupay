@@ -136,7 +136,7 @@ async function seedTenant(
         ],
       );
       await execute(
-        "INSERT INTO activity_definition_versions (id, tenant_id, activity_definition_id, version_number, lifecycle, required, duration_minutes, published_at) VALUES ($1, $2, $3, 1, 'PUBLISHED', true, 30, CURRENT_TIMESTAMP)",
+        "INSERT INTO activity_definition_versions (id, tenant_id, activity_definition_id, version_number, lifecycle, required, duration_minutes, duration_source, published_at) VALUES ($1, $2, $3, 1, 'PUBLISHED', true, 30, 'VERSION_OVERRIDE', CURRENT_TIMESTAMP)",
         [ids.version, tenantId, ids.definition],
       );
       await execute(

@@ -20,6 +20,19 @@ interface Capacity {
   offeringId: string;
 }
 
+interface OfferingReadiness {
+  blockers: string[];
+  capacityState:
+    | "CAPACITY_NOT_CONFIGURED"
+    | "CAPACITY_CONFIGURED_ZERO"
+    | "CAPACITY_CONFIGURED_POSITIVE";
+  capacityVersion: number | null;
+  lifecycle: "DRAFT" | "PUBLISHED" | "CLOSED";
+  offeringId: string;
+  offeringVersion: number;
+  publishable: boolean;
+}
+
 interface WaitlistEntry {
   applicationId: string;
   concurrencyVersion: number;
@@ -397,6 +410,7 @@ export function StaffCapacityOfferWorkspace({
   const [offeringId, setOfferingId] = useState("");
   const [applicationId, setApplicationId] = useState("");
   const [capacity, setCapacity] = useState<Capacity | null>(null);
+  const [readiness, setReadiness] = useState<OfferingReadiness | null>(null);
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
   const [offer, setOffer] = useState<Offer | null>(null);
   const [handoff, setHandoff] = useState<FunctionalHandoff | null>(null);
@@ -405,26 +419,40 @@ export function StaffCapacityOfferWorkspace({
   const [reopenReason, setReopenReason] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [offeringAction, setOfferingAction] = useState<
+    "CLOSE" | "PUBLISH" | null
+  >(null);
 
   async function loadCapacityAndWaitlist() {
     if (!offeringId) return;
     try {
-      const [capacityResult, waitlistResult] = await Promise.all([
-        apiFetch<Capacity>(
+      const [readinessResult, waitlistResult] = await Promise.all([
+        apiFetch<OfferingReadiness>(
           apiBase,
-          `/staff/tenants/${tenantId}/offerings/${offeringId}/capacity`,
+          `/admin/tenants/${tenantId}/offerings/${offeringId}/readiness`,
         ),
         apiFetch<{ items: WaitlistEntry[] }>(
           apiBase,
           `/staff/tenants/${tenantId}/offerings/${offeringId}/waitlist`,
         ),
       ]);
-      setCapacity(capacityResult);
-      setNewCapacity(String(capacityResult.configuredCapacity));
+      setReadiness(readinessResult);
       setWaitlist(waitlistResult.items);
+      if (readinessResult.capacityState === "CAPACITY_NOT_CONFIGURED") {
+        setCapacity(null);
+        setNewCapacity("0");
+      } else {
+        const capacityResult = await apiFetch<Capacity>(
+          apiBase,
+          `/staff/tenants/${tenantId}/offerings/${offeringId}/capacity`,
+        );
+        setCapacity(capacityResult);
+        setNewCapacity(String(capacityResult.configuredCapacity));
+      }
       setError("");
     } catch {
       setCapacity(null);
+      setReadiness(null);
       setWaitlist([]);
       setError("No se pudo cargar capacidad y espera para esta oferta.");
     }
@@ -455,11 +483,38 @@ export function StaffCapacityOfferWorkspace({
       setReason("");
       setNotice("Capacidad de Admisión guardada y auditada.");
       setError("");
+      await loadCapacityAndWaitlist();
     } catch (requestError) {
       setError(
         requestError instanceof ApiError && requestError.status === 409
           ? "La capacidad cambió o el valor queda bajo las reservas vigentes. Actualiza antes de continuar."
           : "No se pudo guardar la capacidad.",
+      );
+    }
+  }
+
+  async function performOfferingLifecycle(action: "CLOSE" | "PUBLISH") {
+    if (!readiness) return;
+    try {
+      await mutate(
+        apiBase,
+        `/admin/tenants/${tenantId}/offerings/${offeringId}/${action === "PUBLISH" ? "publish" : "close"}`,
+        "POST",
+        { expectedOfferingVersion: readiness.offeringVersion },
+      );
+      setOfferingAction(null);
+      setNotice(
+        action === "PUBLISH"
+          ? "Offering publicada después de verificar capacidad explícita."
+          : "Offering cerrada mediante transición explícita.",
+      );
+      await loadCapacityAndWaitlist();
+    } catch (requestError) {
+      setOfferingAction(null);
+      setError(
+        requestError instanceof ApiError && requestError.status === 409
+          ? "La offering o su capacidad cambió. Actualiza la vista antes de continuar."
+          : "No se pudo completar la transición de la offering.",
       );
     }
   }
@@ -587,6 +642,57 @@ export function StaffCapacityOfferWorkspace({
             value={offeringId}
           />
         </label>
+        {readiness ? (
+          <div className="offering-readiness-panel">
+            <div>
+              <span
+                className={
+                  readiness.capacityState === "CAPACITY_NOT_CONFIGURED"
+                    ? "badge badge-warning"
+                    : "badge badge-ready"
+                }
+              >
+                {readiness.capacityState === "CAPACITY_NOT_CONFIGURED"
+                  ? "Sin capacidad configurada"
+                  : readiness.capacityState === "CAPACITY_CONFIGURED_ZERO"
+                    ? "Capacidad configurada: 0"
+                    : "Capacidad configurada"}
+              </span>
+              <p className="muted">
+                Lifecycle {readiness.lifecycle} · versión{" "}
+                {readiness.offeringVersion}
+              </p>
+            </div>
+            <div className="flow-actions">
+              {readiness.lifecycle === "DRAFT" ? (
+                <button
+                  className="button button-primary"
+                  disabled={!readiness.publishable}
+                  onClick={() => setOfferingAction("PUBLISH")}
+                >
+                  Publicar
+                </button>
+              ) : null}
+              {readiness.lifecycle !== "CLOSED" ? (
+                <button
+                  className="button button-secondary"
+                  onClick={() => setOfferingAction("CLOSE")}
+                >
+                  Cerrar offering
+                </button>
+              ) : null}
+            </div>
+            {readiness.blockers.length ? (
+              <p
+                className="readiness-copy readiness-copy-blocked"
+                role="status"
+              >
+                Configura una capacidad explícita; 0 es válido si esa es la
+                decisión institucional.
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {capacity ? (
           <dl className="capacity-measures">
             <div>
@@ -746,6 +852,23 @@ export function StaffCapacityOfferWorkspace({
           </div>
         ) : null}
       </section>
+      <Confirmation
+        description={
+          offeringAction === "PUBLISH"
+            ? `Se publicará la versión ${readiness?.offeringVersion ?? "actual"}. Estado de capacidad: ${readiness?.capacityState ?? "no disponible"}.`
+            : "La offering dejará de admitir nuevas postulaciones. El historial se conserva."
+        }
+        onCancel={() => setOfferingAction(null)}
+        onConfirm={() =>
+          offeringAction && void performOfferingLifecycle(offeringAction)
+        }
+        open={offeringAction !== null}
+        title={
+          offeringAction === "PUBLISH"
+            ? "Confirmar publicación"
+            : "Confirmar cierre"
+        }
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
   ActivityConflictError,
+  ActivityPolicyService,
   ActivityService,
   PERMISSIONS,
   pinApplicationActivities,
@@ -26,6 +27,8 @@ const tenantId = randomUUID();
 const familyUserId = randomUUID();
 const staffUserId = randomUUID();
 const otherStaffUserId = randomUUID();
+const staffMembershipId = randomUUID();
+const otherStaffMembershipId = randomUUID();
 const familyProfileId = randomUUID();
 const studentId = randomUUID();
 let applicationId = "";
@@ -42,6 +45,8 @@ const staffContext = (
     PERMISSIONS.ACTIVITY_CLOSE,
     PERMISSIONS.ACTIVITY_DEFINITION_MANAGE,
     PERMISSIONS.ACTIVITY_DEFINITION_PUBLISH,
+    PERMISSIONS.ACTIVITY_POLICY_MANAGE,
+    PERMISSIONS.ACTIVITY_POLICY_READ,
     PERMISSIONS.RESTRICTED_READ,
   ],
 ): TenantExecutionContext => ({
@@ -141,14 +146,58 @@ async function seed(): Promise<void> {
         },
       });
       applicationId = application.id;
-      await transaction.membership.create({
-        data: {
-          id: randomUUID(),
-          startsAt: new Date(Date.now() - 60_000),
-          status: "ACTIVE",
-          tenantId,
-          userId: staffUserId,
-        },
+      await transaction.membership.createMany({
+        data: [
+          {
+            id: staffMembershipId,
+            startsAt: new Date(Date.now() - 60_000),
+            status: "ACTIVE",
+            tenantId,
+            userId: staffUserId,
+          },
+          {
+            id: otherStaffMembershipId,
+            startsAt: new Date(Date.now() - 60_000),
+            status: "ACTIVE",
+            tenantId,
+            userId: otherStaffUserId,
+          },
+        ],
+      });
+      await transaction.roleAssignment.createMany({
+        data: [staffMembershipId, otherStaffMembershipId].map(
+          (membershipId) => ({
+            membershipId,
+            permissions: [PERMISSIONS.ACTIVITY_PERFORM],
+            roleKey: "synthetic-activity-executor",
+            scopes: ["*"],
+            startsAt: new Date(Date.now() - 60_000),
+            status: "ACTIVE" as const,
+            tenantId,
+          }),
+        ),
+      });
+      await transaction.tenantActivityPolicy.createMany({
+        data: [
+          {
+            backupMembershipId: otherStaffMembershipId,
+            createdBy: staffUserId,
+            defaultDurationMinutes: 30,
+            kind: "GUARDIAN_INTERVIEW",
+            primaryMembershipId: staffMembershipId,
+            tenantId,
+            updatedBy: staffUserId,
+          },
+          {
+            backupMembershipId: otherStaffMembershipId,
+            createdBy: staffUserId,
+            defaultDurationMinutes: 60,
+            kind: "DIAGNOSTIC_EVALUATION",
+            primaryMembershipId: staffMembershipId,
+            tenantId,
+            updatedBy: staffUserId,
+          },
+        ],
       });
     });
   });
@@ -156,6 +205,7 @@ async function seed(): Promise<void> {
 
 describe.sequential("E5-D activities domain", () => {
   const service = new ActivityService(prisma);
+  const policyService = new ActivityPolicyService(prisma);
 
   beforeAll(async () => {
     await seed();
@@ -490,6 +540,39 @@ describe.sequential("E5-D activities domain", () => {
       ),
     );
     expect(closed.status).toBe("CERRADA");
+  });
+
+  it("R5-POL-09: policy changes never rewrite appointment snapshots", async () => {
+    const before = await runWithTenantContext(staffContext(), () =>
+      withTenantTransaction(prisma, (transaction) =>
+        transaction.activityAppointment.findFirstOrThrow({
+          where: { applicationActivityId: diagnosticActivityId },
+          orderBy: { sequence: "desc" },
+        }),
+      ),
+    );
+    const changed = await runWithTenantContext(staffContext(), () =>
+      policyService.putPolicy(staffContext(), "DIAGNOSTIC_EVALUATION", {
+        backupMembershipId: staffMembershipId,
+        defaultDurationMinutes: 75,
+        expectedVersion: 1,
+        primaryMembershipId: otherStaffMembershipId,
+      }),
+    );
+    expect(changed.concurrencyVersion).toBe(2);
+    const after = await runWithTenantContext(staffContext(), () =>
+      withTenantTransaction(prisma, (transaction) =>
+        transaction.activityAppointment.findUniqueOrThrow({
+          where: { id: before.id },
+        }),
+      ),
+    );
+    expect(after).toMatchObject({
+      assignedUserId: before.assignedUserId,
+      durationMinutes: before.durationMinutes,
+      id: before.id,
+      scheduledStartAt: before.scheduledStartAt,
+    });
   });
 
   afterAll(async () => {
