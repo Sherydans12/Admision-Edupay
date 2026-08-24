@@ -1,8 +1,10 @@
 FROM node:22.18.0-bookworm-slim
 
-LABEL com.admissionedupay.readiness="DEVELOPMENT READINESS IMAGE"
+ARG IMAGE_READINESS="PRODUCTION CANDIDATE IMAGE"
+LABEL com.admissionedupay.readiness=$IMAGE_READINESS
 
 ENV COREPACK_HOME=/corepack
+ENV NODE_ENV=production
 WORKDIR /repo
 
 RUN apt-get update \
@@ -19,4 +21,5 @@ COPY packages/database/package.json packages/database/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY packages/database packages/database
+USER node
 CMD ["pnpm", "db:migrate"]

@@ -11,5 +11,6 @@ coverage
 .env
 .env.*
 !.env.example
+!.env.coolify.example
 packages/database/src/generated
 *.log

@@ -1,0 +1,191 @@
+name: admission-preprod
+
+# Git-based Docker Compose application for Coolify. Domains are assigned in
+# Coolify, not encoded here. PostgreSQL, S3-compatible object storage and
+# ClamAV are private Coolify resources connected through the predefined
+# destination network.
+services:
+  migrator:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.migrator
+      args:
+        IMAGE_READINESS: PRODUCTION CANDIDATE IMAGE
+    environment:
+      DATABASE_MIGRATION_URL: ${DATABASE_MIGRATION_URL:?set DATABASE_MIGRATION_URL in Coolify}
+    restart: "no"
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    exclude_from_hc: true
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        IMAGE_READINESS: PRODUCTION CANDIDATE IMAGE
+        RUNTIME_NODE_ENV: production
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      DATABASE_APP_URL: ${DATABASE_APP_URL:?set DATABASE_APP_URL in Coolify}
+      ADMISSION_APP_ORIGIN: ${ADMISSION_APP_ORIGIN:?set ADMISSION_APP_ORIGIN in Coolify}
+      ADMISSION_WEB_ORIGIN: ${ADMISSION_WEB_ORIGIN:?set ADMISSION_WEB_ORIGIN in Coolify}
+      ADMISSION_PUBLIC_WEB_URL: ${ADMISSION_PUBLIC_WEB_URL:?set ADMISSION_PUBLIC_WEB_URL in Coolify}
+      SESSION_IDLE_TTL_SECONDS: ${SESSION_IDLE_TTL_SECONDS:-1800}
+      SESSION_ABSOLUTE_TTL_SECONDS: ${SESSION_ABSOLUTE_TTL_SECONDS:-28800}
+      CSRF_SIGNING_SECRET: ${CSRF_SIGNING_SECRET:?set CSRF_SIGNING_SECRET in Coolify}
+      S3_ENDPOINT: ${S3_ENDPOINT:?set S3_ENDPOINT in Coolify}
+      S3_REGION: ${S3_REGION:?set S3_REGION in Coolify}
+      S3_QUARANTINE_BUCKET: ${S3_QUARANTINE_BUCKET:?set S3_QUARANTINE_BUCKET in Coolify}
+      S3_APPROVED_BUCKET: ${S3_APPROVED_BUCKET:?set S3_APPROVED_BUCKET in Coolify}
+      S3_ACCESS_KEY_ID: ${S3_API_ACCESS_KEY_ID:?set S3_API_ACCESS_KEY_ID in Coolify}
+      S3_SECRET_ACCESS_KEY: ${S3_API_SECRET_ACCESS_KEY:?set S3_API_SECRET_ACCESS_KEY in Coolify}
+      S3_ALLOW_INSECURE_INTERNAL: ${S3_ALLOW_INSECURE_INTERNAL:-false}
+      S3_INSECURE_ALLOWED_HOST: ${S3_INSECURE_ALLOWED_HOST:-}
+      DOCUMENT_UPLOAD_HARD_MAX_BYTES: ${DOCUMENT_UPLOAD_HARD_MAX_BYTES:-10485760}
+      CLAMAV_HOST: ${CLAMAV_HOST:?set CLAMAV_HOST in Coolify}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-30000}
+      EMAIL_DELIVERY_MODE: ${EMAIL_DELIVERY_MODE:-synthetic}
+      REAL_EMAIL_DELIVERY_AUTHORIZED: "false"
+      RESEND_API_KEY: ${RESEND_API_KEY:?set RESEND_API_KEY in Coolify}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:?set RESEND_FROM_EMAIL in Coolify}
+      RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:?set RESEND_WEBHOOK_SECRET in Coolify}
+      EMAIL_SUPPRESSION_HMAC_SECRET: ${EMAIL_SUPPRESSION_HMAC_SECRET:?set EMAIL_SUPPRESSION_HMAC_SECRET in Coolify}
+      EMAIL_SUPPRESSION_HASH_KEY_VERSION: ${EMAIL_SUPPRESSION_HASH_KEY_VERSION:-1}
+      EMAIL_SUPPRESSION_PREVIOUS_KEYS_JSON: ${EMAIL_SUPPRESSION_PREVIOUS_KEYS_JSON:-[]}
+      RESEND_TIMEOUT_MS: ${RESEND_TIMEOUT_MS:-10000}
+      ADMISSION_PLATFORM_SUPPORT_USER_IDS: ""
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "3001"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:3001/health/ready').then((response) =>
+          process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 30s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        IMAGE_READINESS: PRODUCTION CANDIDATE IMAGE
+        RUNTIME_NODE_ENV: production
+        NEXT_PUBLIC_ADMISSION_API_URL: ${ADMISSION_API_PUBLIC_URL:?set ADMISSION_API_PUBLIC_URL in Coolify}
+        NEXT_PUBLIC_ADMISSION_TENANT_ID: ${ADMISSION_TENANT_PUBLIC_ID:?set ADMISSION_TENANT_PUBLIC_ID in Coolify}
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: "3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /app/apps/web/.next/cache:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "fetch('http://127.0.0.1:3000/').then((response) =>
+          process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 30s
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+      args:
+        IMAGE_READINESS: PRODUCTION CANDIDATE IMAGE
+        RUNTIME_NODE_ENV: production
+    environment:
+      NODE_ENV: production
+      DATABASE_APP_URL: ${DATABASE_APP_URL:?set DATABASE_APP_URL in Coolify}
+      ADMISSION_PUBLIC_WEB_URL: ${ADMISSION_PUBLIC_WEB_URL:?set ADMISSION_PUBLIC_WEB_URL in Coolify}
+      S3_ENDPOINT: ${S3_ENDPOINT:?set S3_ENDPOINT in Coolify}
+      S3_REGION: ${S3_REGION:?set S3_REGION in Coolify}
+      S3_QUARANTINE_BUCKET: ${S3_QUARANTINE_BUCKET:?set S3_QUARANTINE_BUCKET in Coolify}
+      S3_APPROVED_BUCKET: ${S3_APPROVED_BUCKET:?set S3_APPROVED_BUCKET in Coolify}
+      S3_ACCESS_KEY_ID: ${S3_WORKER_ACCESS_KEY_ID:?set S3_WORKER_ACCESS_KEY_ID in Coolify}
+      S3_SECRET_ACCESS_KEY: ${S3_WORKER_SECRET_ACCESS_KEY:?set S3_WORKER_SECRET_ACCESS_KEY in Coolify}
+      S3_ALLOW_INSECURE_INTERNAL: ${S3_ALLOW_INSECURE_INTERNAL:-false}
+      S3_INSECURE_ALLOWED_HOST: ${S3_INSECURE_ALLOWED_HOST:-}
+      DOCUMENT_UPLOAD_HARD_MAX_BYTES: ${DOCUMENT_UPLOAD_HARD_MAX_BYTES:-10485760}
+      CLAMAV_HOST: ${CLAMAV_HOST:?set CLAMAV_HOST in Coolify}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      CLAMAV_TIMEOUT_MS: ${CLAMAV_TIMEOUT_MS:-30000}
+      DOCUMENT_WORKER_POLL_MS: ${DOCUMENT_WORKER_POLL_MS:-1000}
+      OUTBOX_LEASE_MS: ${OUTBOX_LEASE_MS:-60000}
+      DOCUMENT_JOB_MAX_ATTEMPTS: ${DOCUMENT_JOB_MAX_ATTEMPTS:-5}
+      DOCUMENT_JOB_BASE_BACKOFF_MS: ${DOCUMENT_JOB_BASE_BACKOFF_MS:-1000}
+      WORKER_HEALTH_FILE: /tmp/admission-worker-ready
+      EMAIL_DELIVERY_MODE: ${EMAIL_DELIVERY_MODE:-synthetic}
+      REAL_EMAIL_DELIVERY_AUTHORIZED: "false"
+      RESEND_API_KEY: ${RESEND_API_KEY:?set RESEND_API_KEY in Coolify}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:?set RESEND_FROM_EMAIL in Coolify}
+      EMAIL_SUPPRESSION_HMAC_SECRET: ${EMAIL_SUPPRESSION_HMAC_SECRET:?set EMAIL_SUPPRESSION_HMAC_SECRET in Coolify}
+      EMAIL_SUPPRESSION_HASH_KEY_VERSION: ${EMAIL_SUPPRESSION_HASH_KEY_VERSION:-1}
+      EMAIL_SUPPRESSION_PREVIOUS_KEYS_JSON: ${EMAIL_SUPPRESSION_PREVIOUS_KEYS_JSON:-[]}
+      RESEND_TIMEOUT_MS: ${RESEND_TIMEOUT_MS:-10000}
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          node -e "const fs=require('node:fs'); try { process.kill(1, 0);
+          const age=Date.now()-fs.statSync('/tmp/admission-worker-ready').mtimeMs;
+          process.exit(age < 60000 ? 0 : 1); } catch { process.exit(1); }"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    stop_grace_period: 45s

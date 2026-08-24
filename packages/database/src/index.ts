@@ -130,7 +130,10 @@ export {
   type RecommendationVersionDto,
   type RecommendationWorkspaceDto,
 } from "./recommendation.js";
-export { PrismaClient } from "./generated/prisma/client.js";
+export {
+  CommunicationWebhookEventType,
+  PrismaClient,
+} from "./generated/prisma/client.js";
 export {
   FORM_CONDITION_OPERATORS,
   FORM_FIELD_TYPES,
@@ -173,7 +176,12 @@ export {
   buildSessionCookieOptions,
   createOpaqueSessionCookie,
 } from "./session-cookie.js";
-export { InMemoryCsrfService } from "./csrf.js";
+export {
+  InMemoryCsrfService,
+  StatelessCsrfService,
+  type CsrfService,
+  type CsrfValidationInput,
+} from "./csrf.js";
 export {
   DEFAULT_OUTBOX_LEASE_MS,
   OutboxService,
@@ -232,6 +240,7 @@ export {
 export {
   InMemorySecurityEventSink,
   NoopSecurityEventSink,
+  StructuredSecurityEventSink,
   type SecurityEvent,
   type SecurityEventSink,
 } from "./security-events.js";
@@ -306,9 +315,22 @@ export {
   type IdentityVerificationEmailInput,
 } from "./identity-email-adapter.js";
 export {
+  ClamAvScanner,
+  ResendEmailAdapter,
+  S3ObjectStorage,
+  createProductionEmailAdapterFromEnv,
+  createProductionMalwareScannerFromEnv,
+  createProductionObjectStorageFromEnv,
+  type ClamAvScannerOptions,
+  type EmailDeliveryMode,
+  type ResendEmailAdapterOptions,
+  type S3ObjectStorageOptions,
+} from "./production-adapters.js";
+export {
   COMMUNICATION_SEND_TOPIC,
   CommunicationService,
   type ConfirmCommunicationInput,
+  type CommunicationServiceOptions,
   type PrepareActivityAppointmentInput,
   type PrepareDecisionCommunicationInput,
   type PrepareDocumentCorrectionInput,
@@ -319,6 +341,14 @@ export {
   type RecordManualContactInput,
   type RetryCommunicationInput,
 } from "./communications.js";
+export {
+  EmailDeliveryEventService,
+  createEmailSuppressionHashOptionsFromEnv,
+  createEmailSuppressionHashOptionsListFromEnv,
+  hashSuppressedEmail,
+  type EmailSuppressionHashOptions,
+  type VerifiedEmailWebhookEvent,
+} from "./email-delivery.js";
 export {
   FamilyApplicationProjectionService,
   type FamilyActivityProjection,
@@ -393,3 +423,12 @@ export {
   type EffectiveCalendarConfig,
   type TenantBusinessCalendarDto,
 } from "./business-calendar.js";
+export {
+  INITIAL_TENANT_ADMIN_PERMISSIONS,
+  TenantBootstrapError,
+  TenantBootstrapService,
+  normalizeTenantCode,
+  type BootstrapTenantAdminInput,
+  type BootstrapTenantAdminResult,
+  type TenantBootstrapErrorCode,
+} from "./tenant-bootstrap.js";

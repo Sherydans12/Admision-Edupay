@@ -1,6 +1,7 @@
 FROM node:22.18.0-bookworm-slim AS build
 
-LABEL com.admissionedupay.readiness="DEVELOPMENT READINESS IMAGE"
+ARG IMAGE_READINESS="PRODUCTION CANDIDATE IMAGE"
+LABEL com.admissionedupay.readiness=$IMAGE_READINESS
 
 ENV COREPACK_HOME=/corepack
 WORKDIR /repo
@@ -24,9 +25,12 @@ RUN pnpm deploy --legacy --filter @admission/api --prod /runtime
 
 FROM node:22.18.0-bookworm-slim AS runtime
 
-LABEL com.admissionedupay.readiness="DEVELOPMENT READINESS IMAGE"
+ARG IMAGE_READINESS="PRODUCTION CANDIDATE IMAGE"
+ARG RUNTIME_NODE_ENV=production
+LABEL com.admissionedupay.readiness=$IMAGE_READINESS
 
-ENV NODE_ENV=development
+ENV NODE_ENV=$RUNTIME_NODE_ENV
+ENV PORT=3001
 WORKDIR /app
 
 RUN mkdir -p /app/document-storage && chown node:node /app/document-storage
@@ -36,4 +40,6 @@ COPY --from=build /repo/apps/api/dist ./dist
 
 USER node
 EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD ["node", "-e", "fetch('http://127.0.0.1:3001/health/ready').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
 CMD ["node", "dist/main.js"]

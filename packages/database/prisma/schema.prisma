@@ -354,6 +354,17 @@ enum CommunicationAttemptStatus {
   DELIVERED
 }
 
+enum CommunicationWebhookEventType {
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+}
+
+enum CommunicationSuppressionReason {
+  BOUNCE
+  COMPLAINT
+}
+
 enum OperationalTaskType {
   COMMUNICATION_FAILED
 }
@@ -480,6 +491,8 @@ model Tenant {
   applicationWithdrawals          ApplicationWithdrawal[]
   communications                  Communication[]
   communicationAttempts           CommunicationAttempt[]
+  communicationWebhookEvents      CommunicationWebhookEvent[]
+  communicationSuppressions       CommunicationSuppression[]
   operationalTasks                OperationalTask[]
   manualContacts                  ManualContact[]
   auditEvents                     AuditEvent[]
@@ -1819,11 +1832,50 @@ model CommunicationAttempt {
   deliveryEvidence   Json?                      @map("delivery_evidence")
   tenant             Tenant                     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   communication      Communication              @relation(fields: [tenantId, communicationId], references: [tenantId, id], onDelete: Restrict)
+  webhookEvents      CommunicationWebhookEvent[]
 
   @@unique([tenantId, id])
   @@unique([tenantId, communicationId, sequence])
   @@index([tenantId, communicationId, attemptedAt])
   @@map("communication_attempts")
+}
+
+/// Minimal, append-only receipt of a verified provider webhook. Raw payloads are never persisted.
+model CommunicationWebhookEvent {
+  id                     String                        @id @default(uuid()) @db.Uuid
+  tenantId               String                        @map("tenant_id") @db.Uuid
+  communicationAttemptId String                        @map("communication_attempt_id") @db.Uuid
+  provider               String                        @db.VarChar(40)
+  providerEventId        String                        @map("provider_event_id") @db.VarChar(160)
+  eventType              CommunicationWebhookEventType @map("event_type")
+  occurredAt             DateTime                      @map("occurred_at") @db.Timestamptz(3)
+  receivedAt             DateTime                      @default(now()) @map("received_at") @db.Timestamptz(3)
+  tenant                 Tenant                        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  communicationAttempt   CommunicationAttempt          @relation(fields: [tenantId, communicationAttemptId], references: [tenantId, id], onDelete: Restrict)
+  suppressions           CommunicationSuppression[]
+
+  @@unique([tenantId, id])
+  @@unique([provider, providerEventId])
+  @@index([tenantId, communicationAttemptId, occurredAt])
+  @@map("communication_webhook_events")
+}
+
+/// Tenant-scoped hashed recipient suppression derived from verified provider events.
+model CommunicationSuppression {
+  id                   String                         @id @default(uuid()) @db.Uuid
+  tenantId             String                         @map("tenant_id") @db.Uuid
+  channelHash          String                         @map("channel_hash") @db.Char(64)
+  hashKeyVersion       Int                            @default(1) @map("hash_key_version")
+  reason               CommunicationSuppressionReason
+  sourceWebhookEventId String                         @map("source_webhook_event_id") @db.Uuid
+  suppressedAt         DateTime                       @default(now()) @map("suppressed_at") @db.Timestamptz(3)
+  tenant               Tenant                         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sourceWebhookEvent   CommunicationWebhookEvent      @relation(fields: [tenantId, sourceWebhookEventId], references: [tenantId, id], onDelete: Restrict)
+
+  @@unique([tenantId, id])
+  @@unique([tenantId, hashKeyVersion, channelHash])
+  @@index([tenantId, suppressedAt])
+  @@map("communication_suppressions")
 }
 
 /// Internal operational task created when email delivery fails.

@@ -8,7 +8,9 @@ import {
   PrismaClient,
   resolveEffectiveTenantContext,
   SessionService,
+  StatelessCsrfService,
   SupportElevationService,
+  type CsrfService,
   type FamilyExecutionContext,
   type PlatformExecutionContext,
   type PermissionKey,
@@ -54,7 +56,7 @@ const FAMILY_CAPABILITIES = [
 
 @Injectable()
 export class RequestContextService {
-  private readonly csrf = new InMemoryCsrfService();
+  private readonly csrf: CsrfService;
   private readonly expectedOrigin =
     process.env.ADMISSION_APP_ORIGIN ?? "http://localhost:3000";
 
@@ -62,7 +64,17 @@ export class RequestContextService {
     private readonly prisma: PrismaClient,
     private readonly sessions: SessionService,
     private readonly supportElevations: SupportElevationService,
-  ) {}
+  ) {
+    if (process.env.NODE_ENV === "production") {
+      const secret = process.env.CSRF_SIGNING_SECRET;
+      if (secret === undefined) {
+        throw new Error("CSRF_SIGNING_SECRET is required in production");
+      }
+      this.csrf = new StatelessCsrfService(secret);
+    } else {
+      this.csrf = new InMemoryCsrfService();
+    }
+  }
 
   async requirePlatformContext(
     request: RequestLike,
