@@ -4,9 +4,19 @@ import {
   runWithTenantContext,
   type TenantExecutionContext,
 } from "@admission/database";
-import { Body, Controller, Get, Param, Patch, Post, Req } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Req,
+} from "@nestjs/common";
 import {
   activityDefinitionSchema,
+  activityPolicySchema,
   activityVersionSchema,
   closeSchema,
   completedSchema,
@@ -14,10 +24,14 @@ import {
   noShowSchema,
   notCompletedSchema,
   parseActivityBody,
+  parseActivityKind,
   repeatSchema,
   scheduleSchema,
 } from "./activity-schemas.js";
-import { ApiActivityService } from "./activity.service.js";
+import {
+  ApiActivityPolicyService,
+  ApiActivityService,
+} from "./activity.service.js";
 import { parseUuid } from "./intake-schemas.js";
 import { RequestContextService } from "./request-context.service.js";
 
@@ -31,7 +45,73 @@ export class ActivityController {
   constructor(
     private readonly contexts: RequestContextService,
     private readonly activities: ApiActivityService,
+    private readonly activityPolicies: ApiActivityPolicyService,
   ) {}
+
+  @Get("admin/tenants/:tenantId/activity-policies")
+  async listActivityPolicies(
+    @Req() request: RequestLike,
+    @Param("tenantId") tenantId: string,
+  ) {
+    const context = await this.adminContext(
+      request,
+      tenantId,
+      "activity.policy.read",
+    );
+    return runWithTenantContext(context, async () => ({
+      items: await this.activityPolicies.listPolicies(context),
+    }));
+  }
+
+  @Get("admin/tenants/:tenantId/activity-policy-executors")
+  async listEligibleActivityExecutors(
+    @Req() request: RequestLike,
+    @Param("tenantId") tenantId: string,
+  ) {
+    const context = await this.adminContext(
+      request,
+      tenantId,
+      "activity.policy.read",
+    );
+    return runWithTenantContext(context, async () => ({
+      items: await this.activityPolicies.listEligibleExecutors(context),
+    }));
+  }
+
+  @Get("admin/tenants/:tenantId/activity-policies/:kind")
+  async getActivityPolicy(
+    @Req() request: RequestLike,
+    @Param("tenantId") tenantId: string,
+    @Param("kind") kind: string,
+  ) {
+    const context = await this.adminContext(
+      request,
+      tenantId,
+      "activity.policy.read",
+    );
+    return runWithTenantContext(context, () =>
+      this.activityPolicies.getPolicy(context, parseActivityKind(kind)),
+    );
+  }
+
+  @Put("admin/tenants/:tenantId/activity-policies/:kind")
+  async putActivityPolicy(
+    @Req() request: RequestLike,
+    @Param("tenantId") tenantId: string,
+    @Param("kind") kind: string,
+    @Body() body: unknown,
+  ) {
+    await this.contexts.assertMutationSafe(request);
+    const context = await this.adminContext(
+      request,
+      tenantId,
+      "activity.policy.manage",
+    );
+    const input = parseActivityBody(activityPolicySchema, body);
+    return runWithTenantContext(context, () =>
+      this.activityPolicies.putPolicy(context, parseActivityKind(kind), input),
+    );
+  }
 
   @Get("family/tenants/:tenantId/applications/:applicationId/activities")
   async familyActivities(

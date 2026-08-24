@@ -32,9 +32,12 @@ type ActivityHttpFixture = {
   applicationAId: string;
   applicationBId: string;
   appointmentId: string;
+  definitionId: string;
   familyToken: string;
+  noPermissionMembershipId: string;
   noPermissionToken: string;
   staffToken: string;
+  staffMembershipId: string;
   staffUserId: string;
   tenantId: string;
   userAId: string;
@@ -174,9 +177,9 @@ async function seedFixture(): Promise<void> {
       await transaction.$executeRaw`
         INSERT INTO activity_definition_versions
           (id, tenant_id, activity_definition_id, version_number, lifecycle, required,
-           duration_minutes, max_normal_reschedules, late_tolerance_minutes, published_at)
+           duration_minutes, duration_source, max_normal_reschedules, late_tolerance_minutes, published_at)
         VALUES
-          (${versionId}, ${tenantId}, ${definitionId}, 1, 'PUBLISHED', true, 30, 2, 15, CURRENT_TIMESTAMP)`;
+          (${versionId}, ${tenantId}, ${definitionId}, 1, 'PUBLISHED', true, 30, 'VERSION_OVERRIDE', 2, 15, CURRENT_TIMESTAMP)`;
       await transaction.$executeRaw`
         INSERT INTO application_activities
           (id, tenant_id, application_id, activity_definition_id,
@@ -205,10 +208,17 @@ async function seedFixture(): Promise<void> {
           (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
         VALUES
           (${staffRoleId}, ${tenantId}, ${staffMembershipId}, ${"SYNTHETIC_E5D_STAFF"},
-           ARRAY[${PERMISSIONS.ACTIVITY_READ}, ${PERMISSIONS.ACTIVITY_SCHEDULE}, ${PERMISSIONS.ACTIVITY_PERFORM}, ${PERMISSIONS.ACTIVITY_REPEAT}, ${PERMISSIONS.ACTIVITY_CLOSE}]::text[],
+           ARRAY[${PERMISSIONS.ACTIVITY_CLOSE}, ${PERMISSIONS.ACTIVITY_DEFINITION_MANAGE}, ${PERMISSIONS.ACTIVITY_PERFORM}, ${PERMISSIONS.ACTIVITY_POLICY_MANAGE}, ${PERMISSIONS.ACTIVITY_POLICY_READ}, ${PERMISSIONS.ACTIVITY_READ}, ${PERMISSIONS.ACTIVITY_REPEAT}, ${PERMISSIONS.ACTIVITY_SCHEDULE}]::text[],
            ARRAY['*']::text[], 'ACTIVE', CURRENT_TIMESTAMP),
           (${noPermissionRoleId}, ${tenantId}, ${noPermissionMembershipId}, ${"SYNTHETIC_E5D_NO_ACTIVITY"},
-           ARRAY[${PERMISSIONS.APPLICATION_READ}]::text[], ARRAY['*']::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
+           ARRAY[${PERMISSIONS.ACTIVITY_PERFORM}, ${PERMISSIONS.APPLICATION_READ}]::text[], ARRAY['*']::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
+      await transaction.$executeRaw`
+        INSERT INTO tenant_activity_policies
+          (id, tenant_id, kind, default_duration_minutes, primary_membership_id,
+           backup_membership_id, concurrency_version, created_by, updated_by)
+        VALUES
+          (${randomUUID()}, ${tenantId}, 'DIAGNOSTIC_EVALUATION', 60,
+           ${staffMembershipId}, ${noPermissionMembershipId}, 1, ${staffId}, ${staffId})`;
     }),
   );
 
@@ -223,8 +233,11 @@ async function seedFixture(): Promise<void> {
     applicationAId,
     applicationBId,
     appointmentId,
+    definitionId,
     familyToken: familySession.token,
     noPermissionToken: noPermissionSession.token,
+    noPermissionMembershipId,
+    staffMembershipId,
     staffToken: staffSession.token,
     staffUserId: staffId,
     tenantId,
@@ -257,6 +270,7 @@ async function mutation(
   token: string,
   csrfToken: string | undefined,
   body: unknown,
+  method: "POST" | "PUT" = "POST",
 ): Promise<Response> {
   const headers = new Headers({
     "Content-Type": "application/json",
@@ -266,7 +280,7 @@ async function mutation(
   return request(path, {
     body: JSON.stringify(body),
     headers,
-    method: "POST",
+    method,
     token,
   });
 }
@@ -549,5 +563,123 @@ describe.sequential("E5-D real Nest HTTP boundary", () => {
     };
     expect(closedBody.attempts).toEqual([]);
     expect(closedBody.results).toEqual([]);
+  });
+
+  it("R5-HTTP-01..08: activity policy endpoints enforce auth, CSRF, readiness and resolved duration", async () => {
+    const noSession = await request(
+      `/admin/tenants/${fixture.tenantId}/activity-policies`,
+    );
+    expect(noSession.status).toBe(401);
+
+    const policiesResponse = await request(
+      `/admin/tenants/${fixture.tenantId}/activity-policies`,
+      { token: fixture.staffToken },
+    );
+    expect(policiesResponse.status).toBe(200);
+    expect(await policiesResponse.json()).toMatchObject({
+      items: [
+        {
+          defaultDurationMinutes: 60,
+          kind: "DIAGNOSTIC_EVALUATION",
+          ready: true,
+        },
+      ],
+    });
+
+    const executorsResponse = await request(
+      `/admin/tenants/${fixture.tenantId}/activity-policy-executors`,
+      { token: fixture.staffToken },
+    );
+    expect(executorsResponse.status).toBe(200);
+    const executors = (await executorsResponse.json()) as {
+      items: Array<{ membershipId: string; roleKeys: string[] }>;
+    };
+    expect(executors.items.map((item) => item.membershipId).sort()).toEqual(
+      [fixture.noPermissionMembershipId, fixture.staffMembershipId].sort(),
+    );
+    expect(JSON.stringify(executors)).not.toMatch(/@example|email/i);
+
+    const withoutCsrf = await mutation(
+      `/admin/tenants/${fixture.tenantId}/activity-policies/GUARDIAN_INTERVIEW`,
+      fixture.staffToken,
+      undefined,
+      {
+        backupMembershipId: fixture.noPermissionMembershipId,
+        defaultDurationMinutes: 30,
+        primaryMembershipId: fixture.staffMembershipId,
+      },
+      "PUT",
+    );
+    expect(withoutCsrf.status).toBe(403);
+
+    const token = await csrf(fixture.staffToken);
+    const createdResponse = await mutation(
+      `/admin/tenants/${fixture.tenantId}/activity-policies/GUARDIAN_INTERVIEW`,
+      fixture.staffToken,
+      token,
+      {
+        backupMembershipId: fixture.noPermissionMembershipId,
+        defaultDurationMinutes: 30,
+        primaryMembershipId: fixture.staffMembershipId,
+      },
+      "PUT",
+    );
+    expect(createdResponse.status).toBe(200);
+    const created = (await createdResponse.json()) as {
+      concurrencyVersion: number;
+      ready: boolean;
+    };
+    expect(created).toMatchObject({ concurrencyVersion: 1, ready: true });
+
+    const duplicateExecutors = await mutation(
+      `/admin/tenants/${fixture.tenantId}/activity-policies/GUARDIAN_INTERVIEW`,
+      fixture.staffToken,
+      token,
+      {
+        backupMembershipId: fixture.staffMembershipId,
+        defaultDurationMinutes: 30,
+        expectedVersion: created.concurrencyVersion,
+        primaryMembershipId: fixture.staffMembershipId,
+      },
+      "PUT",
+    );
+    expect(duplicateExecutors.status).toBe(409);
+    expect(await duplicateExecutors.json()).toMatchObject({
+      code: "ACTIVITY_POLICY_EXECUTORS_MUST_DIFFER",
+    });
+
+    const stale = await mutation(
+      `/admin/tenants/${fixture.tenantId}/activity-policies/GUARDIAN_INTERVIEW`,
+      fixture.staffToken,
+      token,
+      {
+        backupMembershipId: fixture.noPermissionMembershipId,
+        defaultDurationMinutes: 35,
+        expectedVersion: 99,
+        primaryMembershipId: fixture.staffMembershipId,
+      },
+      "PUT",
+    );
+    expect(stale.status).toBe(409);
+    expect(await stale.json()).toMatchObject({
+      code: "ACTIVITY_POLICY_VERSION_CHANGED",
+    });
+
+    const versionResponse = await mutation(
+      `/admin/tenants/${fixture.tenantId}/activities/${fixture.definitionId}/versions`,
+      fixture.staffToken,
+      token,
+      {
+        lateToleranceMinutes: 15,
+        maxNormalReschedules: 2,
+        required: true,
+      },
+    );
+    expect(versionResponse.status).toBe(201);
+    expect(await versionResponse.json()).toMatchObject({
+      durationMinutes: 60,
+      durationSource: "TENANT_KIND_DEFAULT",
+      lifecycle: "DRAFT",
+    });
   });
 });

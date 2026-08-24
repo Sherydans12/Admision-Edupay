@@ -440,3 +440,27 @@ G5-PC1-R3 implementa el soporte completo de calendario laboral por tenant, plazo
 | `PC1-TECH-007` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
 | `PC1-TECH-008` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
 | `PC1-TECH-009` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-R5` | `COMPLETE / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-013` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-014` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+| `PC1-TECH-015` | `IMPLEMENTED / TECHNICALLY_REVIEWED` |
+
+## Addendum G5-PC1-R5 — capacidad y configuración de actividades (2026-08-24)
+
+La aprobación humana de `R5-D-001..009` autorizó Migration 20 sólo con datos
+sintéticos. El incremento implementa lifecycle explícito de offerings y capacity
+fail-closed; defaults de duración tenant/kind con precedencia versionada; y políticas
+primary/backup tenant-scoped con capability `activity.perform`.
+
+Migration 20 (`20260824130000_g5pc1r5_capacity_activity_policy`) quedó sellada con RLS
+forzado, FKs tenant-scoped, constraints, grants mínimos, backfill técnico de source sin
+cambiar minutos y sin seed institucional. Las migraciones 17..19 permanecen inmutables y
+Migration 21 está ausente/no autorizada.
+
+Evidencia final: `pnpm test` 44 archivos/656 pruebas; `pnpm test:rls` 8 suites/67
+pruebas; smoke fresh 0→20 e incremental 19→20; build/typecheck/lint/format/security,
+frontera EduPay y smokes operacionales/recovery en verde. Detalle en
+[`24-g5pc1r5-capacity-activity-evidence.md`](24-g5pc1r5-capacity-activity-evidence.md).
+
+`G5`, preproducción, datos reales, piloto, producción y EduPay permanecen
+`NOT AUTHORIZED`.

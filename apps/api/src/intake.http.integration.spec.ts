@@ -27,12 +27,15 @@ const migrationPool = new Pool({
 const cookieName = buildSessionCookieOptions({ environment: "local" }).name;
 
 type HttpFixture = {
+  academicYearAId: string;
   adminAllowedToken: string;
   adminAllowedUserId: string;
   adminDeniedToken: string;
   adminManageToken: string;
   adminManageUserId: string;
   applicationBId: string;
+  campusAId: string;
+  courseLevelAId: string;
   formFieldAId: string;
   formVersionAId: string;
   familyProfileAId: string;
@@ -178,6 +181,10 @@ async function seedFixture(): Promise<void> {
       INSERT INTO admission_offerings
         (id, tenant_id, campus_id, academic_year_id, process_id, course_level_id, code, title, status, availability_category, form_version_id)
       VALUES (${offeringA}, ${tenantA}, ${campusA}, ${yearA}, ${processA}, ${levelA}, ${"HTTP-OFFER-A"}, ${"Oferta HTTP A"}, 'PUBLISHED', 'LIMITED_CAPACITY', ${formVersionA})`;
+    await transaction.$executeRaw`
+      INSERT INTO admission_capacities
+        (id, tenant_id, offering_id, configured_capacity, concurrency_version)
+      VALUES (${randomUUID()}, ${tenantA}, ${offeringA}, 0, 1)`;
   });
 
   await prisma.$transaction(async (transaction) => {
@@ -215,7 +222,7 @@ async function seedFixture(): Promise<void> {
     await transaction.$executeRaw`
       INSERT INTO role_assignments
         (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
-       VALUES (${roleAssignment}, ${tenantA}, ${membership}, ${"SYNTHETIC_E5C_ADMIN"}, ARRAY[${PERMISSIONS.ADMISSION_CONFIG_READ}, ${PERMISSIONS.ADMISSION_CONFIG_MANAGE}, ${PERMISSIONS.APPLICATION_ASSIST}, ${PERMISSIONS.APPLICATION_AUTHORITY_REVIEW}, ${PERMISSIONS.DOCUMENT_EXEMPT}, ${PERMISSIONS.DOCUMENT_READ}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_MANAGE}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_PUBLISH}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_READ}, ${PERMISSIONS.DOCUMENT_REVIEW}, ${PERMISSIONS.DOCUMENT_UPLOAD}, ${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}, ${PERMISSIONS.FORM_PUBLISH}, ${PERMISSIONS.RESTRICTED_READ}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
+       VALUES (${roleAssignment}, ${tenantA}, ${membership}, ${"SYNTHETIC_E5C_ADMIN"}, ARRAY[${PERMISSIONS.ADMISSION_CONFIG_READ}, ${PERMISSIONS.ADMISSION_CONFIG_MANAGE}, ${PERMISSIONS.APPLICATION_ASSIST}, ${PERMISSIONS.APPLICATION_AUTHORITY_REVIEW}, ${PERMISSIONS.CAPACITY_MANAGE}, ${PERMISSIONS.CAPACITY_READ}, ${PERMISSIONS.DOCUMENT_EXEMPT}, ${PERMISSIONS.DOCUMENT_READ}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_MANAGE}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_PUBLISH}, ${PERMISSIONS.DOCUMENT_REQUIREMENT_READ}, ${PERMISSIONS.DOCUMENT_REVIEW}, ${PERMISSIONS.DOCUMENT_UPLOAD}, ${PERMISSIONS.FORM_READ}, ${PERMISSIONS.FORM_MANAGE}, ${PERMISSIONS.FORM_PUBLISH}, ${PERMISSIONS.RESTRICTED_READ}]::text[], ARRAY[${"*"}]::text[], 'ACTIVE', CURRENT_TIMESTAMP)`;
     await transaction.$executeRaw`
       INSERT INTO role_assignments
         (id, tenant_id, membership_id, role_key, permissions, scopes, status, starts_at)
@@ -247,12 +254,15 @@ async function seedFixture(): Promise<void> {
     sessions.issueSession(adminManage),
   ]);
   fixture = {
+    academicYearAId: yearA,
     adminAllowedToken: adminAllowedSession.token,
     adminAllowedUserId: adminAllowed,
     adminDeniedToken: adminDeniedSession.token,
     adminManageToken: adminManageSession.token,
     adminManageUserId: adminManage,
     applicationBId: applicationB,
+    campusAId: campusA,
+    courseLevelAId: levelA,
     familyAToken: familySession.token,
     familyBToken: familyBSession.token,
     familyProfileAId: profileA,
@@ -630,6 +640,124 @@ describe.sequential("E5-A real HTTP boundary", () => {
       expect(offering).not.toHaveProperty("exactCapacity");
       expect(offering).not.toHaveProperty("reservedCount");
     }
+  });
+
+  it("R5-HTTP-07: readiness distinguishes absent capacity from explicit zero", async () => {
+    const token = await csrf(fixture.adminAllowedToken);
+    const publishedCreate = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/offerings`,
+      fixture.adminAllowedToken,
+      token,
+      {
+        body: JSON.stringify({
+          academicYearId: fixture.academicYearAId,
+          availabilityCategory: "LIMITED_CAPACITY",
+          campusId: fixture.campusAId,
+          code: `R5-HTTP-REJECT-${randomUUID()}`,
+          courseLevelId: fixture.courseLevelAId,
+          processId: fixture.processAId,
+          status: "PUBLISHED",
+          title: "Offering R5 publicada directamente",
+        }),
+        method: "POST",
+      },
+    );
+    expect(publishedCreate.status).toBe(409);
+    expect(await publishedCreate.json()).toMatchObject({
+      code: "OFFERING_EXPLICIT_PUBLISH_REQUIRED",
+    });
+
+    const createdResponse = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/offerings`,
+      fixture.adminAllowedToken,
+      token,
+      {
+        body: JSON.stringify({
+          academicYearId: fixture.academicYearAId,
+          availabilityCategory: "LIMITED_CAPACITY",
+          campusId: fixture.campusAId,
+          code: `R5-HTTP-DRAFT-${randomUUID()}`,
+          courseLevelId: fixture.courseLevelAId,
+          processId: fixture.processAId,
+          title: "Offering R5 sintética",
+        }),
+        method: "POST",
+      },
+    );
+    expect(createdResponse.status).toBe(201);
+    const created = (await createdResponse.json()) as {
+      concurrencyVersion: number;
+      id: string;
+      status: string;
+    };
+    expect(created).toMatchObject({ concurrencyVersion: 1, status: "DRAFT" });
+
+    const absentResponse = await request(
+      `/admin/tenants/${fixture.tenantAId}/offerings/${created.id}/readiness`,
+      { token: fixture.adminAllowedToken },
+    );
+    expect(absentResponse.status).toBe(200);
+    expect(await absentResponse.json()).toMatchObject({
+      blockers: ["CAPACITY_CONFIGURATION_REQUIRED"],
+      capacityState: "CAPACITY_NOT_CONFIGURED",
+      publishable: false,
+    });
+
+    const capacityResponse = await mutation(
+      `/staff/tenants/${fixture.tenantAId}/offerings/${created.id}/capacity`,
+      fixture.adminAllowedToken,
+      token,
+      { body: JSON.stringify({ configuredCapacity: 0 }), method: "POST" },
+    );
+    expect(capacityResponse.status).toBe(201);
+
+    const zeroResponse = await request(
+      `/admin/tenants/${fixture.tenantAId}/offerings/${created.id}/readiness`,
+      { token: fixture.adminAllowedToken },
+    );
+    expect(zeroResponse.status).toBe(200);
+    expect(await zeroResponse.json()).toMatchObject({
+      blockers: [],
+      capacityState: "CAPACITY_CONFIGURED_ZERO",
+      publishable: true,
+    });
+
+    const publishResponse = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/offerings/${created.id}/publish`,
+      fixture.adminAllowedToken,
+      token,
+      {
+        body: JSON.stringify({
+          expectedOfferingVersion: created.concurrencyVersion,
+        }),
+        method: "POST",
+      },
+    );
+    expect(publishResponse.status).toBe(201);
+    const published = (await publishResponse.json()) as {
+      concurrencyVersion: number;
+      status: string;
+    };
+    expect(published).toMatchObject({
+      concurrencyVersion: 2,
+      status: "PUBLISHED",
+    });
+
+    const staleResponse = await mutation(
+      `/admin/tenants/${fixture.tenantAId}/offerings/${created.id}/close`,
+      fixture.adminAllowedToken,
+      token,
+      {
+        body: JSON.stringify({
+          expectedOfferingVersion: created.concurrencyVersion,
+        }),
+        method: "POST",
+      },
+    );
+    expect(staleResponse.status).toBe(409);
+    expect(await staleResponse.json()).toMatchObject({
+      code: "OFFERING_VERSION_CHANGED",
+    });
   });
 
   it("E5A-HTTP-12: global family students do not require tenant authority", async () => {

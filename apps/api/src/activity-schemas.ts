@@ -3,6 +3,7 @@ import { z } from "zod";
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const uuid = z.string().uuid();
+const activityKind = z.enum(["GUARDIAN_INTERVIEW", "DIAGNOSTIC_EVALUATION"]);
 const dateTime = z
   .string()
   .datetime({ offset: true })
@@ -11,14 +12,14 @@ const dateTime = z
 export const activityDefinitionSchema = z
   .object({
     code: text(80),
-    kind: z.enum(["GUARDIAN_INTERVIEW", "DIAGNOSTIC_EVALUATION"]),
+    kind: activityKind,
     name: text(160),
   })
   .strict();
 
 export const activityVersionSchema = z
   .object({
-    durationMinutes: z.number().int().positive().max(1440),
+    durationMinutes: z.number().int().positive().max(1440).optional(),
     instructions: z.string().trim().max(1000).nullable().optional(),
     lateToleranceMinutes: z.number().int().nonnegative().max(1440).optional(),
     maxNormalReschedules: z.number().int().nonnegative().max(100).optional(),
@@ -27,6 +28,15 @@ export const activityVersionSchema = z
     scopeCourseLevelId: uuid.nullable().optional(),
     scopeOfferingId: uuid.nullable().optional(),
     scopeProcessId: uuid.nullable().optional(),
+  })
+  .strict();
+
+export const activityPolicySchema = z
+  .object({
+    backupMembershipId: uuid,
+    defaultDurationMinutes: z.number().int().min(1).max(1440),
+    expectedVersion: z.number().int().min(1).optional(),
+    primaryMembershipId: uuid,
   })
   .strict();
 
@@ -90,4 +100,12 @@ export function parseActivityBody<TSchema extends z.ZodType>(
     );
   }
   return result.data as z.output<TSchema>;
+}
+
+export function parseActivityKind(
+  value: string,
+): z.output<typeof activityKind> {
+  const result = activityKind.safeParse(value);
+  if (!result.success) throw new IntakeValidationError("kind");
+  return result.data;
 }

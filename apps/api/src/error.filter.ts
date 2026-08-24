@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import {
   ActivityConflictError,
+  ActivityPolicyConflictError,
   ApplicationAuthorityConflictError,
   ApplicationAuthorityValidationError,
   AccessAdminValidationError,
@@ -45,10 +46,21 @@ export interface PublicErrorResponse {
   code?:
     | "DOCUMENT_PROCESSING_IN_PROGRESS"
     | "DOCUMENT_VERSION_CHANGED"
+    | "OFFERING_EXPLICIT_PUBLISH_REQUIRED"
+    | "CAPACITY_CONFIGURATION_REQUIRED"
+    | "OFFERING_VERSION_CHANGED"
+    | "PUBLISHED_OFFERING_CAPACITY_REQUIRED"
     | "ACTIVITY_APPOINTMENT_CHANGED"
     | "ACTIVITY_ALREADY_SCHEDULED"
     | "ACTIVITY_NO_SHOW_TOO_EARLY"
     | "ACTIVITY_CLOSED"
+    | "ACTIVITY_POLICY_ALREADY_CONFIGURED"
+    | "ACTIVITY_POLICY_REQUIRED"
+    | "ACTIVITY_POLICY_EXECUTORS_MUST_DIFFER"
+    | "ACTIVITY_POLICY_EXECUTOR_INACTIVE"
+    | "ACTIVITY_POLICY_EXECUTOR_CAPABILITY_REQUIRED"
+    | "ACTIVITY_POLICY_VERSION_CHANGED"
+    | "ASSIGNED_EXECUTOR_NOT_PRIMARY_OR_BACKUP"
     | "NORMAL_RESCHEDULE_LIMIT_REQUIRES_REVIEW"
     | "RECOMMENDATION_VERSION_CHANGED"
     | "RECOMMENDATION_NOT_SUBMITTED"
@@ -108,21 +120,23 @@ export class GlobalErrorFilter implements ExceptionFilter {
         ? { code: exception.code }
         : exception instanceof ActivityConflictError
           ? { code: exception.code }
-          : exception instanceof RecommendationConflictError
+          : exception instanceof ActivityPolicyConflictError
             ? { code: exception.code }
-            : exception instanceof CapacityOfferConflictError
+            : exception instanceof RecommendationConflictError
               ? { code: exception.code }
-              : exception instanceof FunctionalHandoffConflictError
+              : exception instanceof CapacityOfferConflictError
                 ? { code: exception.code }
-                : exception instanceof ApplicationAuthorityConflictError
+                : exception instanceof FunctionalHandoffConflictError
                   ? { code: exception.code }
-                  : exception instanceof BusinessCalendarConflictError
+                  : exception instanceof ApplicationAuthorityConflictError
                     ? { code: exception.code }
-                    : exception instanceof ReportExportLimitExceededError
+                    : exception instanceof BusinessCalendarConflictError
                       ? { code: exception.code }
-                      : exception instanceof RoleAssignmentChangedError
+                      : exception instanceof ReportExportLimitExceededError
                         ? { code: exception.code }
-                        : {}),
+                        : exception instanceof RoleAssignmentChangedError
+                          ? { code: exception.code }
+                          : {}),
     });
   }
 }
@@ -132,6 +146,8 @@ function exceptionStatus(exception: unknown): number {
   if (exception instanceof ForbiddenError) return HttpStatus.FORBIDDEN;
   if (exception instanceof IntakeConflictError) return HttpStatus.CONFLICT;
   if (exception instanceof ActivityConflictError) return HttpStatus.CONFLICT;
+  if (exception instanceof ActivityPolicyConflictError)
+    return HttpStatus.CONFLICT;
   if (exception instanceof RecommendationConflictError)
     return HttpStatus.CONFLICT;
   if (exception instanceof CapacityOfferConflictError)

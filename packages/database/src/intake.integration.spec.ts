@@ -10,6 +10,7 @@ import {
   IntakeValidationError,
   isAdmissionOfferingCurrent,
 } from "./intake.js";
+import { CapacityOfferService } from "./capacity-offer.js";
 import { getRequiredEnvironment } from "./environment.js";
 import { FormService } from "./forms.js";
 import { createAppPrismaClient } from "./prisma-client.js";
@@ -61,6 +62,7 @@ function context(
     correlationId: `synthetic-e5a-${randomUUID()}`,
     effectiveActorId: actorId,
     purpose: "e5a.intake.test",
+    scopes: ["*"],
     source: "trusted_job",
     tenantId,
   };
@@ -84,6 +86,8 @@ const configCapabilities = [
   PERMISSIONS.FORM_MANAGE,
   PERMISSIONS.FORM_PUBLISH,
   PERMISSIONS.FORM_READ,
+  PERMISSIONS.CAPACITY_MANAGE,
+  PERMISSIONS.CAPACITY_READ,
 ];
 const familyCapabilities = [
   PERMISSIONS.APPLICATION_CREATE,
@@ -149,6 +153,7 @@ async function seedFixture(): Promise<void> {
     "synthetic_test",
   );
   const intake = new IntakeService(prisma);
+  const capacities = new CapacityOfferService(prisma);
   const forms = new FormService(prisma);
 
   await runWithTenantContext(contextA, async () => {
@@ -183,8 +188,13 @@ async function seedFixture(): Promise<void> {
       code: "OFFER-SYNTH",
       courseLevelId: level.id,
       processId: process.id,
-      status: "PUBLISHED",
       title: "Oferta sintética",
+    });
+    await capacities.createCapacity(contextA, offering.id, {
+      configuredCapacity: 1,
+    });
+    await intake.publishOffering(contextA, offering.id, {
+      expectedOfferingVersion: offering.concurrencyVersion,
     });
     const definition = await forms.createDefinition(contextA, {
       name: "Formulario sintético E5-B",
@@ -264,15 +274,20 @@ async function seedFixture(): Promise<void> {
       name: "Proceso privado B",
       status: "PUBLISHED",
     });
-    await intake.createOffering(tenantBContext, {
+    const offering = await intake.createOffering(tenantBContext, {
       academicYearId: year.id,
       availabilityCategory: "POSTULATIONS_OPEN",
       campusId: campus.id,
       code: "OFFER-B",
       courseLevelId: level.id,
       processId: process.id,
-      status: "PUBLISHED",
       title: "Oferta privada B",
+    });
+    await capacities.createCapacity(tenantBContext, offering.id, {
+      configuredCapacity: 1,
+    });
+    await intake.publishOffering(tenantBContext, offering.id, {
+      expectedOfferingVersion: offering.concurrencyVersion,
     });
   });
 
@@ -321,6 +336,44 @@ async function updateFixtureAvailability(
   );
 }
 
+async function createSyntheticDraftOffering(codePrefix: string) {
+  const intake = new IntakeService(prisma);
+  return runWithTenantContext(fixture.contextA, () =>
+    intake.createOffering(fixture.contextA, {
+      academicYearId: fixture.academicYearAId,
+      availabilityCategory: "LIMITED_CAPACITY",
+      campusId: fixture.campusAId,
+      code: `${codePrefix}-${randomUUID().slice(0, 8)}`,
+      courseLevelId: fixture.courseLevelAId,
+      processId: fixture.processAId,
+      title: `Offering sintética ${codePrefix}`,
+    }),
+  );
+}
+
+async function createLegacyPublishedOfferingWithoutCapacity(
+  codePrefix: string,
+) {
+  return runWithTenantContext(fixture.contextA, () =>
+    withTenantTransaction(prisma, (transaction) =>
+      transaction.admissionOffering.create({
+        data: {
+          academicYearId: fixture.academicYearAId,
+          availabilityCategory: "LIMITED_CAPACITY",
+          campusId: fixture.campusAId,
+          code: `${codePrefix}-${randomUUID().slice(0, 8)}`,
+          courseLevelId: fixture.courseLevelAId,
+          formVersionId: fixture.formVersionId,
+          processId: fixture.processAId,
+          status: "PUBLISHED",
+          tenantId: fixture.tenantA,
+          title: `Offering legacy sintética ${codePrefix}`,
+        },
+      }),
+    ),
+  );
+}
+
 describe.sequential("E5-A intake core", () => {
   beforeEach(async () => {
     await clearTables();
@@ -330,6 +383,222 @@ describe.sequential("E5-A intake core", () => {
   afterAll(async () => {
     await prisma.$disconnect();
     await migrationPool.end();
+  });
+
+  it("R5-CAP-01: create is always DRAFT and rejects an implicit publish", async () => {
+    const intake = new IntakeService(prisma);
+    const code = `R5-IMPLICIT-${randomUUID().slice(0, 8)}`;
+    await expect(
+      runWithTenantContext(fixture.contextA, () =>
+        intake.createOffering(fixture.contextA, {
+          academicYearId: fixture.academicYearAId,
+          availabilityCategory: "LIMITED_CAPACITY",
+          campusId: fixture.campusAId,
+          code,
+          courseLevelId: fixture.courseLevelAId,
+          processId: fixture.processAId,
+          status: "PUBLISHED",
+          title: "Publicación implícita sintética",
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "OFFERING_EXPLICIT_PUBLISH_REQUIRED",
+    });
+    const created = await createSyntheticDraftOffering("R5-DRAFT");
+    expect(created).toMatchObject({
+      concurrencyVersion: 1,
+      status: "DRAFT",
+    });
+    const count = await runWithTenantContext(fixture.contextA, () =>
+      withTenantTransaction(prisma, (transaction) =>
+        transaction.admissionOffering.count({ where: { code } }),
+      ),
+    );
+    expect(count).toBe(0);
+  });
+
+  it("R5-CAP-02/03/04: readiness distinguishes absent, zero and positive capacity", async () => {
+    const intake = new IntakeService(prisma);
+    const capacities = new CapacityOfferService(prisma);
+    const absent = await createSyntheticDraftOffering("R5-ABSENT");
+    await expect(
+      runWithTenantContext(fixture.contextA, () =>
+        intake.publishOffering(fixture.contextA, absent.id, {
+          expectedOfferingVersion: absent.concurrencyVersion,
+        }),
+      ),
+    ).rejects.toMatchObject({ code: "CAPACITY_CONFIGURATION_REQUIRED" });
+    await expect(
+      runWithTenantContext(fixture.contextA, () =>
+        intake.getOfferingReadiness(fixture.contextA, absent.id),
+      ),
+    ).resolves.toEqual({
+      blockers: ["CAPACITY_CONFIGURATION_REQUIRED"],
+      capacityState: "CAPACITY_NOT_CONFIGURED",
+      capacityVersion: null,
+      lifecycle: "DRAFT",
+      offeringId: absent.id,
+      offeringVersion: 1,
+      publishable: false,
+    });
+
+    const zero = await createSyntheticDraftOffering("R5-ZERO");
+    await runWithTenantContext(fixture.contextA, () =>
+      capacities.createCapacity(fixture.contextA, zero.id, {
+        configuredCapacity: 0,
+      }),
+    );
+    await expect(
+      runWithTenantContext(fixture.contextA, () =>
+        intake.getOfferingReadiness(fixture.contextA, zero.id),
+      ),
+    ).resolves.toMatchObject({
+      blockers: [],
+      capacityState: "CAPACITY_CONFIGURED_ZERO",
+      capacityVersion: 1,
+      publishable: true,
+    });
+    await expect(
+      runWithTenantContext(fixture.contextA, () =>
+        intake.publishOffering(fixture.contextA, zero.id, {
+          expectedOfferingVersion: 1,
+        }),
+      ),
+    ).resolves.toMatchObject({ concurrencyVersion: 2, status: "PUBLISHED" });
+
+    await expect(
+      runWithTenantContext(fixture.contextA, () =>
+        intake.getOfferingReadiness(
+          fixture.contextA,
+          fixture.applicationOfferingId,
+        ),
+      ),
+    ).resolves.toMatchObject({
+      capacityState: "CAPACITY_CONFIGURED_POSITIVE",
+      capacityVersion: 1,
+      lifecycle: "PUBLISHED",
+    });
+  });
+
+  it("R5-CAP-08/09: generic updates cannot transition lifecycle and publish is optimistic", async () => {
+    const intake = new IntakeService(prisma);
+    await expect(
+      runWithTenantContext(fixture.contextA, () =>
+        intake.updateOffering(fixture.contextA, fixture.applicationOfferingId, {
+          academicYearId: fixture.academicYearAId,
+          availabilityCategory: "POSTULATIONS_OPEN",
+          campusId: fixture.campusAId,
+          code: "OFFER-SYNTH",
+          courseLevelId: fixture.courseLevelAId,
+          processId: fixture.processAId,
+          status: "DRAFT",
+          title: "No debe despublicarse",
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "OFFERING_EXPLICIT_PUBLISH_REQUIRED",
+    });
+
+    const capacities = new CapacityOfferService(prisma);
+    const draft = await createSyntheticDraftOffering("R5-CONCURRENT");
+    await runWithTenantContext(fixture.contextA, () =>
+      capacities.createCapacity(fixture.contextA, draft.id, {
+        configuredCapacity: 1,
+      }),
+    );
+    const concurrentContext = {
+      ...fixture.contextA,
+      correlationId: `synthetic-r5-publish-${randomUUID()}`,
+    };
+    const results = await Promise.allSettled([
+      runWithTenantContext(fixture.contextA, () =>
+        intake.publishOffering(fixture.contextA, draft.id, {
+          expectedOfferingVersion: 1,
+        }),
+      ),
+      runWithTenantContext(concurrentContext, () =>
+        intake.publishOffering(concurrentContext, draft.id, {
+          expectedOfferingVersion: 1,
+        }),
+      ),
+    ]);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    const rejected = results.find((result) => result.status === "rejected");
+    expect(rejected).toMatchObject({
+      reason: { code: "OFFERING_VERSION_CHANGED" },
+      status: "rejected",
+    });
+    const audits = await runWithTenantContext(fixture.contextA, () =>
+      withTenantTransaction(prisma, (transaction) =>
+        transaction.auditEvent.count({
+          where: {
+            action: "ADMISSION_OFFERING_PUBLISHED",
+            resourceId: draft.id,
+            result: "SUCCESS",
+          },
+        }),
+      ),
+    );
+    expect(audits).toBe(1);
+  });
+
+  it("R5-CAP-06/07: legacy published offerings without capacity fail closed", async () => {
+    const intake = new IntakeService(prisma);
+    const legacy = await createLegacyPublishedOfferingWithoutCapacity(
+      "R5-LEGACY-DISCOVERY",
+    );
+    const visible = await runWithTenantContext(fixture.publicContextA, () =>
+      intake.listPublicOfferings(fixture.publicContextA, now),
+    );
+    expect(visible.map((offering) => offering.id)).toContain(
+      fixture.applicationOfferingId,
+    );
+    expect(visible.map((offering) => offering.id)).not.toContain(legacy.id);
+    await expect(
+      runWithFamilyContext(fixture.familyA, () =>
+        intake.createApplicationDraft(
+          fixture.familyA,
+          fixture.publicContextA,
+          {
+            offeringId: legacy.id,
+            studentId: fixture.studentA,
+          },
+          now,
+        ),
+      ),
+    ).rejects.toBeInstanceOf(IntakeNotFoundError);
+  });
+
+  it("R5-CAP-10: opening a process or year preflights legacy capacity", async () => {
+    const intake = new IntakeService(prisma);
+    await createLegacyPublishedOfferingWithoutCapacity("R5-LEGACY-PREFLIGHT");
+    await updateFixtureProcess({ status: "DRAFT" });
+    await expect(
+      runWithTenantContext(fixture.contextA, () =>
+        intake.updateAdmissionProcess(fixture.contextA, fixture.processAId, {
+          academicYearId: fixture.academicYearAId,
+          code: "PROCESS-SYNTH",
+          name: "Proceso sintético",
+          status: "PUBLISHED",
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "PUBLISHED_OFFERING_CAPACITY_REQUIRED",
+    });
+    await updateFixtureAcademicYear("DRAFT");
+    await expect(
+      runWithTenantContext(fixture.contextA, () =>
+        intake.updateAcademicYear(fixture.contextA, fixture.academicYearAId, {
+          code: "YEAR-SYNTH",
+          label: "Año sintético",
+          status: "OPEN",
+        }),
+      ),
+    ).rejects.toMatchObject({
+      code: "PUBLISHED_OFFERING_CAPACITY_REQUIRED",
+    });
   });
 
   it("E5A-TEN-01/02/03 + E5A-AUD-04/05: RLS and tenant audit isolation", async () => {
@@ -762,7 +1031,7 @@ describe.sequential("E5-A intake core", () => {
           code: "OFFER-INVALID-YEAR",
           courseLevelId: "00000000-0000-4000-8000-000000000002",
           processId: fixture.processAId,
-          status: "PUBLISHED",
+          status: "DRAFT",
           title: "Oferta inconsistente",
         }),
       ),

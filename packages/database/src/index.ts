@@ -17,6 +17,20 @@ export {
   type StaffScheduleInput,
 } from "./activities.js";
 export {
+  ACTIVITY_POLICY_BASELINES,
+  ActivityPolicyService,
+  assertExecutorCanPerform,
+  assertReadyActivityPolicy,
+  proposedActivityPolicyBaseline,
+  resolveActivityDuration,
+  type ActivityDurationSourceValue,
+  type ActivityPolicyDto,
+  type ActivityPolicyKind,
+  type ActivityPolicyMutationDto,
+  type EligibleActivityExecutorDto,
+  type UpsertActivityPolicyInput,
+} from "./activity-policy.js";
+export {
   AVAILABILITY_LABELS,
   IntakeConflictError,
   IntakeDuplicateError,
@@ -26,6 +40,9 @@ export {
   type AcademicYearDto,
   type AcademicYearInput,
   type AdmissionOfferingInput,
+  type OfferingCapacityState,
+  type OfferingLifecycleCommandInput,
+  type OfferingReadinessDto,
   type AdmissionProcessInput,
   type ApplicationDto,
   type AvailabilityCategory,
@@ -44,6 +61,7 @@ export {
 } from "./intake.js";
 export {
   ActivityConflictError,
+  ActivityPolicyConflictError,
   ApplicationAuthorityConflictError,
   ApplicationAuthorityValidationError,
   BusinessCalendarConflictError,
@@ -56,6 +74,7 @@ export {
   RecommendationConflictError,
   RecommendationValidationError,
   type BusinessCalendarConflictCode,
+  type ActivityPolicyConflictCode,
   type CapacityOfferConflictCode,
   type ApplicationAuthorityConflictCode,
   type FunctionalHandoffConflictCode,

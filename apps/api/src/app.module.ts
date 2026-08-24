@@ -22,7 +22,10 @@ import { DocumentController } from "./document.controller.js";
 import { ApiDocumentService } from "./document.service.js";
 import { ApiAssistanceService } from "./assistance.service.js";
 import { ActivityController } from "./activity.controller.js";
-import { ApiActivityService } from "./activity.service.js";
+import {
+  ApiActivityPolicyService,
+  ApiActivityService,
+} from "./activity.service.js";
 import { RecommendationController } from "./recommendation.controller.js";
 import { ApiRecommendationService } from "./recommendation.service.js";
 import { CapacityOfferController } from "./capacity-offer.controller.js";
@@ -136,6 +139,7 @@ const accountRegistrationProvider = {
     ApiDocumentService,
     ApiAssistanceService,
     ApiActivityService,
+    ApiActivityPolicyService,
     ApiRecommendationService,
     ApiCapacityOfferService,
     ApiFunctionalHandoffService,

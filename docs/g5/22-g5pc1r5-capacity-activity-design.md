@@ -2,7 +2,7 @@
 
 ## Estado, propósito y límite de autorización
 
-**Estado:** `DRAFT / HUMAN DECISION REQUIRED / NOT APPROVED`.
+**Estado:** `APPROVED FOR IMPLEMENTATION / SYNTHETIC DATA ONLY`.
 
 Este documento propone el diseño técnico de `PC1-R5` para cerrar:
 
@@ -12,9 +12,9 @@ Este documento propone el diseño técnico de `PC1-R5` para cerrar:
 - `PC1-TECH-015`: configuración tenant-scoped de `1 primary + 1 backup` para las
   funciones críticas de actividad.
 
-El documento no autoriza implementación, Migration 20, datos reales, piloto,
-producción, proveedores ni integración técnica EduPay. Las decisiones propuestas al
-final requieren aprobación humana expresa antes de modificar schema o runtime.
+La aprobación humana del 2026-08-24 autoriza la implementación de `R5-D-001..009` y
+Migration 20 exclusivamente con datos sintéticos. No autoriza datos reales, piloto,
+producción, proveedores, infraestructura ni integración técnica EduPay.
 
 ## Clasificación de la información
 
@@ -644,37 +644,38 @@ ambiente y datos.
 
 ## Bloque de decisión humana
 
-### DRAFT — no aprobado
+### Aprobado para implementación con datos sintéticos
 
 Se solicita decisión explícita sobre el siguiente paquete indivisible:
 
 | ID | Decisión propuesta | Estado |
 | --- | --- | --- |
-| `R5-D-001` | Crear offering sólo DRAFT y publicar mediante comando explícito | `DRAFT / NOT APPROVED` |
-| `R5-D-002` | Ausencia de capacity bloquea; capacity 0 es configuración válida pero nunca unlimited | `DRAFT / NOT APPROVED` |
-| `R5-D-003` | No derivar `availabilityCategory` desde capacity en R5 | `DRAFT / NOT APPROVED` |
-| `R5-D-004` | Persistir policy por tenant+kind con default y primary/backup | `DRAFT / NOT APPROVED` |
-| `R5-D-005` | Precedencia override > tenant/kind default > baseline de inicialización 30/60 | `DRAFT / NOT APPROVED` |
-| `R5-D-006` | Limitar nuevas citas a primary/backup en el MVP R5 | `DRAFT / NOT APPROVED` |
-| `R5-D-007` | Agregar `activity.policy.read/manage`; primary/backup requieren `activity.perform` | `DRAFT / NOT APPROVED` |
-| `R5-D-008` | Compatibilidad legacy fail-closed sin backfill institucional | `DRAFT / NOT APPROVED` |
-| `R5-D-009` | Autorizar el scope técnico exacto de Migration 20 descrito aquí | `DRAFT / NOT APPROVED` |
+| `R5-D-001` | Crear offering sólo DRAFT y publicar mediante comando explícito | `APPROVED` |
+| `R5-D-002` | Ausencia de capacity bloquea; capacity 0 es configuración válida pero nunca unlimited | `APPROVED` |
+| `R5-D-003` | No derivar `availabilityCategory` desde capacity en R5 | `APPROVED` |
+| `R5-D-004` | Persistir policy por tenant+kind con default y primary/backup | `APPROVED` |
+| `R5-D-005` | Precedencia override > tenant/kind default > baseline de inicialización 30/60 | `APPROVED` |
+| `R5-D-006` | Limitar nuevas citas a primary/backup en el MVP R5 | `APPROVED` |
+| `R5-D-007` | Agregar `activity.policy.read/manage`; primary/backup requieren `activity.perform` | `APPROVED` |
+| `R5-D-008` | Compatibilidad legacy fail-closed sin backfill institucional | `APPROVED` |
+| `R5-D-009` | Autorizar el scope técnico exacto de Migration 20 descrito aquí | `APPROVED` |
 
 Resultado solicitado al aprobador:
 
-- [ ] `APPROVE R5-D-001..009 AS WRITTEN`
+- [x] `APPROVE R5-D-001..009 AS WRITTEN`
 - [ ] `APPROVE WITH CHANGES` — adjuntar cambios por ID
 - [ ] `REJECT / RETURN TO DESIGN`
 
 | Campo | Valor a completar por aprobación humana |
 | --- | --- |
-| Aprobador(es) | `PENDING` |
-| Fecha y zona | `PENDING` |
-| Commit revisado | `PENDING` |
-| Excepciones/riesgos aceptados | `PENDING` |
-| `MIGRATION_20_AUTHORIZED` | `NO` hasta aprobación explícita |
-| Implementación PRG-01/PC1-R5 | `NOT AUTHORIZED` hasta aprobación explícita |
+| Aprobador(es) | Usuario responsable del repositorio, aprobación expresa en tarea Codex |
+| Fecha y zona | `2026-08-24 / America/Santiago` |
+| Commit revisado | `6b51665` |
+| Excepciones/riesgos aceptados | Ninguna excepción; persisten los riesgos residuales declarados |
+| `MIGRATION_20_AUTHORIZED` | `YES / SYNTHETIC DATA ONLY` |
+| Implementación PRG-01/PC1-R5 | `AUTHORIZED / SYNTHETIC DATA ONLY` |
 
-Mientras este bloque permanezca DRAFT, `PC1-TECH-013..015` siguen pendientes,
-`G5 = NO APROBADA / NOT REQUESTED` y datos reales, piloto, producción e integración
-técnica EduPay continúan `NOT AUTHORIZED`.
+Esta aprobación desbloquea únicamente la implementación y verificación técnica de
+`PC1-TECH-013..015`. `G5 = NO APROBADA / NOT REQUESTED` y datos reales, piloto,
+producción, proveedores, infraestructura e integración técnica EduPay continúan
+`NOT AUTHORIZED`.

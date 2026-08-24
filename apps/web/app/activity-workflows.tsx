@@ -76,6 +76,7 @@ interface ActivityDefinition {
   name: string;
   versions: Array<{
     durationMinutes: number;
+    durationSource: "TENANT_KIND_DEFAULT" | "VERSION_OVERRIDE";
     id: string;
     lateToleranceMinutes: number;
     lifecycle: string;
@@ -83,6 +84,24 @@ interface ActivityDefinition {
     required: boolean;
     versionNumber: number;
   }>;
+}
+
+type ActivityKind = "GUARDIAN_INTERVIEW" | "DIAGNOSTIC_EVALUATION";
+
+interface ActivityPolicy {
+  backupMembershipId: string;
+  concurrencyVersion: number;
+  defaultDurationMinutes: number;
+  id: string;
+  kind: ActivityKind;
+  primaryMembershipId: string;
+  readinessBlockers: string[];
+  ready: boolean;
+}
+
+interface EligibleActivityExecutor {
+  membershipId: string;
+  roleKeys: string[];
 }
 
 async function apiFetch<T>(
@@ -103,12 +122,13 @@ async function mutate<T>(
   apiBase: string,
   path: string,
   body: unknown,
+  method: "PATCH" | "POST" | "PUT" = "POST",
 ): Promise<T> {
   const csrf = await apiFetch<{ token: string }>(apiBase, "/auth/csrf");
   return apiFetch<T>(apiBase, path, {
     body: JSON.stringify(body),
     headers: { "X-CSRF-Token": csrf.token },
-    method: "POST",
+    method,
   });
 }
 
@@ -531,14 +551,32 @@ export function AdminActivityWorkspace({
   tenantId: string;
 }) {
   const [definitions, setDefinitions] = useState<ActivityDefinition[]>([]);
+  const [policies, setPolicies] = useState<ActivityPolicy[]>([]);
+  const [eligibleExecutors, setEligibleExecutors] = useState<
+    EligibleActivityExecutor[]
+  >([]);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const load = useCallback(async () => {
     try {
-      const result = await apiFetch<{ items: ActivityDefinition[] }>(
-        apiBase,
-        `/admin/tenants/${tenantId}/activities`,
-      );
-      setDefinitions(result.items);
+      const [definitionsResult, policiesResult, executorsResult] =
+        await Promise.all([
+          apiFetch<{ items: ActivityDefinition[] }>(
+            apiBase,
+            `/admin/tenants/${tenantId}/activities`,
+          ),
+          apiFetch<{ items: ActivityPolicy[] }>(
+            apiBase,
+            `/admin/tenants/${tenantId}/activity-policies`,
+          ),
+          apiFetch<{ items: EligibleActivityExecutor[] }>(
+            apiBase,
+            `/admin/tenants/${tenantId}/activity-policy-executors`,
+          ),
+        ]);
+      setDefinitions(definitionsResult.items);
+      setPolicies(policiesResult.items);
+      setEligibleExecutors(executorsResult.items);
       setError("");
     } catch {
       setError("No fue posible cargar la configuración de actividades.");
@@ -570,20 +608,96 @@ export function AdminActivityWorkspace({
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     try {
+      const durationMode = data.get("durationMode");
+      const durationValue = Number(data.get("durationMinutes"));
+      if (
+        durationMode === "VERSION_OVERRIDE" &&
+        (!Number.isInteger(durationValue) || durationValue < 1)
+      ) {
+        setError(
+          "El override debe indicar una duración válida entre 1 y 1440.",
+        );
+        return;
+      }
       await mutate(
         apiBase,
         `/admin/tenants/${tenantId}/activities/${definitionId}/versions`,
         {
-          durationMinutes: Number(data.get("durationMinutes")),
+          ...(durationMode === "VERSION_OVERRIDE"
+            ? { durationMinutes: durationValue }
+            : {}),
           lateToleranceMinutes: Number(data.get("lateToleranceMinutes")),
           maxNormalReschedules: Number(data.get("maxNormalReschedules")),
           required: data.get("required") === "on",
         },
       );
       event.currentTarget.reset();
+      setNotice("Versión DRAFT creada con su duración resuelta y persistida.");
       await load();
     } catch {
-      setError("No se pudo crear la versión. La duración debe ser explícita.");
+      setError(
+        "No se pudo crear la versión. Configura una policy ready o usa un override válido.",
+      );
+    }
+  }
+
+  async function savePolicy(
+    event: FormEvent<HTMLFormElement>,
+    kind: ActivityKind,
+  ) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const current = policies.find((policy) => policy.kind === kind);
+    const primaryMembershipId = String(data.get("primaryMembershipId") ?? "");
+    const backupMembershipId = String(data.get("backupMembershipId") ?? "");
+    if (!primaryMembershipId || !backupMembershipId) {
+      setError("Selecciona primary y backup entre los ejecutores elegibles.");
+      return;
+    }
+    if (primaryMembershipId === backupMembershipId) {
+      setError("Primary y backup deben ser memberships distintas.");
+      return;
+    }
+    try {
+      await mutate(
+        apiBase,
+        `/admin/tenants/${tenantId}/activity-policies/${kind}`,
+        {
+          backupMembershipId,
+          defaultDurationMinutes: Number(data.get("defaultDurationMinutes")),
+          ...(current ? { expectedVersion: current.concurrencyVersion } : {}),
+          primaryMembershipId,
+        },
+        "PUT",
+      );
+      setNotice(
+        current
+          ? "Policy actualizada. Las citas históricas no fueron reescritas."
+          : "Policy creada y validada para el tenant actual.",
+      );
+      await load();
+    } catch {
+      setError(
+        "No se pudo guardar la policy. Actualiza la vista y verifica ejecutores, permisos y versión.",
+      );
+    }
+  }
+
+  async function publishVersion(versionId: string) {
+    try {
+      await mutate(
+        apiBase,
+        `/admin/tenants/${tenantId}/activity-versions/${versionId}/publish`,
+        {},
+      );
+      setNotice(
+        "Versión publicada después de revalidar la policy institucional.",
+      );
+      await load();
+    } catch {
+      setError(
+        "No se pudo publicar: revisa los blockers de la policy del tipo.",
+      );
     }
   }
   return (
@@ -596,15 +710,144 @@ export function AdminActivityWorkspace({
         <span className="badge">Versionada</span>
       </div>
       <p className="form-help">
-        La duración es obligatoria por actividad. Los valores iniciales de 2
-        reprogramaciones y 15 minutos de tolerancia son configuración editable,
-        no constantes irrevocables.
+        Cada tipo exige default institucional, primary y backup. Las versiones
+        pueden conservar ese default o persistir un override explícito.
       </p>
       {error ? (
         <p className="alert alert-error" role="alert">
           {error}
         </p>
       ) : null}
+      {notice ? (
+        <p aria-live="polite" className="readiness-copy readiness-copy-ready">
+          {notice}
+        </p>
+      ) : null}
+      <section
+        aria-labelledby="activity-policy-title"
+        className="policy-console"
+      >
+        <div className="section-heading">
+          <div>
+            <h3 id="activity-policy-title">Policies de duración y ejecución</h3>
+            <p className="muted">
+              Valores iniciales editables: entrevista 30 min y diagnóstico 60
+              min.
+            </p>
+          </div>
+          <span className="badge">Tenant + tipo</span>
+        </div>
+        <div className="policy-grid">
+          {(["GUARDIAN_INTERVIEW", "DIAGNOSTIC_EVALUATION"] as const).map(
+            (kind) => {
+              const current = policies.find((policy) => policy.kind === kind);
+              return (
+                <form
+                  className="policy-card"
+                  key={kind}
+                  onSubmit={(event) => void savePolicy(event, kind)}
+                >
+                  <div className="activity-card-heading">
+                    <div>
+                      <h4>
+                        {kind === "GUARDIAN_INTERVIEW"
+                          ? "Entrevista del apoderado"
+                          : "Evaluación diagnóstica"}
+                      </h4>
+                      <p className="code">
+                        {current
+                          ? `Versión ${current.concurrencyVersion}`
+                          : "Sin configurar"}
+                      </p>
+                    </div>
+                    <span
+                      className={
+                        current?.ready
+                          ? "badge badge-ready"
+                          : "badge badge-warning"
+                      }
+                    >
+                      {current?.ready ? "Ready" : "Blocked"}
+                    </span>
+                  </div>
+                  {current?.readinessBlockers.length ? (
+                    <p
+                      className="readiness-copy readiness-copy-blocked"
+                      role="status"
+                    >
+                      {current.readinessBlockers.join(" · ")}
+                    </p>
+                  ) : null}
+                  <label className="field">
+                    <span>Duración default, minutos</span>
+                    <input
+                      defaultValue={
+                        current?.defaultDurationMinutes ??
+                        (kind === "GUARDIAN_INTERVIEW" ? 30 : 60)
+                      }
+                      key={`${kind}-${current?.concurrencyVersion ?? 0}-duration`}
+                      max="1440"
+                      min="1"
+                      name="defaultDurationMinutes"
+                      required
+                      type="number"
+                    />
+                  </label>
+                  <label className="field">
+                    <span>Primary elegible</span>
+                    <select
+                      defaultValue={current?.primaryMembershipId ?? ""}
+                      key={`${kind}-${current?.concurrencyVersion ?? 0}-primary`}
+                      name="primaryMembershipId"
+                      required
+                    >
+                      <option disabled value="">
+                        Selecciona una membership
+                      </option>
+                      {eligibleExecutors.map((executor) => (
+                        <option
+                          key={executor.membershipId}
+                          value={executor.membershipId}
+                        >
+                          {executor.roleKeys.join(", ") ||
+                            "Ejecutor autorizado"}{" "}
+                          · {executor.membershipId.slice(0, 8)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>Backup elegible</span>
+                    <select
+                      defaultValue={current?.backupMembershipId ?? ""}
+                      key={`${kind}-${current?.concurrencyVersion ?? 0}-backup`}
+                      name="backupMembershipId"
+                      required
+                    >
+                      <option disabled value="">
+                        Selecciona otra membership
+                      </option>
+                      {eligibleExecutors.map((executor) => (
+                        <option
+                          key={executor.membershipId}
+                          value={executor.membershipId}
+                        >
+                          {executor.roleKeys.join(", ") ||
+                            "Ejecutor autorizado"}{" "}
+                          · {executor.membershipId.slice(0, 8)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button className="button button-primary" type="submit">
+                    {current ? "Actualizar policy" : "Crear policy"}
+                  </button>
+                </form>
+              );
+            },
+          )}
+        </div>
+      </section>
       <form
         className="form-card"
         onSubmit={(event) => void createDefinition(event)}
@@ -638,8 +881,24 @@ export function AdminActivityWorkspace({
             >
               <h4>Nueva versión</h4>
               <label className="field">
-                <span>Duración en minutos</span>
-                <input min="1" name="durationMinutes" required type="number" />
+                <span>Fuente de duración</span>
+                <select defaultValue="TENANT_KIND_DEFAULT" name="durationMode">
+                  <option value="TENANT_KIND_DEFAULT">
+                    Usar default institucional
+                  </option>
+                  <option value="VERSION_OVERRIDE">
+                    Override para esta versión
+                  </option>
+                </select>
+              </label>
+              <label className="field">
+                <span>Override en minutos, si corresponde</span>
+                <input
+                  max="1440"
+                  min="1"
+                  name="durationMinutes"
+                  type="number"
+                />
               </label>
               <label className="field">
                 <span>Máximo de reprogramaciones normales</span>
@@ -670,11 +929,23 @@ export function AdminActivityWorkspace({
               </button>
             </form>
             {definition.versions.map((version) => (
-              <p className="version-row" key={version.id}>
-                v{version.versionNumber} · {version.lifecycle} ·{" "}
-                {version.durationMinutes} min · {version.maxNormalReschedules}{" "}
-                cambios · {version.lateToleranceMinutes} min tolerancia
-              </p>
+              <div className="version-row" key={version.id}>
+                <span>
+                  v{version.versionNumber} · {version.lifecycle} ·{" "}
+                  {version.durationMinutes} min ({version.durationSource}) ·{" "}
+                  {version.maxNormalReschedules} cambios ·{" "}
+                  {version.lateToleranceMinutes} min tolerancia
+                </span>
+                {version.lifecycle === "DRAFT" ? (
+                  <button
+                    className="button button-secondary"
+                    onClick={() => void publishVersion(version.id)}
+                    type="button"
+                  >
+                    Publicar versión
+                  </button>
+                ) : null}
+              </div>
             ))}
           </article>
         ))}

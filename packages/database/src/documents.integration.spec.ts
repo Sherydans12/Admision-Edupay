@@ -237,6 +237,7 @@ async function seedFixture() {
       await transaction.$executeRaw`INSERT INTO form_fields (id,tenant_id,form_version_id,section_id,key,label,type,required,sensitivity,purpose,"order") VALUES (${field},${tenant},${version},${section},'needs_document','Synthetic document confirmation','BOOLEAN',true,'restricted','Synthetic E5-C validation',1)`;
       await transaction.$executeRaw`UPDATE form_versions SET lifecycle='PUBLISHED',published_at=${NOW} WHERE id=${version}`;
       await transaction.$executeRaw`INSERT INTO admission_offerings (id,tenant_id,campus_id,academic_year_id,process_id,course_level_id,code,title,status,availability_category,form_version_id) VALUES (${offering},${tenant},${campus},${year},${processId},${level},${`OFFER-${suffix}`},${`Offering ${suffix}`},'PUBLISHED','POSTULATIONS_OPEN',${version})`;
+      await transaction.$executeRaw`INSERT INTO admission_capacities (id,tenant_id,offering_id,configured_capacity) VALUES (${randomUUID()},${tenant},${offering},2)`;
     });
   }
 
@@ -1014,8 +1015,8 @@ describe.sequential("E5-C document resource authorization", () => {
   it("E5C-AUTH-07: offering A scope cannot access offering B", async () => {
     await createPublishedRequirement();
     const offeringB = randomUUID();
-    await inTenant((transaction) =>
-      transaction.admissionOffering.create({
+    await inTenant(async (transaction) => {
+      await transaction.admissionOffering.create({
         data: {
           academicYearId: fixture.yearA,
           availabilityCategory: "POSTULATIONS_OPEN",
@@ -1029,8 +1030,15 @@ describe.sequential("E5-C document resource authorization", () => {
           tenantId: fixture.tenantA,
           title: "Synthetic same-tenant offering B",
         },
-      }),
-    );
+      });
+      await transaction.admissionCapacity.create({
+        data: {
+          configuredCapacity: 2,
+          offeringId: offeringB,
+          tenantId: fixture.tenantA,
+        },
+      });
+    });
     const applicationA = await createDraft();
     const applicationB = await runWithFamilyContext(fixture.familyA, () =>
       intake.createApplicationDraft(

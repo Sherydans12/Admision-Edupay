@@ -7,6 +7,7 @@ const dateTime = z
   .string()
   .datetime({ offset: true })
   .transform((value) => new Date(value));
+const version = z.number().int().min(1);
 
 export const profileSchema = z.object({ displayName: text(160) }).strict();
 export const studentSchema = z
@@ -59,6 +60,9 @@ export const offeringSchema = z
     status: z.enum(["DRAFT", "PUBLISHED", "CLOSED"]).optional(),
     title: text(160),
   })
+  .strict();
+export const offeringLifecycleCommandSchema = z
+  .object({ expectedOfferingVersion: version })
   .strict();
 
 export const applicationSchema = z

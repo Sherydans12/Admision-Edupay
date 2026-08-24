@@ -7,6 +7,8 @@ export const PERMISSIONS = {
   ACTIVITY_DEFINITION_MANAGE: "activity.definition.manage",
   ACTIVITY_DEFINITION_PUBLISH: "activity.definition.publish",
   ACTIVITY_PERFORM: "activity.perform",
+  ACTIVITY_POLICY_MANAGE: "activity.policy.manage",
+  ACTIVITY_POLICY_READ: "activity.policy.read",
   ACTIVITY_READ: "activity.read",
   ACTIVITY_REPEAT: "activity.repeat",
   ACTIVITY_RESULT_READ: "activity.result.read",

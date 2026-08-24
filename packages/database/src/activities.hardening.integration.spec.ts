@@ -27,6 +27,9 @@ const service = new ActivityService(prisma);
 
 const tenantId = randomUUID();
 const staffUserId = randomUUID();
+const backupUserId = randomUUID();
+const staffMembershipId = randomUUID();
+const backupMembershipId = randomUUID();
 const familyUserId = randomUUID();
 const familyProfileId = randomUUID();
 const studentId = randomUUID();
@@ -85,12 +88,14 @@ async function seed(): Promise<void> {
   ]);
   await migrationPool.query(
     `INSERT INTO platform_users (id, email_normalized) VALUES
-      ($1, $2), ($3, $4)`,
+      ($1, $2), ($3, $4), ($5, $6)`,
     [
       staffUserId,
       `e5d-hardening-staff-${staffUserId}@example.invalid`,
       familyUserId,
       `e5d-hardening-family-${familyUserId}@example.invalid`,
+      backupUserId,
+      `e5d-hardening-backup-${backupUserId}@example.invalid`,
     ],
   );
   await migrationPool.query(
@@ -106,14 +111,56 @@ async function seed(): Promise<void> {
 
   await runWithTenantContext(staffContext(), () =>
     withTenantTransaction(prisma, async (transaction) => {
-      await transaction.membership.create({
-        data: {
-          id: randomUUID(),
+      await transaction.membership.createMany({
+        data: [
+          {
+            id: staffMembershipId,
+            startsAt: new Date(Date.now() - 60_000),
+            status: "ACTIVE",
+            tenantId,
+            userId: staffUserId,
+          },
+          {
+            id: backupMembershipId,
+            startsAt: new Date(Date.now() - 60_000),
+            status: "ACTIVE",
+            tenantId,
+            userId: backupUserId,
+          },
+        ],
+      });
+      await transaction.roleAssignment.createMany({
+        data: [staffMembershipId, backupMembershipId].map((membershipId) => ({
+          membershipId,
+          permissions: [PERMISSIONS.ACTIVITY_PERFORM],
+          roleKey: "synthetic-activity-executor",
+          scopes: ["*"],
           startsAt: new Date(Date.now() - 60_000),
-          status: "ACTIVE",
+          status: "ACTIVE" as const,
           tenantId,
-          userId: staffUserId,
-        },
+        })),
+      });
+      await transaction.tenantActivityPolicy.createMany({
+        data: [
+          {
+            backupMembershipId,
+            createdBy: staffUserId,
+            defaultDurationMinutes: 30,
+            kind: "GUARDIAN_INTERVIEW",
+            primaryMembershipId: staffMembershipId,
+            tenantId,
+            updatedBy: staffUserId,
+          },
+          {
+            backupMembershipId,
+            createdBy: staffUserId,
+            defaultDurationMinutes: 60,
+            kind: "DIAGNOSTIC_EVALUATION",
+            primaryMembershipId: staffMembershipId,
+            tenantId,
+            updatedBy: staffUserId,
+          },
+        ],
       });
       const campus = await transaction.campus.create({
         data: {
@@ -193,6 +240,7 @@ async function seed(): Promise<void> {
           data: {
             activityDefinitionId: definition.id,
             durationMinutes: 30,
+            durationSource: "VERSION_OVERRIDE",
             lifecycle: "PUBLISHED",
             publishedAt: new Date(),
             required: true,
@@ -571,6 +619,7 @@ describe.sequential("E5-D hardening concurrency and authorization", () => {
             data: {
               activityDefinitionId: definition.id,
               durationMinutes: 30,
+              durationSource: "VERSION_OVERRIDE",
               lifecycle: "PUBLISHED",
               publishedAt: new Date(),
               required: true,
@@ -621,7 +670,9 @@ describe.sequential("E5-D hardening concurrency and authorization", () => {
           newScheduledStartAt: new Date(Date.now() + 3_600_000),
         }),
       ),
-    ).rejects.toThrow("active platform user");
+    ).rejects.toMatchObject({
+      code: "ASSIGNED_EXECUTOR_NOT_PRIMARY_OR_BACKUP",
+    });
 
     const outsiderId = randomUUID();
     await migrationPool.query(
@@ -637,7 +688,9 @@ describe.sequential("E5-D hardening concurrency and authorization", () => {
           newScheduledStartAt: new Date(Date.now() + 3_600_000),
         }),
       ),
-    ).rejects.toThrow("active platform user");
+    ).rejects.toMatchObject({
+      code: "ASSIGNED_EXECUTOR_NOT_PRIMARY_OR_BACKUP",
+    });
 
     for (const status of ["SUSPENDED", "REVOKED"] as const) {
       const userId = await createUser(status);
@@ -650,19 +703,21 @@ describe.sequential("E5-D hardening concurrency and authorization", () => {
             newScheduledStartAt: new Date(Date.now() + 3_600_000),
           }),
         ),
-      ).rejects.toThrow("active platform user");
+      ).rejects.toMatchObject({
+        code: "ASSIGNED_EXECUTOR_NOT_PRIMARY_OR_BACKUP",
+      });
     }
 
-    const validUserId = await createUser("ACTIVE");
+    await createUser("ACTIVE");
     const validActivity = await freshActivity();
     const scheduled = await runWithTenantContext(staffContext(), () =>
       service.schedule(staffContext(), validActivity, {
-        assignedUserId: validUserId,
+        assignedUserId: backupUserId,
         location: "Sala executor válido",
         newScheduledStartAt: new Date(Date.now() + 3_600_000),
       }),
     );
-    expect(scheduled.assignedUserId).toBe(validUserId);
+    expect(scheduled.assignedUserId).toBe(backupUserId);
   });
 
   it("E5D-SCOPE-01..08: activity resources accept derived scopes and bound support elevation", async () => {

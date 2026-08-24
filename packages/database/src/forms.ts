@@ -1371,7 +1371,11 @@ export class FormService {
     context: TenantExecutionContext,
     offeringId: string,
     versionId: string,
-  ): Promise<{ formVersionId: string; offeringId: string }> {
+  ): Promise<{
+    concurrencyVersion: number;
+    formVersionId: string;
+    offeringId: string;
+  }> {
     assertFormPermission(context, PERMISSIONS.FORM_MANAGE);
     return withTenantTransaction(this.prisma, async (transaction) => {
       const [offering, version] = await Promise.all([
@@ -1397,8 +1401,11 @@ export class FormService {
           "Published document requirements are incompatible with this form version",
         );
       }
-      await transaction.admissionOffering.update({
-        data: { formVersionId: versionId },
+      const updatedOffering = await transaction.admissionOffering.update({
+        data: {
+          concurrencyVersion: { increment: 1 },
+          formVersionId: versionId,
+        },
         where: { id: offeringId },
       });
       await recordAudit(transaction, context, {
@@ -1407,7 +1414,11 @@ export class FormService {
         resourceId: offeringId,
         resourceType: "AdmissionOffering",
       });
-      return { formVersionId: versionId, offeringId };
+      return {
+        concurrencyVersion: updatedOffering.concurrencyVersion,
+        formVersionId: versionId,
+        offeringId,
+      };
     });
   }
 

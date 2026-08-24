@@ -22,7 +22,12 @@ export class IntakeValidationError extends Error {
 }
 
 export type IntakeConflictCode =
-  "DOCUMENT_PROCESSING_IN_PROGRESS" | "DOCUMENT_VERSION_CHANGED";
+  | "DOCUMENT_PROCESSING_IN_PROGRESS"
+  | "DOCUMENT_VERSION_CHANGED"
+  | "OFFERING_EXPLICIT_PUBLISH_REQUIRED"
+  | "CAPACITY_CONFIGURATION_REQUIRED"
+  | "OFFERING_VERSION_CHANGED"
+  | "PUBLISHED_OFFERING_CAPACITY_REQUIRED";
 
 export class IntakeConflictError extends Error {
   constructor(readonly code: IntakeConflictCode) {
@@ -42,6 +47,22 @@ export class ActivityConflictError extends Error {
   constructor(readonly code: ActivityConflictCode) {
     super(code);
     this.name = "ActivityConflictError";
+  }
+}
+
+export type ActivityPolicyConflictCode =
+  | "ACTIVITY_POLICY_ALREADY_CONFIGURED"
+  | "ACTIVITY_POLICY_REQUIRED"
+  | "ACTIVITY_POLICY_EXECUTORS_MUST_DIFFER"
+  | "ACTIVITY_POLICY_EXECUTOR_INACTIVE"
+  | "ACTIVITY_POLICY_EXECUTOR_CAPABILITY_REQUIRED"
+  | "ACTIVITY_POLICY_VERSION_CHANGED"
+  | "ASSIGNED_EXECUTOR_NOT_PRIMARY_OR_BACKUP";
+
+export class ActivityPolicyConflictError extends Error {
+  constructor(readonly code: ActivityPolicyConflictCode) {
+    super(code);
+    this.name = "ActivityPolicyConflictError";
   }
 }
 

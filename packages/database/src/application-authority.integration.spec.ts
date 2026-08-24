@@ -410,10 +410,17 @@ async function seedFixture(): Promise<AuthorityFixture> {
       code: "OFF-2027-1B-A",
       courseLevelId: levelA.id,
       processId: processA.id,
-      status: "PUBLISHED",
       title: "Oferta A 1 Básico",
     }),
   );
+  await runWithTenantContext(adminReviewerA, async () => {
+    await capacityOffer.createCapacity(adminReviewerA, offeringA.id, {
+      configuredCapacity: 2,
+    });
+    await intake.publishOffering(adminReviewerA, offeringA.id, {
+      expectedOfferingVersion: offeringA.concurrencyVersion,
+    });
+  });
   await runWithTenantContext(adminReviewerA, () =>
     forms.assignOfferingVersion(adminReviewerA, offeringA.id, formA.versionId),
   );
@@ -457,10 +464,17 @@ async function seedFixture(): Promise<AuthorityFixture> {
       code: "OFF-2027-1B-B",
       courseLevelId: levelB.id,
       processId: processB.id,
-      status: "PUBLISHED",
       title: "Oferta B 1 Básico",
     }),
   );
+  await runWithTenantContext(adminStaffB, async () => {
+    await capacityOffer.createCapacity(adminStaffB, offeringB.id, {
+      configuredCapacity: 2,
+    });
+    await intake.publishOffering(adminStaffB, offeringB.id, {
+      expectedOfferingVersion: offeringB.concurrencyVersion,
+    });
+  });
   await runWithTenantContext(adminStaffB, () =>
     forms.assignOfferingVersion(adminStaffB, offeringB.id, formB.versionId),
   );
