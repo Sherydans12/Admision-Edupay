@@ -466,3 +466,24 @@ frontera EduPay y smokes operacionales/recovery en verde. Detalle en
 
 La implementación de preproducción sintética fue autorizada posteriormente. Datos reales,
 piloto, producción real e integración técnica EduPay permanecen `NOT AUTHORIZED`.
+
+## Addendum G5-R6 — hardening de VPS y preparación operativa (2026-08-24)
+
+La foundation de preproducción sintética quedó integrada en `main` mediante el PR `#11`
+(`3cc52b2`). La auditoría read-only de la VPS confirmó capacidad base, pero detectó
+exposición del plano administrativo, SSH con `root/password`, firewall insuficiente,
+ausencia de swap, unidades fallidas y falta de evidencia de R2/restore drill.
+
+La aprobación humana de `R6-HARD-001..010` y sus excepciones está registrada en
+[`29-g5-hardening-decision-record.md`](29-g5-hardening-decision-record.md). En particular:
+
+- dashboard/API de Traefik y realtime: deshabilitar;
+- panel Coolify: proteger con Cloudflare Access;
+- SSH: mantener temporalmente `root/password`, sin migrar aún a llave-only/VPN/allowlist;
+- parcheo y reinicio: ventana preferida 21:00–07:00 `America/Santiago`;
+- R2 y restore drill: aprobados sólo con datos sintéticos;
+- `edupay-backup.service`: sólo diagnóstico read-only, sin cambios.
+
+El estado de compuerta permanece `PREPRODUCTION_NO-GO` hasta obtener evidencia de cierre
+de los P0/P1 restantes. Datos reales, piloto, producción, DAST/pentest e integración API
+EduPay continúan `NOT AUTHORIZED`.
