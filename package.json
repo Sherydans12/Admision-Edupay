@@ -16,6 +16,21 @@
     "db:reset": "docker compose down --volumes --remove-orphans && docker compose up -d postgres",
     "e4:deploy:smoke": "node scripts/e4-deploy-smoke.mjs",
     "e4:recovery:smoke": "node scripts/e4-recovery-smoke.mjs",
+    "e5c:documents:smoke": "node scripts/e5c-documents-smoke.mjs",
+    "e5c:migration:smoke": "node scripts/e5c-migration-smoke.mjs",
+    "e5d:migration:smoke": "node scripts/e5d-migration-smoke.mjs",
+    "e5e:migration:smoke": "node scripts/e5e-migration-smoke.mjs",
+    "e5f:migration:smoke": "node scripts/e5f-migration-smoke.mjs",
+    "e5g:migration:smoke": "node scripts/e5g-migration-smoke.mjs",
+    "e5h:migration:smoke": "node scripts/e5h-migration-smoke.mjs",
+    "e5i:migration:smoke": "node scripts/e5i-migration-smoke.mjs",
+    "g5br:migration:smoke": "node scripts/g5br-migration-smoke.mjs",
+    "g5pc1r12:migration:smoke": "node scripts/g5pc1r12-migration-smoke.mjs",
+    "g5pc1r4:migration:smoke": "node scripts/g5pc1r4-migration-smoke.mjs",
+    "g5pc1r3:migration:smoke": "node scripts/g5pc1r3-migration-smoke.mjs",
+    "g5or:operations:smoke": "tsx --tsconfig apps/api/tsconfig.json scripts/g5or-operations-smoke.ts",
+    "g5or:recovery:smoke": "node scripts/g5or-recovery-smoke.mjs",
+    "e5i:boundary:check": "node scripts/e5i-boundary-check.mjs",
     "db:up": "docker compose up -d postgres",
     "dev:api": "pnpm --filter @admission/api dev",
     "dev:web": "pnpm --filter @admission/web dev",
@@ -25,8 +40,8 @@
     "lint": "eslint . --max-warnings=0",
     "security:secrets": "node scripts/security-scan.mjs",
     "security:deps": "pnpm audit --audit-level=high",
-    "test": "vitest run --exclude packages/database/src/tenant-rls.integration.spec.ts",
-    "test:rls": "vitest run packages/database/src/tenant-rls.integration.spec.ts",
+    "test": "vitest run --exclude packages/database/src/tenant-rls.integration.spec.ts --exclude packages/database/src/capacity-offer.rls.integration.spec.ts --exclude packages/database/src/communications.rls.integration.spec.ts --exclude packages/database/src/reporting-admin.rls.integration.spec.ts --exclude packages/database/src/functional-handoff.rls.integration.spec.ts --exclude packages/database/src/sensitive-processing.rls.integration.spec.ts --exclude packages/database/src/business-calendar.rls.integration.spec.ts",
+    "test:rls": "vitest run packages/database/src/tenant-rls.integration.spec.ts && vitest run packages/database/src/capacity-offer.rls.integration.spec.ts && vitest run packages/database/src/communications.rls.integration.spec.ts && vitest run packages/database/src/reporting-admin.rls.integration.spec.ts && vitest run packages/database/src/functional-handoff.rls.integration.spec.ts && vitest run packages/database/src/sensitive-processing.rls.integration.spec.ts && vitest run packages/database/src/business-calendar.rls.integration.spec.ts",
     "typecheck": "pnpm --recursive --if-present run typecheck"
   },
   "devDependencies": {
@@ -42,5 +57,10 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.66.0",
     "vitest": "4.1.10"
+  },
+  "pnpm": {
+    "overrides": {
+      "deepmerge-ts": ">=8.0.0"
+    }
   }
 }

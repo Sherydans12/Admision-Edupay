@@ -1,17 +1,75 @@
-import { getWorkerDescriptor } from "./worker.js";
+import {
+  CapacityOfferService,
+  CommunicationService,
+  createAppPrismaClient,
+  DevelopmentBusinessCalendar,
+  DocumentService,
+  LocalDevelopmentObjectStorage,
+  SyntheticDevelopmentMalwareScanner,
+} from "@admission/database";
+import { resolve } from "node:path";
+
 import { markWorkerReady } from "./worker-health.js";
+import {
+  DocumentWorker,
+  getWorkerDescriptor,
+  OfferExpiryWorker,
+  OfferReminderWorker,
+} from "./worker.js";
 
-const descriptor = getWorkerDescriptor();
+const environment = process.env.NODE_ENV ?? "development";
+const storageRoot = resolve(
+  process.env.DOCUMENT_STORAGE_LOCAL_ROOT ?? ".local/document-storage",
+);
+const hardMax = Number(
+  process.env.DOCUMENT_UPLOAD_HARD_MAX_BYTES ?? 10 * 1024 * 1024,
+);
+const pollMs = Number(process.env.DOCUMENT_WORKER_POLL_MS ?? 1_000);
+const outboxLeaseMs = Number(process.env.OUTBOX_LEASE_MS ?? 60_000);
+const maxAttempts = Number(process.env.DOCUMENT_JOB_MAX_ATTEMPTS ?? 5);
+const baseBackoffMs = Number(process.env.DOCUMENT_JOB_BASE_BACKOFF_MS ?? 1_000);
+const prisma = createAppPrismaClient();
+const documents = new DocumentService(
+  prisma,
+  new LocalDevelopmentObjectStorage({ environment, root: storageRoot }),
+  new SyntheticDevelopmentMalwareScanner(environment),
+  hardMax,
+  new DevelopmentBusinessCalendar(),
+);
+const communications = new CommunicationService(prisma);
+const worker = new DocumentWorker(prisma, documents, pollMs, {
+  baseBackoffMs,
+  maxAttempts,
+  outboxLeaseMs,
+});
+const offerExpiryWorker = new OfferExpiryWorker(
+  prisma,
+  new CapacityOfferService(prisma, new DevelopmentBusinessCalendar()),
+  pollMs,
+  { baseBackoffMs, maxAttempts, outboxLeaseMs },
+);
+const offerReminderWorker = new OfferReminderWorker(
+  prisma,
+  communications,
+  pollMs,
+  { baseBackoffMs, maxAttempts, outboxLeaseMs },
+);
+
 markWorkerReady();
-console.info(JSON.stringify(descriptor));
-
-const heartbeat = setInterval(() => {
-  console.info(JSON.stringify({ ...descriptor, heartbeat: "alive" }));
-}, 30_000);
+console.info(JSON.stringify(getWorkerDescriptor()));
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.once(signal, () => {
-    clearInterval(heartbeat);
-    process.exitCode = 0;
+    worker.stop();
+    offerExpiryWorker.stop();
+    offerReminderWorker.stop();
   });
 }
+
+void Promise.all([
+  worker.run(),
+  offerExpiryWorker.run(),
+  offerReminderWorker.run(),
+]).finally(async () => {
+  await prisma.$disconnect();
+});

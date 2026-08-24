@@ -14,6 +14,10 @@ COPY apps/worker/package.json apps/worker/package.json
 COPY packages/database/package.json packages/database/package.json
 RUN pnpm install --frozen-lockfile
 
+COPY packages/database packages/database
+RUN DATABASE_MIGRATION_URL=postgresql://admission_migrator:admission_migrator_local_only@localhost:5432/admission_dev pnpm --filter @admission/database db:generate
+RUN pnpm --filter @admission/database build
+
 COPY apps/worker apps/worker
 RUN pnpm --filter @admission/worker build
 RUN pnpm deploy --legacy --filter @admission/worker --prod /runtime
@@ -24,6 +28,8 @@ LABEL com.admissionedupay.readiness="DEVELOPMENT READINESS IMAGE"
 
 ENV NODE_ENV=development
 WORKDIR /app
+
+RUN mkdir -p /app/document-storage && chown node:node /app/document-storage
 
 COPY --from=build /runtime/ ./
 COPY --from=build /repo/apps/worker/dist ./dist

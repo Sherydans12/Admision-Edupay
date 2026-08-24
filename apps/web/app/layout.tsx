@@ -4,8 +4,9 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  description: "Pantalla sintética de la fundación técnica de Admisión.",
-  title: "Admisión — Fundación técnica",
+  description:
+    "Formulario versionado y envío de Admisión con datos sintéticos.",
+  title: "Admisión — Formulario versionado",
 };
 
 export default function RootLayout({

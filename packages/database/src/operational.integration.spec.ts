@@ -157,8 +157,9 @@ describe.sequential("E4-D operational foundation", () => {
       service.claimNext(new Date(baseNow.getTime() + 1_000)),
     );
     expect(claimed?.status).toBe("PROCESSING");
+    expect(claimed?.claimedAt).not.toBeNull();
     await runWithTenantContext(context, () =>
-      service.markSent(created.id, new Date(baseNow.getTime() + 2_000)),
+      service.markSent(created.id, claimed!.claimedAt!),
     );
     const stored = await runWithTenantContext(context, () =>
       withTenantTransaction(prisma, (transaction) =>
