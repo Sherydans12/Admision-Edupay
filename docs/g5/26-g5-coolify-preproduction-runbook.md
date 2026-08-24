@@ -50,6 +50,17 @@ Antes del primer despliegue registrar como evidencia:
 No se considera suficiente un volumen Docker, el backup de la configuración de Coolify
 ni un snapshot aislado del VPS.
 
+### Decisiones R6-HARD vigentes
+
+La auditoría read-only de la VPS y la aprobación humana están registradas en
+[`29-g5-hardening-decision-record.md`](29-g5-hardening-decision-record.md). La ventana
+preferida para parcheo y reinicio es 21:00–07:00 `America/Santiago`.
+
+Cloudflare Access debe proteger el panel Coolify. El dashboard/API de Traefik y realtime
+deben quedar deshabilitados. SSH conserva temporalmente la excepción `root/password` y
+no se debe convertir a llave-only, VPN o allowlist en esta etapa; esto mantiene un P0
+documentado para postproducción y no autoriza datos reales.
+
 ## 4. Recursos privados
 
 ### PostgreSQL
