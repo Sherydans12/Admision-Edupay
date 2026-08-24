@@ -18,7 +18,8 @@ const expected = "20260821190000_g5pc1r3_business_calendar";
 const migrations = (await readdir(migrationRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name)
-  .sort();
+  .sort()
+  .filter((migration) => migration <= expected);
 if (migrations.length !== 19 || migrations.at(-1) !== expected) {
   throw new Error(`Expected 19 migrations ending in ${expected}`);
 }
