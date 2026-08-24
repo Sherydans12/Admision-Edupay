@@ -1,8 +1,10 @@
 # G5-R6 — Registro de decisiones de hardening y preparación operativa
 
-**Fecha:** 2026-08-24  
-**Estado:** `APPROVED / EXECUTION_PENDING / PREPRODUCTION_NO-GO`  
-**Fuente:** aprobación humana posterior a la auditoría read-only de la VPS  
+**Fecha:** 2026-08-24
+
+**Estado:** `APPROVED / EXECUTION_PENDING / PREPRODUCTION_NO-GO`
+
+**Fuente:** aprobación humana posterior a la auditoría read-only de la VPS
 **Datos autorizados:** exclusivamente sintéticos
 
 ## 1. Hechos confirmados
