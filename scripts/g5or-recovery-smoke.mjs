@@ -287,9 +287,14 @@ async function main() {
       passwords.migrator,
       "SELECT count(*) FROM _prisma_migrations;",
     );
+    const expectedMigrationCount = (
+      await readdir(join("packages", "database", "prisma", "migrations"), {
+        withFileTypes: true,
+      })
+    ).filter((entry) => entry.isDirectory()).length;
     assert(
-      migrationCount === "20",
-      `expected 20 migrations, got ${migrationCount}`,
+      migrationCount === String(expectedMigrationCount),
+      `expected ${expectedMigrationCount} migrations, got ${migrationCount}`,
     );
     console.log("G5OR-REC-01=PASS");
     await run(
