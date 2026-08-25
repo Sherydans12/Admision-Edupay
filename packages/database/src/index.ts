@@ -205,6 +205,7 @@ export {
   type UploadDocumentInput,
 } from "./documents.js";
 export { AssistanceService } from "./assistance.js";
+export { isDocumentsFeatureEnabled } from "./feature-flags.js";
 export {
   assertOpaqueObjectKey,
   createOpaqueObjectKey,

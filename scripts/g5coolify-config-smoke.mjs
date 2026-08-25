@@ -53,12 +53,7 @@ for (const name of [
   "ADMISSION_PUBLIC_WEB_URL",
   "ADMISSION_API_PUBLIC_URL",
   "ADMISSION_TENANT_PUBLIC_ID",
-  "S3_ENDPOINT",
-  "S3_API_ACCESS_KEY_ID",
-  "S3_API_SECRET_ACCESS_KEY",
-  "S3_WORKER_ACCESS_KEY_ID",
-  "S3_WORKER_SECRET_ACCESS_KEY",
-  "CLAMAV_HOST",
+  "ADMISSION_DOCUMENTS_ENABLED",
   "RESEND_API_KEY",
   "RESEND_FROM_EMAIL",
   "RESEND_WEBHOOK_SECRET",
@@ -81,6 +76,15 @@ assertContains(
   environment,
   "REAL_EMAIL_DELIVERY_AUTHORIZED=false",
   "real email denial guard",
+);
+assertContains(
+  environment,
+  "ADMISSION_DOCUMENTS_ENABLED=false",
+  "core preproduction document denial guard",
+);
+assert(
+  !compose.includes("S3_ENDPOINT") && !compose.includes("CLAMAV_HOST"),
+  "Core preproduction must not configure S3/R2 or ClamAV",
 );
 assert(
   !compose.includes('REAL_EMAIL_DELIVERY_AUTHORIZED: "true"'),

@@ -51,7 +51,7 @@ deben vivir en el secret store o en registros institucionales de acceso restring
 | `CP-P1-D-005` | Mantener Admisión y EduPay desacoplados | Sin tablas compartidas, acceso directo a DB, sincronización ni dependencia runtime | `APPROVED` |
 | `CP-P1-D-006` | Usar un procedimiento manual para preparar fixtures | Sólo registros íntegramente sintéticos; EduPay no es fuente técnica de P1/P2 | `APPROVED / SYNTHETIC ONLY` |
 | `CP-P2-D-001` | Usar Resend como proveedor técnico de email | Pruebas con destinatarios controlados no reales; envío real bloqueado | `APPROVED WITH ART-014 CONDITION` |
-| `CP-P2-D-002` | Usar Cloudflare R2 como object storage técnico | Objetos sintéticos, acceso privado y adapter S3-compatible | `APPROVED WITH ART-014 CONDITION` |
+| `CP-P2-D-002` | Reservar Cloudflare R2 como object storage técnico para preparación de producción | Objetos sintéticos, acceso privado y adapter S3-compatible; no se provisiona en preproducción | `APPROVED / PRODUCTION-READINESS ONLY WITH ART-014 CONDITION` |
 | `CP-P2-D-003` | Someter Hostinger, Cloudflare, Resend y R2 a revisión individual | DPA, subencargados, residencia, transferencias, seguridad, retención y salida | `LP3-ART-014 REQUIRED` |
 | `CP-P2-D-004` | Diferir DAST y pentest | Se planifican para una fase avanzada previa a piloto; no bloquean P1/P2 sintéticos | `DEFERRED / AUTHORIZED LATER` |
 | `CP-P2-D-005` | Evitar promoción automática | Completar P2 no autoriza P3, piloto, datos reales ni producción | `APPROVED` |
@@ -96,11 +96,15 @@ flowchart LR
   Coolify --> Worker[Worker]
   Api --> Db[(PostgreSQL sintético)]
   Worker --> Db
-  Api --> Objects[(R2: objetos sintéticos)]
   Worker --> Mail[Resend: destinatarios no reales]
   EduPay[EduPay] -. sin integración técnica .-> Manual[Fixtures manuales sintéticos]
   Manual --> Api
 ```
+
+La preproducción inicial es `CORE / DOCUMENTS DISABLED`: no se provisiona ni conecta
+storage S3/R2 ni ClamAV. R2 aparece sólo como destino técnico futuro en la preparación
+de producción. Buckets, URLs, credenciales y restore drill se preparan únicamente antes
+de producción, con revisión de `LP3-ART-014`.
 
 Reglas obligatorias de la topología:
 

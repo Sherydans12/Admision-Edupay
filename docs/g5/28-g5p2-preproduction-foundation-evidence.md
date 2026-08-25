@@ -9,16 +9,17 @@
 
 ## 1. Resultado
 
-Quedó preparada una candidata desplegable en Coolify para validar el flujo completo de
-Admisión con datos y destinatarios sintéticos. La entrega no habilita el piloto ni el
-tratamiento de datos personales reales.
+Quedó preparada una candidata desplegable en Coolify para validar el flujo core de
+Admisión con datos y destinatarios sintéticos. La preproducción inicial excluye
+documentos, S3/R2 y ClamAV; la entrega no habilita el piloto ni el tratamiento de datos
+personales reales.
 
 La foundation incluye:
 
 - imágenes productivas no-root para web, API, worker y migrator;
 - Compose sin puertos de host, con migración one-shot, health checks y servicios privados;
 - despliegue manual protegido mediante GitHub Environment;
-- almacenamiento S3 compatible, cuarentena, promoción y análisis ClamAV fail-closed;
+- flag fail-closed de documentos deshabilitados para el runtime core;
 - transporte Resend con modos `disabled`, `synthetic` y `live`, manteniendo `live`
   bloqueado por una autorización separada;
 - procesamiento efectivo del outbox de comunicaciones;
@@ -56,8 +57,9 @@ integración técnica continúa diferida a E7/G7 y requiere una decisión indepe
 | Migración fresh `0→21` | `PASS` |
 | Migración incremental `20→21` | `PASS` |
 | Sellos M21, cero seeds y checksums 17–20 | `PASS` |
-| Suite funcional sin RLS | `48 suites / 665 tests PASS` |
+| Suite funcional sin RLS | `50 archivos / 671 tests PASS` |
 | Suite RLS completa | `9 suites / 74 tests PASS` |
+| Feature gate core sin documentos | `4 / 4 PASS` |
 | Pruebas focales runtime/webhook/bootstrap/RLS | `18 / 18 PASS` |
 | Lint | `PASS` |
 | Typecheck | `PASS`, 4 proyectos |
@@ -65,15 +67,17 @@ integración técnica continúa diferida a E7/G7 y requiere una decisión indepe
 | Coolify config smoke | `PASS` |
 | E4 deployment smoke | `PASS` |
 | Imágenes productivas | `PASS`, 4/4 |
-| Secret scan | `PASS`, 393 archivos rastreados y no rastreados |
+| Secret scan | `PASS`, 398 archivos rastreados y no rastreados |
 | Dependency audit | `PASS`, sin vulnerabilidades high/critical |
 | `git diff --check` | `PASS` |
 
 ## 5. Decisiones y supuestos
 
 - La VPS existente y Coolify son la plataforma seleccionada para preproducción.
-- Cloudflare gestiona DNS/TLS y R2 será el destino externo del respaldo exclusivo del
-  proyecto.
+- La preproducción inicial es `CORE / DOCUMENTS DISABLED`; no requiere S3/R2 ni ClamAV.
+- Cloudflare gestiona DNS/TLS. R2 queda reservado como destino externo del respaldo
+  exclusivo del proyecto para la preparación de producción; no se provisiona durante
+  esta preproducción sintética.
 - Los cinco hostnames aprobados se configuran en Cloudflare/Coolify, no se hardcodean en
   imágenes ni código.
 - El tenant inicial, cursos, cupos, proceso y calendario se configuran manualmente.
@@ -92,11 +96,14 @@ integración técnica continúa diferida a E7/G7 y requiere una decisión indepe
    datos reales.
 4. Ejecutar auditoría SSH read-only de capacidad, puertos, firewall, Docker, discos y
    convivencia con aplicaciones existentes.
-5. Configurar y demostrar restore de PostgreSQL y objetos desde R2.
-6. Configurar DNS/TLS, Resend, recursos privados y secrets únicamente en los gestores
+5. Reservar la configuración y demostración del restore de PostgreSQL y objetos desde
+   R2 para la preparación de producción.
+6. Configurar DNS/TLS, Resend, PostgreSQL privado y secrets únicamente en los gestores
    correspondientes.
-7. Ejecutar smoke end-to-end sintético desplegado y aprobar formalmente el piloto.
-8. Ejecutar DAST/pentest en la compuerta posterior acordada.
+7. Ejecutar smoke end-to-end core y verificar que las rutas documentales responden
+   `403` sin conexiones S3/ClamAV.
+8. Aprobar formalmente el piloto y habilitar documentos sólo en preparación productiva.
+9. Ejecutar DAST/pentest en la compuerta posterior acordada.
 
 ## 7. Compuerta
 
