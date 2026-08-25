@@ -15,6 +15,7 @@ import {
   Req,
   Res,
   UploadedFile,
+  UseGuards,
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
@@ -33,6 +34,7 @@ import {
   reviewReasonSchema,
 } from "./document-schemas.js";
 import { ApiDocumentService } from "./document.service.js";
+import { DocumentsFeatureGuard } from "./document-feature.guard.js";
 import { parseUuid } from "./intake-schemas.js";
 import { RequestContextService } from "./request-context.service.js";
 
@@ -78,6 +80,7 @@ function parseUploadMetadata(body: Record<string, unknown>) {
 }
 
 @Controller()
+@UseGuards(DocumentsFeatureGuard)
 export class DocumentController {
   constructor(
     private readonly contexts: RequestContextService,

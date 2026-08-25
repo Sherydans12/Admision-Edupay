@@ -23,18 +23,21 @@ flowchart LR
     EDGE --> API["api :3001"]
     API --> DB["PostgreSQL privado"]
     WORKER["worker privado"] --> DB
-    API --> S3["Storage S3 privado"]
-    WORKER --> S3
-    WORKER --> AV["ClamAV privado"]
     API --> MAIL["Resend HTTPS"]
     WORKER --> MAIL
     MIG["migrator one-shot"] --> DB
 ```
 
 `web` y `api` son los únicos servicios con dominio público. `worker`, `migrator`,
-PostgreSQL, storage y ClamAV no publican puertos del host. Coolify crea la red aislada del
-stack; los recursos privados separados deben conectarse mediante **Connect to Predefined
-Network**. No se deben declarar redes Docker personalizadas en el Compose.
+PostgreSQL no publican puertos del host. La preproducción inicial no incluye documentos,
+storage S3/R2 ni ClamAV. Coolify crea la red aislada del stack; los recursos privados
+separados deben conectarse mediante **Connect to Predefined Network**. No se deben
+declarar redes Docker personalizadas en el Compose.
+
+El flag `ADMISSION_DOCUMENTS_ENABLED=false` está fijado en API y worker. Todas las rutas
+documentales responden `403` y el worker no crea adaptadores S3/ClamAV ni procesa jobs
+documentales. No se deben configurar variables `S3_*`, `CLAMAV_*` ni buckets en este
+environment.
 
 ## 3. Preparación del servidor
 
@@ -44,17 +47,21 @@ Antes del primer despliegue registrar como evidencia:
 2. capacidad y espacio libre del VPS, además de las cargas que comparte;
 3. firewall con ingreso público limitado a HTTP/HTTPS y administración restringida;
 4. MFA y acceso restringido al panel Coolify;
-5. parcheo del host, owner operativo y ventana de mantenimiento;
-6. destino de backup fuera del VPS y procedimiento de restauración.
+5. estado del mantenimiento del host: Docker/containerd y reinicio quedan diferidos a
+   postproducción por decisión de estabilidad inmediata;
+6. destino de backup fuera del VPS y procedimiento de restauración, que se preparan
+   antes de producción y no como dependencia de esta preproducción sintética.
 
 No se considera suficiente un volumen Docker, el backup de la configuración de Coolify
-ni un snapshot aislado del VPS.
+ni un snapshot aislado del VPS. El snapshot solo se requiere como contingencia antes
+del mantenimiento diferido de postproducción.
 
 ### Decisiones R6-HARD vigentes
 
 La auditoría read-only de la VPS y la aprobación humana están registradas en
 [`29-g5-hardening-decision-record.md`](29-g5-hardening-decision-record.md). La ventana
-preferida para parcheo y reinicio es 21:00–07:00 `America/Santiago`.
+21:00–07:00 `America/Santiago` queda reservada para el mantenimiento de
+postproducción; no se programa parcheo/reinicio para esta preproducción.
 
 Cloudflare Access debe proteger el panel Coolify. El dashboard/API de Traefik y realtime
 deben quedar deshabilitados. SSH conserva temporalmente la excepción `root/password` y
@@ -82,29 +89,37 @@ Configurar dump horario para el objetivo técnico RPO 1 h, retención aprobada y
 destino externo al VPS. Un backup exitoso no cierra la compuerta: restaurar en una base
 desechable, ejecutar smoke sintético y medir el RTO.
 
-### Storage y antivirus
+### Storage y antivirus (fuera del alcance inicial)
 
-El storage S3-compatible y ClamAV se despliegan como recursos privados separados. Deben
-existir áreas distintas para cuarentena y aprobados, con credenciales diferentes para API
-y worker. Ningún bucket admite acceso público. El worker es el único que puede leer
-cuarentena, solicitar escaneo, promover contenido limpio y eliminar el objeto temporal.
+El storage S3-compatible, Cloudflare R2 y ClamAV no se despliegan en la preproducción
+core. Quedan reservados para la preparación productiva. Cuando se habilite documentos,
+deben existir áreas distintas para cuarentena y aprobados, con credenciales diferentes
+para API y worker. Ningún bucket admite acceso público. El worker es el único que puede
+leer cuarentena, solicitar escaneo, promover contenido limpio y eliminar el objeto
+temporal.
 Errores, archivos infectados o no escaneables permanecen fail-closed.
 
-El contenido requiere backup/versionado independiente de PostgreSQL y una prueba de
-reconciliación entre registros y objetos después del restore.
+El contenido requerirá backup/versionado independiente de PostgreSQL y una prueba de
+reconciliación entre registros y objetos después del restore antes de producción. Esta
+preproducción no crea buckets, URLs ni credenciales R2.
 
 ## 5. Variables y secretos
 
 `.env.coolify.example` es el inventario canónico de nombres y usa exclusivamente dominios
 `.invalid`, UUID sintético y placeholders. No debe importarse como si contuviera secretos.
 
-Clasificación:
+Para este entorno core sólo se cargan las variables de PostgreSQL, sesión, CSRF,
+Resend sintético y supresión de comunicaciones. No se cargan variables `S3_*`,
+`CLAMAV_*` ni `DOCUMENT_*`; sus nombres y secretos se definirán en la preparación
+productiva junto con R2, ClamAV y el diseño de retención de documentos.
+
+Clasificación del entorno core:
 
 - **Build variables públicas:** `ADMISSION_API_PUBLIC_URL`,
   `ADMISSION_TENANT_PUBLIC_ID`.
-- **Runtime no secreto:** origins, límites, intervalos, buckets, región y hosts internos.
-- **Runtime secreto:** ambas URLs PostgreSQL, access/secret keys del storage,
-  `RESEND_API_KEY`, `RESEND_WEBHOOK_SECRET`, `CSRF_SIGNING_SECRET`,
+- **Runtime no secreto:** origins, límites e intervalos del flujo core.
+- **Runtime secreto:** ambas URLs PostgreSQL, `RESEND_API_KEY`,
+  `RESEND_WEBHOOK_SECRET`, `CSRF_SIGNING_SECRET`,
   `EMAIL_SUPPRESSION_HMAC_SECRET` y claves históricas de supresión.
 - **Guard de preproducción:** `EMAIL_DELIVERY_MODE=synthetic` y
   `REAL_EMAIL_DELIVERY_AUTHORIZED=false`; el adaptador rechaza cualquier dominio distinto
@@ -129,7 +144,8 @@ correo permanecen DNS-only. No cachear API, descargas autenticadas ni respuestas
 cookies. El límite de carga del edge debe ser igual o mayor que
 `DOCUMENT_UPLOAD_HARD_MAX_BYTES`.
 
-`ADMISSION_WEB_ORIGIN` y `ADMISSION_APP_ORIGIN` contienen exactamente el origin público
+`ADMISSION_DOCUMENTS_ENABLED=false` es obligatorio en API y worker. `ADMISSION_WEB_ORIGIN`
+y `ADMISSION_APP_ORIGIN` contienen exactamente el origin público
 de web; `ADMISSION_API_PUBLIC_URL` contiene el origin público de API, sin path final.
 
 ## 7. Configuración de Coolify
@@ -183,11 +199,10 @@ Después del despliegue verificar:
 1. migrator terminó con exit `0` y la versión de schema esperada;
 2. API readiness y web responden por HTTPS;
 3. worker permanece healthy y responde correctamente a `SIGTERM`;
-4. DB, storage y ClamAV no son accesibles desde Internet;
-5. carga, escaneo y promoción de un archivo sintético limpio;
-6. rechazo fail-closed de controles sintéticos infectado/no escaneable;
-7. correo únicamente a destinatarios de prueba y recepción idempotente de webhook;
-8. ausencia de secretos, cookies, documentos y datos personales en logs.
+4. DB no es accesible desde Internet;
+5. las rutas documentales responden `403` y no se crean jobs documentales;
+6. correo únicamente a destinatarios de prueba y recepción idempotente de webhook;
+7. ausencia de secretos, cookies, documentos y datos personales en logs.
 
 Para rollback: detener nuevas promociones, conservar evidencia, seleccionar la imagen local
 anterior en Coolify, desplegarla sin revertir la base y repetir health/smoke. Si una

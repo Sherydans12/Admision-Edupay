@@ -3,8 +3,11 @@ import {
   DocumentService as DatabaseDocumentService,
   createProductionMalwareScannerFromEnv,
   createProductionObjectStorageFromEnv,
+  InMemoryObjectStorage,
   LocalDevelopmentObjectStorage,
+  NoopMalwareScanner,
   PrismaClient,
+  isDocumentsFeatureEnabled,
   SyntheticDevelopmentMalwareScanner,
 } from "@admission/database";
 import { Injectable } from "@nestjs/common";
@@ -14,20 +17,25 @@ import { resolve } from "node:path";
 export class ApiDocumentService extends DatabaseDocumentService {
   constructor(prisma: PrismaClient) {
     const environment = process.env.NODE_ENV ?? "development";
+    const documentsEnabled = isDocumentsFeatureEnabled(environment);
     const storage =
-      environment === "production"
+      environment === "production" && documentsEnabled
         ? createProductionObjectStorageFromEnv()
-        : new LocalDevelopmentObjectStorage({
-            environment,
-            root: resolve(
-              process.env.DOCUMENT_STORAGE_LOCAL_ROOT ??
-                ".local/document-storage",
-            ),
-          });
+        : environment === "production"
+          ? new InMemoryObjectStorage()
+          : new LocalDevelopmentObjectStorage({
+              environment,
+              root: resolve(
+                process.env.DOCUMENT_STORAGE_LOCAL_ROOT ??
+                  ".local/document-storage",
+              ),
+            });
     const scanner =
-      environment === "production"
+      environment === "production" && documentsEnabled
         ? createProductionMalwareScannerFromEnv()
-        : new SyntheticDevelopmentMalwareScanner(environment);
+        : environment === "production"
+          ? new NoopMalwareScanner()
+          : new SyntheticDevelopmentMalwareScanner(environment);
     super(
       prisma,
       storage,

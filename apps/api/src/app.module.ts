@@ -23,6 +23,7 @@ import { ApiIntakeService } from "./intake.service.js";
 import { RequestContextService } from "./request-context.service.js";
 import { DocumentController } from "./document.controller.js";
 import { ApiDocumentService } from "./document.service.js";
+import { DocumentsFeatureGuard } from "./document-feature.guard.js";
 import { ApiAssistanceService } from "./assistance.service.js";
 import { ActivityController } from "./activity.controller.js";
 import {
@@ -157,6 +158,7 @@ const accountRegistrationProvider = {
     ApiIntakeService,
     ApiFormService,
     ApiDocumentService,
+    DocumentsFeatureGuard,
     ApiAssistanceService,
     ApiActivityService,
     ApiActivityPolicyService,
