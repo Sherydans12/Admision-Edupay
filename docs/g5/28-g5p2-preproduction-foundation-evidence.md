@@ -94,8 +94,9 @@ integración técnica continúa diferida a E7/G7 y requiere una decisión indepe
    observarse el régimen vigente de la Ley 19.628.
 3. Asegurar el panel de Coolify con TLS y un segundo control de acceso antes de operar con
    datos reales.
-4. Ejecutar auditoría SSH read-only de capacidad, puertos, firewall, Docker, discos y
-   convivencia con aplicaciones existentes.
+4. La auditoría SSH read-only de capacidad, puertos, firewall, Docker, discos y
+   convivencia con aplicaciones existentes ya fue ejecutada; sus excepciones y
+   aplazamientos están registrados en `29-g5-hardening-decision-record.md`.
 5. Reservar la configuración y demostración del restore de PostgreSQL y objetos desde
    R2 para la preparación de producción.
 6. Configurar DNS/TLS, Resend, PostgreSQL privado y secrets únicamente en los gestores
@@ -107,7 +108,10 @@ integración técnica continúa diferida a E7/G7 y requiere una decisión indepe
 
 ## 7. Compuerta
 
-`P2 — PREPRODUCTION SYNTHETIC` queda técnicamente implementada pero no desplegada. La
-siguiente acción humana es revisar el PR, proporcionar un canal seguro de acceso SSH para
-la auditoría read-only y autorizar el despliegue sintético cuando el inventario de la VPS
-confirme que no existe conflicto de recursos.
+`P2 — PREPRODUCTION SYNTHETIC` queda técnicamente implementada y mergeada en `main`,
+pero no desplegada. La compuerta operativa requiere crear el GitHub Environment
+`admission-preprod`, cargar manualmente sus tres secretos de Coolify y dos variables de
+health, confirmar los dominios/recursos privados en Coolify y obtener la decisión `GO`
+para el ambiente. La auditoría VPS confirmó que no hay colisión exacta, pero dejó abierta
+la capacidad dedicada y mantiene la excepción SSH `root/password`; por eso no se dispara
+el workflow ni se cargan datos reales en esta etapa.
