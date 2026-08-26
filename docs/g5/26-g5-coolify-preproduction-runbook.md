@@ -170,13 +170,16 @@ ejecuta migraciones destructivas hacia atrás.
 
 Crear el GitHub Environment `admission-preprod` con reviewer humano y configurar:
 
-- secrets `COOLIFY_DEPLOY_TOKEN`, `COOLIFY_DEPLOY_WEBHOOK` y
-  `COOLIFY_API_BASE_URL` (base HTTPS terminada en `/api/v1`);
+- secrets `COOLIFY_DEPLOY_TOKEN`, `COOLIFY_DEPLOY_WEBHOOK`,
+  `COOLIFY_API_BASE_URL` (base HTTPS terminada en `/api/v1`),
+  `CF_ACCESS_CLIENT_ID` y `CF_ACCESS_CLIENT_SECRET`;
 - variables `PREPROD_API_HEALTH_URL` apuntando a `/health/ready` y
   `PREPROD_WEB_HEALTH_URL` apuntando a la raíz web.
 
 El token de Coolify debe tener únicamente permiso `deploy`, alcance al equipo correcto y
-caducidad. El workflow sólo acepta `main`, exige escribir `PREPROD_SYNTHETIC`, valida el
+caducidad. Cloudflare Access debe autorizar esos dos headers mediante una política
+`Service Auth` que incluya exclusivamente el Service Token de GitHub Actions; la política
+humana existente se conserva. El workflow sólo acepta `main`, exige escribir `PREPROD_SYNTHETIC`, valida el
 contrato y solicita el deploy sin mostrar webhook ni token. Conserva los UUID de despliegue,
 consulta cada ejecución hasta `finished`, exige que el commit sea exactamente el SHA del
 workflow y sólo entonces verifica health público. Un `2xx` inicial nunca se considera

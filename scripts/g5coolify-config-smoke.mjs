@@ -112,6 +112,22 @@ assertContains(workflow, "environment: admission-preprod", "deployment gate");
 assertContains(workflow, "COOLIFY_DEPLOY_WEBHOOK", "deployment webhook");
 assertContains(workflow, "COOLIFY_DEPLOY_TOKEN", "deployment token");
 assertContains(workflow, "COOLIFY_API_BASE_URL", "Coolify API base URL");
+assertContains(workflow, "CF_ACCESS_CLIENT_ID", "Cloudflare Access client ID");
+assertContains(
+  workflow,
+  "CF_ACCESS_CLIENT_SECRET",
+  "Cloudflare Access client secret",
+);
+assertContains(
+  workflow,
+  "CF-Access-Client-Id",
+  "Cloudflare Access client ID header",
+);
+assertContains(
+  workflow,
+  "CF-Access-Client-Secret",
+  "Cloudflare Access client secret header",
+);
 assertContains(workflow, "deployment_uuid", "deployment execution identity");
 assertContains(workflow, "GITHUB_SHA", "deployed revision verification");
 assertContains(workflow, "PREPROD_SYNTHETIC", "explicit confirmation");

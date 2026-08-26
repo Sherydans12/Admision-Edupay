@@ -16,4 +16,7 @@ coverage/
 Thumbs.db
 *.log
 
+# Local-only proxy configuration may contain Cloudflare DNS credentials.
+traefik-coolify-dns01.txt
+
 packages/database/src/generated/

@@ -43,21 +43,29 @@ jobs:
           COOLIFY_DEPLOY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_TOKEN }}
           COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
           COOLIFY_API_BASE_URL: ${{ secrets.COOLIFY_API_BASE_URL }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           test -n "$COOLIFY_DEPLOY_TOKEN"
           test -n "$COOLIFY_DEPLOY_WEBHOOK"
           test -n "$COOLIFY_API_BASE_URL"
+          test -n "$CF_ACCESS_CLIENT_ID"
+          test -n "$CF_ACCESS_CLIENT_SECRET"
 
       - name: Request Coolify deployment
         env:
           COOLIFY_DEPLOY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_TOKEN }}
           COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           response="$RUNNER_TEMP/coolify-deploy.json"
           curl --fail --silent --show-error --max-time 30 \
             --proto '=https' --tlsv1.2 \
             --output "$response" \
             --header "Authorization: Bearer ${COOLIFY_DEPLOY_TOKEN}" \
+            --header "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}" \
+            --header "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}" \
             "${COOLIFY_DEPLOY_WEBHOOK}"
           jq -e '.deployments | length > 0 and all(.[]; (.deployment_uuid | type == "string" and length > 0))' "$response" >/dev/null
 
@@ -65,6 +73,8 @@ jobs:
         env:
           COOLIFY_API_BASE_URL: ${{ secrets.COOLIFY_API_BASE_URL }}
           COOLIFY_DEPLOY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_TOKEN }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           response="$RUNNER_TEMP/coolify-deploy.json"
           mapfile -t deployment_ids < <(jq -r '.deployments[].deployment_uuid' "$response")
@@ -75,6 +85,8 @@ jobs:
               payload=$(curl --fail --silent --show-error --max-time 15 \
                 --proto '=https' --tlsv1.2 \
                 --header "Authorization: Bearer ${COOLIFY_DEPLOY_TOKEN}" \
+                --header "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}" \
+                --header "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}" \
                 "${COOLIFY_API_BASE_URL%/}/deployments/${deployment_id}")
               status=$(jq -r '.status' <<<"$payload")
               case "$status" in
