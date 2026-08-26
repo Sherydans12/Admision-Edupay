@@ -39,6 +39,8 @@ jobs:
     environment: admission-preprod
     steps:
       - name: Require scoped Coolify deployment secrets
+        # COOLIFY_DEPLOY_TOKEN requires Coolify permissions: read + deploy.
+        # read:sensitive and root are intentionally not required.
         env:
           COOLIFY_DEPLOY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_TOKEN }}
           COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}

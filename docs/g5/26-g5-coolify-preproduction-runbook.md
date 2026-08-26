@@ -176,7 +176,7 @@ Crear el GitHub Environment `admission-preprod` con reviewer humano y configurar
 - variables `PREPROD_API_HEALTH_URL` apuntando a `/health/ready` y
   `PREPROD_WEB_HEALTH_URL` apuntando a la raíz web.
 
-El token de Coolify debe tener únicamente permiso `deploy`, alcance al equipo correcto y
+El token de Coolify debe tener únicamente los permisos `read` y `deploy`, alcance al equipo correcto y
 caducidad. Cloudflare Access debe autorizar esos dos headers mediante una política
 `Service Auth` que incluya exclusivamente el Service Token de GitHub Actions; la política
 humana existente se conserva. El workflow sólo acepta `main`, exige escribir `PREPROD_SYNTHETIC`, valida el
