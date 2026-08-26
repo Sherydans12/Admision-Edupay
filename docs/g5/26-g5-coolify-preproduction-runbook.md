@@ -133,16 +133,25 @@ se imprime su valor en logs.
 
 ## 6. Dominios y edge
 
-Asignar en Coolify dos FQDN distintos usando nombres previamente aprobados:
+Para la preproducción sintética se mantiene la nomenclatura profunda aprobada, pero sus
+registros Cloudflare quedan **DNS-only** (sin proxy) para evitar depender de un certificado
+edge para subdominios multinivel. Coolify debe entregar certificados públicos válidos para:
 
-- web hacia puerto interno `3000`;
-- API hacia puerto interno `3001`.
+- `preprod.admision.edupay.baselogic.cl` → puerto interno `3000`;
+- `api.preprod.admision.edupay.baselogic.cl` → puerto interno `3001`.
 
-En Cloudflare, los registros HTTP pueden quedar proxied y el modo TLS debe verificar el
-certificado del origen (`Full (strict)`). SPF, DKIM, MX y verificaciones del dominio de
-correo permanecen DNS-only. No cachear API, descargas autenticadas ni respuestas con
-cookies. El límite de carga del edge debe ser igual o mayor que
-`DOCUMENT_UPLOAD_HARD_MAX_BYTES`.
+En este modo no aplican Cloudflare Access, cache rules ni WAF a esos dos hostnames; por eso
+la preproducción sólo puede contener datos sintéticos y no debe usarse como producción.
+SPF, DKIM, MX y verificaciones del dominio de correo permanecen DNS-only.
+
+Para producción se utilizarán los subdominios de primer nivel:
+
+- `admision.baselogic.cl` → puerto interno `3000`;
+- `admision-api.baselogic.cl` → puerto interno `3001`.
+
+En producción ambos registros serán proxied, con certificado edge activo y `Full (strict)`
+hacia Coolify. No cachear API, descargas autenticadas ni respuestas con cookies. El límite
+de carga del edge debe ser igual o mayor que `DOCUMENT_UPLOAD_HARD_MAX_BYTES`.
 
 `ADMISSION_DOCUMENTS_ENABLED=false` es obligatorio en API y worker. `ADMISSION_WEB_ORIGIN`
 y `ADMISSION_APP_ORIGIN` contienen exactamente el origin público
