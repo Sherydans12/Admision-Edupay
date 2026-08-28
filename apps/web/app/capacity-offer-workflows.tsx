@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface Capacity {
   adjustments: Array<{
@@ -31,6 +31,14 @@ interface OfferingReadiness {
   offeringId: string;
   offeringVersion: number;
   publishable: boolean;
+}
+
+interface ConfigurationOffering {
+  availabilityLabel: string;
+  code: string;
+  id: string;
+  status: "DRAFT" | "PUBLISHED" | "CLOSED";
+  title: string;
 }
 
 interface WaitlistEntry {
@@ -408,6 +416,9 @@ export function StaffCapacityOfferWorkspace({
   tenantId: string;
 }) {
   const [offeringId, setOfferingId] = useState("");
+  const [offerings, setOfferings] = useState<ConfigurationOffering[]>([]);
+  const [offeringsLoading, setOfferingsLoading] = useState(true);
+  const [offeringsError, setOfferingsError] = useState("");
   const [applicationId, setApplicationId] = useState("");
   const [capacity, setCapacity] = useState<Capacity | null>(null);
   const [readiness, setReadiness] = useState<OfferingReadiness | null>(null);
@@ -422,6 +433,32 @@ export function StaffCapacityOfferWorkspace({
   const [offeringAction, setOfferingAction] = useState<
     "CLOSE" | "PUBLISH" | null
   >(null);
+
+  const loadOfferings = useCallback(async () => {
+    setOfferingsLoading(true);
+    try {
+      const configuration = await apiFetch<{
+        offerings: ConfigurationOffering[];
+      }>(apiBase, `/admin/tenants/${tenantId}/configuration`);
+      setOfferings(configuration.offerings);
+      setOfferingsError("");
+    } catch (requestError) {
+      setOfferingsError(
+        requestError instanceof ApiError && requestError.status === 403
+          ? "Tu cuenta no tiene permiso para consultar las ofertas del tenant."
+          : "No se pudieron cargar las ofertas del tenant.",
+      );
+    } finally {
+      setOfferingsLoading(false);
+    }
+  }, [apiBase, tenantId]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      void loadOfferings();
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [loadOfferings]);
 
   async function loadCapacityAndWaitlist() {
     if (!offeringId) return;
@@ -456,6 +493,11 @@ export function StaffCapacityOfferWorkspace({
       setWaitlist([]);
       setError("No se pudo cargar capacidad y espera para esta oferta.");
     }
+  }
+
+  async function refreshWorkspace() {
+    await loadOfferings();
+    await loadCapacityAndWaitlist();
   }
 
   async function saveCapacity() {
@@ -630,18 +672,42 @@ export function StaffCapacityOfferWorkspace({
           </div>
           <button
             className="button button-secondary"
-            onClick={() => void loadCapacityAndWaitlist()}
+            onClick={() => void refreshWorkspace()}
           >
             Actualizar
           </button>
         </div>
         <label className="field">
-          <span>Offering ID sintético</span>
-          <input
-            onChange={(event) => setOfferingId(event.target.value)}
+          <span>Oferta sintética</span>
+          <select
+            disabled={offeringsLoading}
+            onChange={(event) => {
+              setOfferingId(event.target.value);
+              setCapacity(null);
+              setReadiness(null);
+              setWaitlist([]);
+              setError("");
+            }}
             value={offeringId}
-          />
+          >
+            <option value="">
+              {offeringsLoading ? "Cargando ofertas..." : "Seleccionar oferta"}
+            </option>
+            {offerings.map((offering) => (
+              <option key={offering.id} value={offering.id}>
+                {offering.code} · {offering.title} · {offering.status}
+              </option>
+            ))}
+          </select>
         </label>
+        {offeringsError ? (
+          <p className="alert alert-error" role="alert">
+            {offeringsError}
+          </p>
+        ) : null}
+        {!offeringsLoading && !offeringsError && offerings.length === 0 ? (
+          <p className="muted">No hay ofertas configuradas para este tenant.</p>
+        ) : null}
         {readiness ? (
           <div className="offering-readiness-panel">
             <div>
