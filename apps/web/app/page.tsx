@@ -226,7 +226,8 @@ export default function Home() {
 
   async function saveStudent(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     setError("");
     try {
       await mutate("/family/students", "POST", {
@@ -234,7 +235,7 @@ export default function Home() {
         familyName: data.get("familyName"),
         givenName: data.get("givenName"),
       });
-      event.currentTarget.reset();
+      form.reset();
       await loadFamily();
       setNotice("Estudiante guardado.");
     } catch {
@@ -295,7 +296,8 @@ export default function Home() {
 
   async function saveAdminResource(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     const section = adminSection;
     let path = "";
     let body: Record<string, FormDataEntryValue | null> = {};
@@ -329,13 +331,15 @@ export default function Home() {
         code: data.get("code"),
         courseLevelId: data.get("courseLevelId"),
         processId: data.get("processId"),
-        status: "PUBLISHED",
+        // Offerings must be created as DRAFT and published explicitly after
+        // capacity is configured (R5 explicit lifecycle transition).
+        status: "DRAFT",
         title: data.get("title"),
       };
     }
     try {
       await mutate(path, "POST", body);
-      event.currentTarget.reset();
+      form.reset();
       await loadAdmin();
       setNotice("Configuración guardada y auditada.");
     } catch {
