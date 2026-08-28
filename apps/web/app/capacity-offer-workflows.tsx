@@ -463,18 +463,32 @@ export function StaffCapacityOfferWorkspace({
   async function loadCapacityAndWaitlist() {
     if (!offeringId) return;
     try {
-      const [readinessResult, waitlistResult] = await Promise.all([
-        apiFetch<OfferingReadiness>(
-          apiBase,
-          `/admin/tenants/${tenantId}/offerings/${offeringId}/readiness`,
-        ),
-        apiFetch<{ items: WaitlistEntry[] }>(
+      const readinessResult = await apiFetch<OfferingReadiness>(
+        apiBase,
+        `/admin/tenants/${tenantId}/offerings/${offeringId}/readiness`,
+      );
+      setReadiness(readinessResult);
+
+      // The bootstrap administrator can manage capacity but does not receive
+      // waitlist.read. Keep capacity/publication usable without widening that
+      // role solely to satisfy an optional dashboard panel.
+      try {
+        const waitlistResult = await apiFetch<{ items: WaitlistEntry[] }>(
           apiBase,
           `/staff/tenants/${tenantId}/offerings/${offeringId}/waitlist`,
-        ),
-      ]);
-      setReadiness(readinessResult);
-      setWaitlist(waitlistResult.items);
+        );
+        setWaitlist(waitlistResult.items);
+      } catch (requestError) {
+        if (
+          requestError instanceof ApiError &&
+          (requestError.status === 401 || requestError.status === 403)
+        ) {
+          setWaitlist([]);
+        } else {
+          throw requestError;
+        }
+      }
+
       if (readinessResult.capacityState === "CAPACITY_NOT_CONFIGURED") {
         setCapacity(null);
         setNewCapacity("0");
