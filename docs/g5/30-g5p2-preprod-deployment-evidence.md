@@ -58,8 +58,10 @@ privacidad, backups/restore, proveedores, hardening y autorización formal del p
 
 ## 5. Redeploy de la capacidad de bootstrap
 
-**Run posterior:** [#17](https://github.com/Sherydans12/Admision-Edupay/actions/runs/33177715698)  
-**Commit desplegado:** `d65549921b42b05d2cdb715c9e73f9b953b53f14`  
+**Run posterior:** [#17](https://github.com/Sherydans12/Admision-Edupay/actions/runs/33177715698)
+
+**Commit desplegado:** `d65549921b42b05d2cdb715c9e73f9b953b53f14`
+
 **Resultado:** `success`
 
 Este redeploy incorporó el servicio `tenant-bootstrap` con perfil Compose `bootstrap`.
