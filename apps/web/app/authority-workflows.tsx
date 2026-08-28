@@ -138,7 +138,7 @@ export function FamilyAuthorityWorkspace({
     <section className="workspace-stack" aria-labelledby="authority-title">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Paso requerido antes del formulario</p>
+          <p className="eyebrow">Autoridad antes del envío</p>
           <h2 id="authority-title">Declaración de autoridad</h2>
         </div>
         <span className="badge badge-synthetic">
@@ -235,20 +235,36 @@ export function FamilyAuthorityWorkspace({
           </button>
         </form>
       )}
-      {authority?.status !== "VERIFIED" ? (
+      {authority?.status === "DECLARED" ||
+      authority?.status === "UNDER_REVIEW" ? (
+        <p className="alert alert-warning">
+          La declaración quedó registrada. Puedes completar el formulario, pero
+          la autoridad deberá ser verificada antes del envío final.
+        </p>
+      ) : authority?.status === "VERIFIED" ? (
+        <p className="alert alert-success">
+          La autoridad fue verificada. Ya puedes completar y enviar la
+          postulación.
+        </p>
+      ) : authority?.status ? (
         <p className="alert alert-error">
           No podrás enviar la postulación ni aceptar una oferta hasta que la
           autoridad sea verificada.
         </p>
-      ) : (
+      ) : null}
+      {authority?.status === "DECLARED" ||
+      authority?.status === "UNDER_REVIEW" ||
+      authority?.status === "VERIFIED" ? (
         <button
           className="button button-primary"
           onClick={onContinue}
           type="button"
         >
-          Continuar al formulario
+          {authority.status === "VERIFIED"
+            ? "Continuar al formulario"
+            : "Continuar con el formulario"}
         </button>
-      )}
+      ) : null}
       {error ? (
         <p className="alert alert-error" role="alert">
           {error}
