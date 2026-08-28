@@ -793,7 +793,8 @@ export function AdminFormBuilder({
   }
   async function createDefinition(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     await run(async () => {
       const created = await mutation<{ id: string }>(
         apiBase,
@@ -801,7 +802,7 @@ export function AdminFormBuilder({
         "POST",
         { name: data.get("name"), purpose: "admission_application" },
       );
-      event.currentTarget.reset();
+      form.reset();
       await loadDefinitions();
       setSelectedDefinition(created.id);
     }, "Definición creada.");
@@ -821,7 +822,8 @@ export function AdminFormBuilder({
   async function createSection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!version) return;
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     await run(async () => {
       await mutation(
         apiBase,
@@ -833,7 +835,7 @@ export function AdminFormBuilder({
           title: data.get("title"),
         },
       );
-      event.currentTarget.reset();
+      form.reset();
       await reloadVersion();
     }, "Sección agregada.");
   }
@@ -916,7 +918,8 @@ export function AdminFormBuilder({
   async function createField(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!version) return;
-    const data = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
     const sectionId = String(data.get("sectionId"));
     const section = version.sections.find((item) => item.id === sectionId);
     await run(async () => {
@@ -926,7 +929,7 @@ export function AdminFormBuilder({
         "POST",
         fieldInput(data, (section?.fields.length ?? 0) + 1),
       );
-      event.currentTarget.reset();
+      form.reset();
       await reloadVersion();
     }, "Campo agregado.");
   }
