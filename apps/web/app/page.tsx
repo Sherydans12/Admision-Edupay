@@ -97,6 +97,12 @@ interface Student {
   id: string;
 }
 
+interface FamilyProfile {
+  displayName: string;
+  id: string;
+  userId: string;
+}
+
 interface Application {
   createdAt: string;
   draft: { acknowledgedNoGuarantee: boolean; currentStep: string };
@@ -142,6 +148,9 @@ export default function Home() {
   const [adminSection, setAdminSection] = useState<AdminSection>("forms");
   const [staffSection, setStaffSection] = useState<StaffSection>("review");
   const [students, setStudents] = useState<Student[]>([]);
+  const [familyProfile, setFamilyProfile] = useState<FamilyProfile | null>(
+    null,
+  );
   const [offerings, setOfferings] = useState<Offering[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [configuration, setConfiguration] = useState<Configuration | null>(
@@ -161,12 +170,25 @@ export default function Home() {
     setLoading(true);
     setError("");
     try {
-      const [studentResult, offeringResult, applicationResult] =
-        await Promise.all([
-          apiFetch<{ items: Student[] }>("/family/students"),
-          apiFetch<{ items: Offering[] }>(`${tenantPath}/offerings`),
-          apiFetch<{ items: Application[] }>(`${tenantPath}/applications`),
-        ]);
+      let profile: FamilyProfile | null = null;
+      try {
+        profile = await apiFetch<FamilyProfile>("/family/profile");
+      } catch (profileError) {
+        if (
+          !(profileError instanceof Error) ||
+          profileError.message !== "HTTP_404"
+        ) {
+          throw profileError;
+        }
+      }
+      const [studentResult, offeringResult] = await Promise.all([
+        apiFetch<{ items: Student[] }>("/family/students"),
+        apiFetch<{ items: Offering[] }>(`${tenantPath}/offerings`),
+      ]);
+      const applicationResult = profile
+        ? await apiFetch<{ items: Application[] }>(`${tenantPath}/applications`)
+        : { items: [] as Application[] };
+      setFamilyProfile(profile);
       setStudents(studentResult.items);
       setOfferings(offeringResult.items);
       setApplications(applicationResult.items);
@@ -242,6 +264,23 @@ export default function Home() {
       setError(
         "No se pudo guardar el estudiante. La operación requiere ownership familiar y permiso explícito.",
       );
+    }
+  }
+
+  async function saveFamilyProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    setError("");
+    try {
+      await mutate("/family/profile", "PUT", {
+        displayName: data.get("displayName"),
+      });
+      form.reset();
+      await loadFamily();
+      setNotice("Perfil familiar sintético creado.");
+    } catch {
+      setError("No se pudo guardar el perfil familiar.");
     }
   }
 
@@ -449,7 +488,9 @@ export default function Home() {
           <FamilyView
             tenantId={tenantId}
             applications={applications}
+            familyProfile={familyProfile}
             familySection={familySection}
+            onCreateProfile={saveFamilyProfile}
             onCreateStudent={saveStudent}
             onDraftSave={saveDraft}
             onRefresh={loadFamily}
@@ -492,7 +533,9 @@ export default function Home() {
 function FamilyView(props: {
   activeApplicationId: string;
   applications: Application[];
+  familyProfile: FamilyProfile | null;
   familySection: FamilySection;
+  onCreateProfile: (event: FormEvent<HTMLFormElement>) => void;
   onCreateStudent: (event: FormEvent<HTMLFormElement>) => void;
   onDraftSave: (
     application: Application,
@@ -558,6 +601,9 @@ function FamilyView(props: {
         </div>
       </aside>
       <section className="workspace" aria-live="polite">
+        {!props.familyProfile ? (
+          <FamilyProfileSetup onSubmit={props.onCreateProfile} />
+        ) : null}
         {familySection === "home" ? <FamilyHome {...props} /> : null}
         {familySection === "students" ? <StudentsSection {...props} /> : null}
         {familySection === "offerings" ? <OfferingsSection {...props} /> : null}
@@ -611,6 +657,27 @@ function FamilyView(props: {
         ) : null}
       </section>
     </div>
+  );
+}
+
+function FamilyProfileSetup({
+  onSubmit,
+}: {
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <form className="form-card form-wide" onSubmit={onSubmit}>
+      <p className="eyebrow">Primer acceso familiar</p>
+      <h2>Configura tu perfil sintético</h2>
+      <p className="form-help">
+        Este nombre es solamente una etiqueta de prueba para la preproducción;
+        no ingreses nombres reales.
+      </p>
+      <Field label="Nombre visible del perfil" name="displayName" />
+      <button className="button button-primary" type="submit">
+        Crear perfil familiar
+      </button>
+    </form>
   );
 }
 
