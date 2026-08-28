@@ -55,3 +55,15 @@ provisionar el tenant, membership, cursos y ofertas sintéticas.
 
 La producción permanece `NO-GO` hasta cerrar sus controles operativos, legales,
 privacidad, backups/restore, proveedores, hardening y autorización formal del piloto.
+
+## 5. Redeploy de la capacidad de bootstrap
+
+**Run posterior:** [#17](https://github.com/Sherydans12/Admision-Edupay/actions/runs/33177715698)  
+**Commit desplegado:** `d65549921b42b05d2cdb715c9e73f9b953b53f14`  
+**Resultado:** `success`
+
+Este redeploy incorporó el servicio `tenant-bootstrap` con perfil Compose `bootstrap`.
+El servicio no se inicia en `docker compose up -d`; sólo se ejecuta mediante una
+invocación one-shot explícita y con variables sintéticas temporales. La verificación
+pública posterior mantuvo web `200`, API live/ready `200`, CORS preflight `204` y
+rechazo `401` para rutas familiares sin sesión.
