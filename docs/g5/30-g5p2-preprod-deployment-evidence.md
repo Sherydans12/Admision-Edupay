@@ -69,3 +69,26 @@ El servicio no se inicia en `docker compose up -d`; sólo se ejecuta mediante un
 invocación one-shot explícita y con variables sintéticas temporales. La verificación
 pública posterior mantuvo web `200`, API live/ready `200`, CORS preflight `204` y
 rechazo `401` para rutas familiares sin sesión.
+
+## 6. Bootstrap de tenant sintético
+
+**Fecha:** 2026-08-28
+**Resultado:** `SUCCESS / SYNTHETIC`
+
+Se verificó una cuenta sintética mediante Resend y se ejecutó el bootstrap one-shot
+desde el contenedor API activo, sin modificar imágenes ni reiniciar servicios.
+
+| Control | Resultado |
+| --- | --- |
+| `tenantCode` | `synthetic-school` |
+| `tenantId` | `cd565ac0-362d-5ea1-a1f5-42aa111a63a3` |
+| Tenant creado | `true` |
+| Membership creada | `true` |
+| Rol `institution_admin.bootstrap` creado | `true` |
+| Auditoría creada | `true` |
+| Datos reales | No utilizados |
+| Integración EduPay | No utilizada |
+
+La cuenta administrativa posee únicamente el rol bootstrap aprobado, con permisos de
+configuración tenant-scoped. Las variables one-shot no se dejaron como configuración
+permanente.
