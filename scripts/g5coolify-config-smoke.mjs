@@ -24,12 +24,29 @@ const dockerfiles = await Promise.all(
     "apps/web/Dockerfile",
     "apps/worker/Dockerfile",
     "infrastructure/docker/Dockerfile.migrator",
+    "infrastructure/docker/Dockerfile.bootstrap",
   ].map(read),
 );
 
-for (const service of ["migrator", "api", "web", "worker"]) {
+for (const service of [
+  "migrator",
+  "tenant-bootstrap",
+  "api",
+  "web",
+  "worker",
+]) {
   assertContains(compose, `  ${service}:`, "Coolify Compose");
 }
+assertContains(
+  compose,
+  "profiles:\n      - bootstrap",
+  "tenant bootstrap profile",
+);
+assertContains(
+  compose,
+  "TENANT_BOOTSTRAP_CONFIRM: ${TENANT_BOOTSTRAP_CONFIRM:-}",
+  "tenant bootstrap one-shot variables",
+);
 assertContains(compose, "NODE_ENV: production", "Coolify Compose");
 assertContains(compose, "exclude_from_hc: true", "Coolify migrator");
 assertContains(
@@ -137,7 +154,7 @@ assert(
 );
 
 const portableCompose = compose.replace(
-  /^\s+exclude_from_hc:\s+true\s*$/mu,
+  /^\s+exclude_from_hc:\s+true\s*$/gmu,
   "",
 );
 const docker = spawnSync(
@@ -158,7 +175,7 @@ assert(
   `Docker Compose validation failed: ${(docker.stderr || docker.stdout).trim()}`,
 );
 
-console.log("COOLIFY_SERVICES=PASS (web/api/worker/migrator)");
+console.log("COOLIFY_SERVICES=PASS (web/api/worker/migrator/tenant-bootstrap)");
 console.log("COOLIFY_NETWORK_EXPOSURE=PASS (no host ports)");
 console.log("COOLIFY_SECURITY_INVARIANTS=PASS");
 console.log("COOLIFY_ENV_CONTRACT=PASS (placeholders only)");

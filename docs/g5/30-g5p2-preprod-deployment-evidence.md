@@ -46,7 +46,8 @@ provisionar el tenant, membership, cursos y ofertas sintéticas.
 1. Configurar o confirmar el transporte de correo sintético Resend y un remitente
    permitido; no activar entrega real.
 2. Registrar/verificar una cuenta sintética y ejecutar el bootstrap idempotente del
-   tenant con una operación one-shot controlada.
+   tenant con una operación one-shot controlada (`docker compose --profile bootstrap
+   run --rm tenant-bootstrap`).
 3. Cargar manualmente sede, año, niveles, proceso, ofertas, cupos y calendario
    sintéticos mediante superficies tenant-scoped.
 4. Ejecutar el smoke autenticado hasta `oferta aceptada / matrícula pendiente`.

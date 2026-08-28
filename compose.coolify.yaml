@@ -24,6 +24,36 @@ services:
       - no-new-privileges:true
     exclude_from_hc: true
 
+  # Explicitly invoked maintenance operation. The bootstrap profile is excluded
+  # from normal `docker compose up` and must never receive real identities.
+  tenant-bootstrap:
+    profiles:
+      - bootstrap
+    build:
+      context: .
+      dockerfile: infrastructure/docker/Dockerfile.bootstrap
+      args:
+        IMAGE_READINESS: PRODUCTION CANDIDATE IMAGE
+    environment:
+      DATABASE_APP_URL: ${DATABASE_APP_URL:?set DATABASE_APP_URL in Coolify}
+      TENANT_BOOTSTRAP_CODE: ${TENANT_BOOTSTRAP_CODE:-}
+      TENANT_BOOTSTRAP_NAME: ${TENANT_BOOTSTRAP_NAME:-}
+      TENANT_BOOTSTRAP_ADMIN_EMAIL: ${TENANT_BOOTSTRAP_ADMIN_EMAIL:-}
+      TENANT_BOOTSTRAP_CONFIRM: ${TENANT_BOOTSTRAP_CONFIRM:-}
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    restart: "no"
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    exclude_from_hc: true
+
   api:
     build:
       context: .

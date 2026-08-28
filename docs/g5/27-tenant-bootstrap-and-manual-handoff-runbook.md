@@ -43,11 +43,18 @@ TENANT_BOOTSTRAP_ADMIN_EMAIL=admin.synthetic@example.invalid
 TENANT_BOOTSTRAP_CONFIRM=synthetic-school
 ```
 
-`TENANT_BOOTSTRAP_CONFIRM` debe coincidir exactamente con el código normalizado. Luego:
+`TENANT_BOOTSTRAP_CONFIRM` debe coincidir exactamente con el código normalizado. En
+preproducción Coolify, ejecutar explícitamente el servicio one-shot con el perfil
+`bootstrap` desde el directorio del Compose desplegado:
 
-```text
-pnpm tenant:bootstrap
+```bash
+docker compose --profile bootstrap run --rm tenant-bootstrap
 ```
+
+El servicio está excluido de `docker compose up -d` normal. Sólo se crea cuando el
+operador invoca el perfil y se detiene al terminar; no debe dejarse configurado como un
+servicio permanente. Después de una ejecución exitosa, eliminar las cuatro variables
+one-shot del entorno de Coolify y conservar únicamente la evidencia sanitizada.
 
 La salida contiene únicamente IDs técnicos, `tenantCode` y flags `created`; no imprime el
 correo. En la primera ejecución los cuatro flags deben ser `true`. Una repetición con los
