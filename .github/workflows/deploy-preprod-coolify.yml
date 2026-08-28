@@ -97,7 +97,7 @@ jobs:
             --proto '=https' --tlsv1.2 \
             --output "$response" \
             --write-out '%{http_code}' \
-            --request GET \
+            --request POST \
             --header "Authorization: Bearer ${COOLIFY_DEPLOY_TOKEN}" \
             --header "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}" \
             --header "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}" \

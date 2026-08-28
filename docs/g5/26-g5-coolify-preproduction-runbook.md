@@ -189,7 +189,8 @@ El token de Coolify debe tener únicamente los permisos `read` y `deploy`, alcan
 caducidad. Cloudflare Access debe autorizar esos dos headers mediante una política
 `Service Auth` que incluya exclusivamente el Service Token de GitHub Actions; la política
 humana existente se conserva. El workflow sólo acepta `main`, exige escribir `PREPROD_SYNTHETIC`, valida el
-contrato y solicita el deploy sin mostrar webhook ni token. Conserva los UUID de despliegue,
+contrato y solicita el deploy mediante `POST` sin mostrar webhook ni token. La API de Coolify
+4.3.x rechaza el método `GET` en `/api/v1/deploy`. Conserva los UUID de despliegue,
 consulta cada ejecución hasta `finished`, exige que el commit sea exactamente el SHA del
 workflow y sólo entonces verifica health público. Un `2xx` inicial nunca se considera
 evidencia de despliegue.
