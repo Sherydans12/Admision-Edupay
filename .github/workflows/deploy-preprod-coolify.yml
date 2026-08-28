@@ -54,6 +54,37 @@ jobs:
           test -n "$CF_ACCESS_CLIENT_ID"
           test -n "$CF_ACCESS_CLIENT_SECRET"
 
+      - name: Validate effective Coolify endpoint shape
+        env:
+          COOLIFY_DEPLOY_WEBHOOK: ${{ secrets.COOLIFY_DEPLOY_WEBHOOK }}
+          COOLIFY_API_BASE_URL: ${{ secrets.COOLIFY_API_BASE_URL }}
+        run: |
+          python3 <<'PY'
+          import os
+          import sys
+          from urllib.parse import parse_qs, urlsplit
+
+          webhook = urlsplit(os.environ["COOLIFY_DEPLOY_WEBHOOK"])
+          api = urlsplit(os.environ["COOLIFY_API_BASE_URL"])
+
+          print(f"Coolify API endpoint: scheme={api.scheme} host={api.hostname} path={api.path}")
+          print(
+              "Coolify webhook endpoint: "
+              f"scheme={webhook.scheme} host={webhook.hostname} "
+              f"path={webhook.path} query_keys={sorted(parse_qs(webhook.query))}"
+          )
+
+          if api.scheme != "https" or api.path.rstrip("/") != "/api/v1":
+              print("Invalid COOLIFY_API_BASE_URL shape", file=sys.stderr)
+              sys.exit(1)
+          if webhook.scheme != "https" or webhook.path.rstrip("/") != "/api/v1/deploy":
+              print("Invalid COOLIFY_DEPLOY_WEBHOOK path", file=sys.stderr)
+              sys.exit(1)
+          if "uuid" not in parse_qs(webhook.query):
+              print("COOLIFY_DEPLOY_WEBHOOK must include uuid", file=sys.stderr)
+              sys.exit(1)
+          PY
+
       - name: Request Coolify deployment
         env:
           COOLIFY_DEPLOY_TOKEN: ${{ secrets.COOLIFY_DEPLOY_TOKEN }}
@@ -62,13 +93,21 @@ jobs:
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           response="$RUNNER_TEMP/coolify-deploy.json"
-          curl --fail --silent --show-error --max-time 30 \
+          http_code=$(curl --silent --show-error --max-time 30 \
             --proto '=https' --tlsv1.2 \
             --output "$response" \
+            --write-out '%{http_code}' \
+            --request GET \
             --header "Authorization: Bearer ${COOLIFY_DEPLOY_TOKEN}" \
             --header "CF-Access-Client-Id: ${CF_ACCESS_CLIENT_ID}" \
             --header "CF-Access-Client-Secret: ${CF_ACCESS_CLIENT_SECRET}" \
-            "${COOLIFY_DEPLOY_WEBHOOK}"
+            "${COOLIFY_DEPLOY_WEBHOOK}")
+          if [[ "$http_code" != 2* ]]; then
+            echo "Coolify deploy request returned HTTP ${http_code}" >&2
+            echo "Response body (secrets must not be included):" >&2
+            sed -E 's/(Bearer|CF-Access-Client-Secret|CF-Access-Client-Id)[^, ]*/\1=<redacted>/g' "$response" >&2
+            exit 1
+          fi
           jq -e '.deployments | length > 0 and all(.[]; (.deployment_uuid | type == "string" and length > 0))' "$response" >/dev/null
 
       - name: Wait for the requested Coolify revision
