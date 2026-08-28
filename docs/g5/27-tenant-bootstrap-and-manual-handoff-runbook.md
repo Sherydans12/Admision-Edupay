@@ -39,9 +39,15 @@ equivalente. No incorporarlas a la imagen ni al repositorio:
 ```text
 TENANT_BOOTSTRAP_CODE=synthetic-school
 TENANT_BOOTSTRAP_NAME=Synthetic School
-TENANT_BOOTSTRAP_ADMIN_EMAIL=admin.synthetic@example.invalid
+TENANT_BOOTSTRAP_ADMIN_EMAIL=admin.synthetic@resend.dev
 TENANT_BOOTSTRAP_CONFIRM=synthetic-school
 ```
+
+En el runtime de Coolify (`NODE_ENV=production`), `EMAIL_DELIVERY_MODE=synthetic`
+mantiene el envío fail-closed a destinatarios `@resend.dev`, pero utiliza el adaptador
+Resend. Por tanto, la cuenta sintética debe poder recibir el mensaje de prueba y el
+entorno debe tener configurados una API key y un remitente aceptado por Resend. No se
+debe sustituir este valor por una dirección real ni por `example.invalid`.
 
 `TENANT_BOOTSTRAP_CONFIRM` debe coincidir exactamente con el código normalizado. En
 preproducción Coolify, ejecutar explícitamente el servicio one-shot con el perfil
