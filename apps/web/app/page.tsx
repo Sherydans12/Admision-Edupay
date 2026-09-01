@@ -103,6 +103,29 @@ interface FamilyProfile {
   userId: string;
 }
 
+interface SessionMembership {
+  permissions: string[];
+  roleKeys: string[];
+  tenantId: string;
+  tenantName: string;
+}
+
+interface SessionSnapshot {
+  authenticated: boolean;
+  familyProfileId?: string | null;
+  memberships?: SessionMembership[];
+  session?: {
+    absoluteExpiresAt: string;
+    idleExpiresAt: string;
+    id: string;
+  };
+  user?: {
+    email: string;
+    emailVerifiedAt: string | null;
+    id: string;
+  };
+}
+
 interface Application {
   createdAt: string;
   draft: { acknowledgedNoGuarantee: boolean; currentStep: string };
@@ -163,8 +186,38 @@ export default function Home() {
   );
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [session, setSession] = useState<SessionSnapshot | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [sessionError, setSessionError] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   const tenantPath = useMemo(() => `/family/tenants/${tenantId}`, [tenantId]);
+
+  const refreshSession = useCallback(async () => {
+    setSessionLoading(true);
+    setSessionError(false);
+    try {
+      const response = await fetch(`${API_BASE}/auth/session`, {
+        cache: "no-store",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error(`HTTP_${response.status}`);
+      setSession((await response.json()) as SessionSnapshot);
+    } catch {
+      setSession({ authenticated: false });
+      setSessionError(true);
+    } finally {
+      setSessionLoading(false);
+    }
+  }, []);
+
+  const hasPermission = useCallback(
+    (permission: string) =>
+      session?.memberships?.some((membership) =>
+        membership.permissions.includes(permission),
+      ) ?? false,
+    [session],
+  );
 
   const loadFamily = useCallback(async () => {
     setLoading(true);
@@ -226,12 +279,85 @@ export default function Home() {
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
-      if (mode === "family") void loadFamily();
-      else if (mode === "admin") void loadAdmin();
-      else setNotice("Espacio operativo listo para un identificador exacto.");
+      void refreshSession();
     }, 0);
     return () => window.clearTimeout(handle);
-  }, [loadAdmin, loadFamily, mode]);
+  }, [refreshSession]);
+
+  useEffect(() => {
+    const handleFocus = () => {
+      void refreshSession();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refreshSession]);
+
+  useEffect(() => {
+    if (sessionLoading || session === null) return;
+    const handle = window.setTimeout(() => {
+      setError("");
+      if (!session.authenticated) {
+        setNotice("Inicia sesión o crea tu acceso para continuar.");
+      } else if (mode === "family") {
+        void loadFamily();
+      } else if (mode === "admin" && !hasPermission("admission.config.read")) {
+        setNotice(
+          "Tu cuenta no tiene acceso a la administración de este tenant.",
+        );
+      } else if (
+        mode === "staff" &&
+        !hasPermission("application.authority.read") &&
+        !hasPermission("application.read")
+      ) {
+        setNotice(
+          "Tu cuenta no tiene acceso al espacio de atención institucional.",
+        );
+      } else if (mode === "admin") {
+        void loadAdmin();
+      } else {
+        setNotice("Espacio operativo listo para un identificador exacto.");
+      }
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [hasPermission, loadAdmin, loadFamily, mode, session, sessionLoading]);
+
+  async function logout(): Promise<void> {
+    setLoading(true);
+    setLogoutLoading(true);
+    setError("");
+    try {
+      let csrfToken: string | undefined;
+      try {
+        csrfToken = (await apiFetch<{ token: string }>("/auth/csrf")).token;
+      } catch (requestError) {
+        if (
+          !(requestError instanceof Error) ||
+          requestError.message !== "HTTP_401"
+        ) {
+          throw requestError;
+        }
+      }
+      const response = await fetch(`${API_BASE}/auth/logout`, {
+        credentials: "include",
+        headers: csrfToken === undefined ? {} : { "X-CSRF-Token": csrfToken },
+        method: "POST",
+      });
+      if (!response.ok) throw new Error(`HTTP_${response.status}`);
+      setSession({ authenticated: false });
+      setFamilyProfile(null);
+      setStudents([]);
+      setOfferings([]);
+      setApplications([]);
+      setConfiguration(null);
+      setNotice("Sesión cerrada de forma segura.");
+      setMode("family");
+    } catch {
+      setError("No se pudo cerrar la sesión. Vuelve a intentarlo.");
+    } finally {
+      setLoading(false);
+      setLogoutLoading(false);
+    }
+  }
 
   async function mutate<T>(
     path: string,
@@ -399,9 +525,12 @@ export default function Home() {
           <p className="brand">Recorrido funcional sintético</p>
         </div>
         <div className="topbar-actions">
-          <a className="button button-quiet" href="/register">
-            Crear cuenta
-          </a>
+          <SessionControls
+            busy={logoutLoading}
+            loading={sessionLoading}
+            onLogout={logout}
+            session={session}
+          />
           <label className="tenant-field">
             <span>Tenant de desarrollo</span>
             <input
@@ -484,7 +613,13 @@ export default function Home() {
           </div>
         ) : null}
 
-        {mode === "family" ? (
+        {sessionLoading ? (
+          <AuthGate loading />
+        ) : sessionError ? (
+          <AuthGate error onRetry={refreshSession} />
+        ) : session?.authenticated !== true ? (
+          <AuthGate />
+        ) : mode === "family" ? (
           <FamilyView
             tenantId={tenantId}
             applications={applications}
@@ -527,6 +662,103 @@ export default function Home() {
         )}
       </main>
     </>
+  );
+}
+
+function SessionControls({
+  busy,
+  loading,
+  onLogout,
+  session,
+}: {
+  busy: boolean;
+  loading: boolean;
+  onLogout: () => Promise<void>;
+  session: SessionSnapshot | null;
+}) {
+  if (loading) {
+    return <span className="session-status">Comprobando sesión…</span>;
+  }
+
+  if (session?.authenticated === true && session.user !== undefined) {
+    return (
+      <div className="session-controls" aria-label="Sesión actual">
+        <span className="session-status">
+          <span className="session-dot" aria-hidden="true" />
+          <span>
+            <strong>Sesión activa</strong>
+            <small>{session.user.email}</small>
+          </span>
+        </span>
+        <button
+          className="button button-quiet"
+          disabled={busy}
+          onClick={onLogout}
+          type="button"
+        >
+          {busy ? "Cerrando…" : "Cerrar sesión"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="session-controls" aria-label="Acceso a la cuenta">
+      <span className="session-status">Sin sesión iniciada</span>
+      <a className="button button-quiet" href="/register">
+        Iniciar sesión / crear acceso
+      </a>
+    </div>
+  );
+}
+
+function AuthGate({
+  error = false,
+  loading = false,
+  onRetry,
+}: {
+  error?: boolean;
+  loading?: boolean;
+  onRetry?: () => Promise<void>;
+}) {
+  return (
+    <section className="workspace auth-gate" aria-live="polite">
+      <p className="eyebrow">
+        {error ? "Conexión con la API" : "Acceso protegido"}
+      </p>
+      <h2>
+        {loading
+          ? "Comprobando tu sesión…"
+          : error
+            ? "No se pudo comprobar la sesión"
+            : "Necesitas iniciar sesión"}
+      </h2>
+      <p>
+        {error
+          ? "La API no respondió correctamente. Revisa la conexión y vuelve a intentarlo; no se ha borrado tu sesión."
+          : "La cuenta se activa con un código enviado al correo. Después podrás continuar automáticamente con el portal familiar o el espacio institucional que tengas autorizado."}
+      </p>
+      {!loading && error && onRetry ? (
+        <div className="flow-actions">
+          <button
+            className="button button-primary"
+            onClick={onRetry}
+            type="button"
+          >
+            Reintentar
+          </button>
+        </div>
+      ) : !loading ? (
+        <div className="flow-actions">
+          <a className="button button-primary" href="/register">
+            Iniciar sesión o crear acceso
+          </a>
+          <a className="button button-secondary" href="/register/verify">
+            Ya tengo un código
+          </a>
+        </div>
+      ) : null}
+    </section>
   );
 }
 

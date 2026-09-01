@@ -13,14 +13,21 @@ export default function RegisterPage() {
     event.preventDefault();
     setError("");
     const data = new FormData(event.currentTarget);
+    const email = String(data.get("email") ?? "")
+      .trim()
+      .toLowerCase();
     try {
       const response = await fetch(`${API_BASE}/auth/register`, {
-        body: JSON.stringify({ email: data.get("email") }),
+        body: JSON.stringify({ email }),
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
       if (!response.ok) throw new Error("register_failed");
+      window.sessionStorage.setItem(
+        "admission.pendingVerificationEmail",
+        email,
+      );
       setSubmitted(true);
     } catch {
       setError(
@@ -40,10 +47,15 @@ export default function RegisterPage() {
           parentesco ni facultad legal sobre un estudiante.
         </p>
         {submitted ? (
-          <div className="alert alert-success" role="status">
-            Revisa tu correo para continuar. Si necesitas ingresar un código,
-            usa la pantalla de verificación.
-          </div>
+          <>
+            <div className="alert alert-success" role="status">
+              Revisa tu correo para continuar. Si necesitas ingresar un código,
+              usa la pantalla de verificación.
+            </div>
+            <a className="button button-primary" href="/register/verify">
+              Ingresar el código recibido
+            </a>
+          </>
         ) : (
           <form className="form-card" onSubmit={submit}>
             <label className="field" htmlFor="register-email">

@@ -13,6 +13,7 @@ import {
   Post,
   Put,
   Req,
+  Res,
 } from "@nestjs/common";
 import { ApiIntakeService } from "./intake.service.js";
 import {
@@ -36,6 +37,10 @@ interface RequestLike {
   method?: string;
 }
 
+interface ResponseLike {
+  header(name: string, value: string): void;
+}
+
 @Controller()
 export class IntakeController {
   constructor(
@@ -44,7 +49,11 @@ export class IntakeController {
   ) {}
 
   @Get("auth/csrf")
-  getCsrf(@Req() request: RequestLike) {
+  getCsrf(
+    @Req() request: RequestLike,
+    @Res({ passthrough: true }) response: ResponseLike,
+  ) {
+    response.header("Cache-Control", "no-store, private");
     return this.contexts.issueCsrfToken(request).then((token) => ({ token }));
   }
 
@@ -83,7 +92,7 @@ export class IntakeController {
     const context = await this.requireFamilyContext(
       request,
       "family.profile.read",
-      true,
+      false,
     );
     return this.inFamilyContext(context, () =>
       this.intake.getFamilyProfile(context),
@@ -95,7 +104,7 @@ export class IntakeController {
     const context = await this.requireFamilyContext(
       request,
       "family.students.read",
-      true,
+      false,
     );
     return this.inFamilyContext(context, async () => ({
       items: await this.intake.listStudents(context),

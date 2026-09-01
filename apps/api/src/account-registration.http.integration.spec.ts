@@ -119,12 +119,81 @@ describe.sequential("G5-BR public identity HTTP boundary", () => {
     });
 
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toContain("no-store");
     expect(response.headers.get("set-cookie")).toContain(`${cookieName}=`);
     expect(response.headers.get("set-cookie")?.toLowerCase()).toContain(
       "httponly",
     );
+    expect(response.headers.get("set-cookie")?.toLowerCase()).toMatch(
+      /max-age=[1-9][0-9]*/,
+    );
     expect(user?.status).toBe("ACTIVE");
     expect(user?.emailVerifiedAt).not.toBeNull();
+  });
+
+  it("G5BR-SESSION-01: anonymous session discovery is explicit and non-sensitive", async () => {
+    const response = await fetch(`${baseUrl}/auth/session`);
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toContain("no-store");
+    expect(await response.json()).toEqual({ authenticated: false });
+  });
+
+  it("G5BR-SESSION-02: session discovery returns only the caller access summary", async () => {
+    await register("http-session-summary@example.invalid");
+    const verified = await post("/auth/verify", {
+      challenge: identityEmail.deliveries.at(-1)?.challenge ?? "",
+    });
+    const cookie = cookieFrom(verified);
+    const response = await fetch(`${baseUrl}/auth/session`, {
+      headers: { Cookie: cookie },
+    });
+    const body = (await response.json()) as Record<string, unknown>;
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      authenticated: true,
+      familyProfileId: null,
+      memberships: [],
+      user: { email: "http-session-summary@example.invalid" },
+    });
+    expect(JSON.stringify(body)).not.toContain("token");
+  });
+
+  it("G5BR-SESSION-03: logout requires CSRF and revokes the server session", async () => {
+    await register("http-session-logout@example.invalid");
+    const verified = await post("/auth/verify", {
+      challenge: identityEmail.deliveries.at(-1)?.challenge ?? "",
+    });
+    const cookie = cookieFrom(verified);
+    const csrfResponse = await fetch(`${baseUrl}/auth/csrf`, {
+      headers: { Cookie: cookie },
+    });
+    const csrf = ((await csrfResponse.json()) as { token: string }).token;
+
+    const rejected = await fetch(`${baseUrl}/auth/logout`, {
+      headers: { Cookie: cookie, Origin: "http://attacker.example.invalid" },
+      method: "POST",
+    });
+    expect(rejected.status).toBe(403);
+
+    const logout = await fetch(`${baseUrl}/auth/logout`, {
+      headers: {
+        Cookie: cookie,
+        Origin: "http://localhost:3000",
+        "X-CSRF-Token": csrf,
+      },
+      method: "POST",
+    });
+    expect(logout.status).toBe(204);
+    expect(logout.headers.get("set-cookie")?.toLowerCase()).toContain(
+      "max-age=0",
+    );
+
+    const afterLogout = await fetch(`${baseUrl}/auth/session`, {
+      headers: { Cookie: cookie },
+    });
+    expect(await afterLogout.json()).toEqual({ authenticated: false });
   });
 
   it("G5BR-HTTP-04: invalid verification returns a controlled generic error", async () => {

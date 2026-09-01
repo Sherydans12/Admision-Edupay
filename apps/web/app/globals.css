@@ -71,6 +71,43 @@ button:disabled {
   flex-wrap: wrap;
   justify-content: end;
 }
+.session-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: end;
+}
+.session-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  color: #d9e9eb;
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+.session-status strong,
+.session-status small {
+  display: block;
+}
+.session-status small {
+  max-width: 16rem;
+  margin-top: 0.18rem;
+  overflow: hidden;
+  color: #a9c1c5;
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.session-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: none;
+  border-radius: 50%;
+  background: #8ce0bf;
+  box-shadow: 0 0 0 0.2rem rgba(140, 224, 191, 0.14);
+}
 .brand {
   margin: 0.25rem 0 0;
   font-size: 0.95rem;
@@ -303,6 +340,17 @@ h3 {
 .workspace {
   min-width: 0;
   padding: clamp(1rem, 3vw, 2rem);
+}
+.auth-gate {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.auth-gate p:last-of-type {
+  max-width: 60ch;
+  margin-bottom: 0.25rem;
+  color: var(--muted);
+  line-height: 1.6;
 }
 .section-heading {
   display: flex;
