@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+
+import { AccessibleConfirmationDialog as ConfirmationDialog } from "./ui-foundation";
 
 type RecommendationOption =
   "RECOMENDAR_ADMISION" | "NO_RECOMENDAR_ADMISION" | "DEVOLVER_A_REVISION";
@@ -115,56 +117,6 @@ function applicationPath(
   suffix: string,
 ): string {
   return `/staff/tenants/${tenantId}/applications/${applicationId}/${suffix}`;
-}
-
-function ConfirmationDialog({
-  description,
-  onCancel,
-  onConfirm,
-  open,
-  title,
-}: {
-  description: string;
-  onCancel: () => void;
-  onConfirm: () => void;
-  open: boolean;
-  title: string;
-}) {
-  const confirm = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (open) confirm.current?.focus();
-  }, [open]);
-  if (!open) return null;
-  return (
-    <div
-      aria-labelledby="confirmation-title"
-      aria-modal="true"
-      className="confirmation-dialog-shell"
-      role="dialog"
-    >
-      <div className="confirmation-dialog-card">
-        <h3 id="confirmation-title">{title}</h3>
-        <p>{description}</p>
-        <div className="flow-actions">
-          <button
-            className="button button-secondary"
-            onClick={onCancel}
-            type="button"
-          >
-            Cancelar
-          </button>
-          <button
-            className="button button-primary"
-            onClick={onConfirm}
-            ref={confirm}
-            type="button"
-          >
-            Confirmar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 export function StaffRecommendationWorkspace({
