@@ -1,6 +1,13 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { AdminFormBuilder, FamilyApplicationFlow } from "./form-workflows";
 import {
   FamilyAuthorityWorkspace,
@@ -193,24 +200,35 @@ export default function Home() {
   const [tenantPermissions, setTenantPermissions] = useState<string[]>([]);
   const [tenantPermissionsLoading, setTenantPermissionsLoading] =
     useState(false);
+  const lastSessionRefreshAt = useRef(0);
 
   const tenantPath = useMemo(() => `/family/tenants/${tenantId}`, [tenantId]);
 
-  const refreshSession = useCallback(async () => {
-    setSessionLoading(true);
-    setSessionError(false);
+  const refreshSession = useCallback(async (foreground = true) => {
+    const now = Date.now();
+    if (!foreground && now - lastSessionRefreshAt.current < 15_000) return;
+    lastSessionRefreshAt.current = now;
+    if (foreground) {
+      setSessionLoading(true);
+      setSessionError(false);
+    }
     try {
       const response = await fetch(`${API_BASE}/auth/session`, {
         cache: "no-store",
         credentials: "include",
       });
-      if (!response.ok) throw new Error(`HTTP_${response.status}`);
+      if (!response.ok) {
+        if (response.status === 401) setSession({ authenticated: false });
+        throw new Error(`HTTP_${response.status}`);
+      }
       setSession((await response.json()) as SessionSnapshot);
     } catch {
-      setSession({ authenticated: false });
-      setSessionError(true);
+      if (foreground) {
+        setSession({ authenticated: false });
+        setSessionError(true);
+      }
     } finally {
-      setSessionLoading(false);
+      if (foreground) setSessionLoading(false);
     }
   }, []);
 
@@ -313,7 +331,7 @@ export default function Home() {
 
   useEffect(() => {
     const handleFocus = () => {
-      void refreshSession();
+      void refreshSession(false);
     };
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
