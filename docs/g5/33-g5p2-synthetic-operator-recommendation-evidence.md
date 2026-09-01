@@ -42,10 +42,9 @@ datos reales ni permisos globales.
 Redeploy final validado por el workflow `Deploy synthetic preproduction to Coolify`,
 run `33515880536`, con `validate-deployment` y `deploy` en `success`.
 
-## 4. Próxima compuerta
+## 4. Compuerta siguiente
 
-La decisión de Dirección exige una segunda cuenta sintética, separada del recomendador,
-para cumplir separación de funciones. Debe registrarse y verificarse
-`admissions-director@resend.dev`; sus permisos se provisionarán en una operación
-one-shot independiente y limitada. No se reutilizará `admin.synthetic` ni el operador
-de recomendaciones.
+La cuenta de Dirección separada ya fue registrada, verificada y provisionada en una
+operación one-shot independiente. La evidencia detallada está en
+[`34-g5p2-synthetic-director-evidence.md`](34-g5p2-synthetic-director-evidence.md).
+No se reutiliza `admin.synthetic` ni el operador de recomendaciones.
