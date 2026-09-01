@@ -38,6 +38,16 @@ interface StaffAuthorityDto extends AuthorityDto {
   }[];
 }
 
+class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(code === undefined ? `HTTP_${status}` : `HTTP_${status}_${code}`);
+    this.name = "ApiError";
+  }
+}
+
 const statusCopy: Record<AuthorityStatus, string> = {
   NOT_DECLARED: "Pendiente de declaración",
   DECLARED: "Declaración recibida",
@@ -58,8 +68,49 @@ async function request<T>(
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
-  if (!response.ok) throw new Error(`HTTP_${response.status}`);
+  if (!response.ok) {
+    let code: string | undefined;
+    try {
+      const payload = (await response.json()) as { code?: unknown };
+      if (typeof payload.code === "string") code = payload.code;
+    } catch {
+      // Preserve the HTTP status when the error response has no JSON body.
+    }
+    throw new ApiError(response.status, code);
+  }
   return (await response.json()) as T;
+}
+
+function reviewOptions(status: AuthorityStatus): {
+  label: string;
+  value: Extract<
+    AuthorityStatus,
+    "EVIDENCE_PENDING" | "UNDER_REVIEW" | "VERIFIED" | "DISPUTED" | "REJECTED"
+  >;
+}[] {
+  switch (status) {
+    case "DECLARED":
+      return [{ label: "Iniciar revisión", value: "UNDER_REVIEW" }];
+    case "EVIDENCE_PENDING":
+      return [{ label: "Reanudar revisión", value: "UNDER_REVIEW" }];
+    case "UNDER_REVIEW":
+      return [
+        { label: "Verificar", value: "VERIFIED" },
+        { label: "Solicitar evidencia", value: "EVIDENCE_PENDING" },
+        { label: "Marcar disputa", value: "DISPUTED" },
+        { label: "Rechazar declaración", value: "REJECTED" },
+      ];
+    case "DISPUTED":
+      return [
+        { label: "Reanudar revisión", value: "UNDER_REVIEW" },
+        { label: "Verificar", value: "VERIFIED" },
+        { label: "Rechazar declaración", value: "REJECTED" },
+      ];
+    case "VERIFIED":
+      return [{ label: "Marcar disputa", value: "DISPUTED" }];
+    default:
+      return [];
+  }
 }
 
 async function mutate<T>(
@@ -321,12 +372,16 @@ export function StaffAuthorityWorkspace({
           },
         ),
       );
-    } catch {
+    } catch (requestError) {
       setError(
-        "La transición fue rechazada. Una revisión requiere motivo, versión vigente y evidencia válida cuando aplique.",
+        requestError instanceof ApiError &&
+          requestError.code === "AUTHORITY_INVALID_TRANSITION"
+          ? "La transición no corresponde al estado actual. Desde una declaración recibida debes iniciar la revisión antes de verificarla."
+          : "La transición fue rechazada. Una revisión requiere motivo, versión vigente y evidencia válida cuando aplique.",
       );
     }
   }
+  const options = authority ? reviewOptions(authority.status) : [];
   return (
     <section className="workspace-stack">
       <form className="toolbar" onSubmit={load}>
@@ -352,17 +407,17 @@ export function StaffAuthorityWorkspace({
               {authority.authorityBasis ?? "—"}
             </p>
           </article>
-          {authority.canReview ? (
+          {authority.canReview && options.length > 0 ? (
             <form className="form-card" onSubmit={review}>
               <h3>Revisión autorizada</h3>
-              <label className="field">
+              <label className="field" key={authority.status}>
                 <span>Transición</span>
                 <select name="toStatus">
-                  <option value="UNDER_REVIEW">Iniciar revisión</option>
-                  <option value="EVIDENCE_PENDING">Solicitar evidencia</option>
-                  <option value="VERIFIED">Verificar</option>
-                  <option value="DISPUTED">Marcar disputa</option>
-                  <option value="REJECTED">Rechazar declaración</option>
+                  {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="field">
@@ -379,6 +434,10 @@ export function StaffAuthorityWorkspace({
                 Registrar revisión
               </button>
             </form>
+          ) : authority.canReview ? (
+            <p className="muted">
+              Esta declaración no tiene transiciones adicionales disponibles.
+            </p>
           ) : (
             <p className="muted">
               Tu capacidad permite lectura, pero no revisión de autoridad.
