@@ -93,12 +93,13 @@ export class IdentityController {
     );
     response.cookie(cookie.name, cookie.value, {
       httpOnly: cookie.options.httpOnly,
-      maxAge: Math.max(
-        0,
-        Math.floor(
-          (result.session.absoluteExpiresAt.getTime() - Date.now()) / 1000,
-        ),
-      ),
+      maxAge:
+        Math.max(
+          0,
+          Math.floor(
+            (result.session.absoluteExpiresAt.getTime() - Date.now()) / 1000,
+          ),
+        ) * 1000,
       path: cookie.options.path,
       sameSite: cookie.options.sameSite,
       secure: cookie.options.secure,

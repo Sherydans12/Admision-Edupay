@@ -40,6 +40,15 @@ con expiración idle/absoluta, CSRF en mutaciones y revocación server-side.
 - El control de sesión sigue siendo una ayuda de interfaz: cada endpoint
   mantiene autorización tenant/capability independiente.
 
+### Corrección post-despliegue
+
+- La cookie de sesión se emitía con el TTL calculado en segundos, aunque
+  Express recibe `maxAge` en milisegundos. La cabecera resultante expiraba en
+  aproximadamente 28,8 segundos y hacía parecer que la sesión se cerraba sola.
+- Se corrigió la conversión a milisegundos y se agregó una aserción HTTP que
+  protege el TTL de horas configurado. Las sesiones persistidas no estaban
+  siendo revocadas; el problema estaba limitado a la expiración de la cookie.
+
 ## Validación
 
 - `apps/api/src/account-registration.http.integration.spec.ts`

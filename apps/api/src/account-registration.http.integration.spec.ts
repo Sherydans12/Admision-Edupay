@@ -124,9 +124,12 @@ describe.sequential("G5-BR public identity HTTP boundary", () => {
     expect(response.headers.get("set-cookie")?.toLowerCase()).toContain(
       "httponly",
     );
-    expect(response.headers.get("set-cookie")?.toLowerCase()).toMatch(
-      /max-age=[1-9][0-9]*/,
+    const maxAge = Number.parseInt(
+      response.headers.get("set-cookie")?.match(/max-age=(\d+)/i)?.[1] ?? "0",
+      10,
     );
+    // Express receives maxAge in milliseconds but serializes Max-Age in seconds.
+    expect(maxAge).toBeGreaterThan(7 * 60 * 60);
     expect(user?.status).toBe("ACTIVE");
     expect(user?.emailVerifiedAt).not.toBeNull();
   });
