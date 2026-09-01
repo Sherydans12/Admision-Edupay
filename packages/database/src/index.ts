@@ -443,3 +443,13 @@ export {
   type ProvisionSyntheticAuthorityReviewerResult,
   type SyntheticAuthorityReviewerProvisionErrorCode,
 } from "./synthetic-authority-reviewer.js";
+export {
+  SYNTHETIC_ADMISSIONS_OPERATOR_PERMISSIONS,
+  SYNTHETIC_ADMISSIONS_OPERATOR_ROLE_KEY,
+  SYNTHETIC_ADMISSIONS_OPERATOR_TENANT_CODE,
+  SyntheticAdmissionsOperatorProvisionError,
+  SyntheticAdmissionsOperatorProvisioner,
+  type ProvisionSyntheticAdmissionsOperatorInput,
+  type ProvisionSyntheticAdmissionsOperatorResult,
+  type SyntheticAdmissionsOperatorProvisionErrorCode,
+} from "./synthetic-admissions-operator.js";

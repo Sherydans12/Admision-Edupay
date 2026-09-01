@@ -201,3 +201,38 @@ Después de una ejecución exitosa:
 La operación no crea usuarios, no verifica correos, no modifica datos familiares y no
 puede recibir un tenant productivo. La provisión productiva debe tener un procedimiento
 institucional separado y aprobado; este comando no se copia ni se habilita para ella.
+
+## 9. Operador sintético de admisiones (sólo preproducción)
+
+El workspace de recomendación requiere una membership separada de la cuenta de
+configuración y de la cuenta revisora de autoridad. La cuenta `admissions-operator@resend.dev`
+se provisiona únicamente después de registrarse y verificar su correo. El rol concede sólo
+`application.read` y `application.recommend`; no concede `application.decide`, para mantener
+separación de funciones entre recomendación y Dirección.
+
+### Variables temporales
+
+```text
+PREPROD_SYNTHETIC=true
+SYNTHETIC_OPERATOR_TENANT_CODE=synthetic-school
+SYNTHETIC_OPERATOR_EMAIL=admissions-operator@resend.dev
+SYNTHETIC_OPERATOR_CONFIRM=synthetic-school
+```
+
+Desde el directorio del Compose desplegado, ejecutar explícitamente:
+
+```bash
+docker compose --profile bootstrap run --rm tenant-bootstrap \
+  node bootstrap-synthetic-admissions-operator.mjs
+```
+
+La salida sólo contiene IDs técnicos, el código sintético y flags `created`. Después de
+una ejecución exitosa se deben eliminar las variables temporales del entorno de Coolify.
+La operación es idempotente y falla cerrada si el tenant no es `synthetic-school`, la etapa
+no es `preproduction-synthetic`, el correo no es `@resend.dev`, la cuenta no está activa y
+verificada, o el rol determinista ya tiene permisos incompatibles.
+
+La decisión de Dirección debe ejecutarse desde otra cuenta sintética, porque el servicio
+de recomendaciones aplica separación de funciones y rechaza que quien envió la
+recomendación decida la misma postulación. Esa segunda cuenta y su rol se provisionarán
+mediante un procedimiento one-shot independiente y aprobado.
