@@ -2,6 +2,9 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
+const DOCUMENTS_ENABLED =
+  process.env.NEXT_PUBLIC_ADMISSION_DOCUMENTS_ENABLED !== "false";
+
 type AnswerValue = boolean | string;
 
 interface RequirementVersion {
@@ -227,9 +230,17 @@ export function FamilyDocumentWorkspace({
   tenantId: string;
 }) {
   const root = `/family/tenants/${tenantId}/applications/${applicationId}`;
-  const [data, setData] = useState<DocumentList | null>(null);
+  const [data, setData] = useState<DocumentList | null>(
+    DOCUMENTS_ENABLED
+      ? null
+      : { applicationId, items: [], pinnedAt: new Date().toISOString() },
+  );
   const [error, setError] = useState("");
-  const [message, setMessage] = useState("Cargando requisitos documentales…");
+  const [message, setMessage] = useState(
+    DOCUMENTS_ENABLED
+      ? "Cargando requisitos documentales…"
+      : "La documentación está deshabilitada en esta preproducción sintética; no se solicitarán archivos.",
+  );
   const [uploading, setUploading] = useState("");
 
   const load = useCallback(async () => {
@@ -249,9 +260,13 @@ export function FamilyDocumentWorkspace({
   }, [apiBase, onReadinessChange, root]);
 
   useEffect(() => {
+    if (!DOCUMENTS_ENABLED) {
+      onReadinessChange({ blocked: 0, ready: true, totalApplicable: 0 });
+      return;
+    }
     const handle = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(handle);
-  }, [load]);
+  }, [load, onReadinessChange]);
 
   useEffect(() => {
     const pending = data?.items.some((item) =>
@@ -320,6 +335,12 @@ export function FamilyDocumentWorkspace({
       {error ? (
         <div className="alert alert-error" role="alert">
           {error}
+        </div>
+      ) : null}
+      {!DOCUMENTS_ENABLED ? (
+        <div className="alert alert-warning" role="status">
+          Los documentos están fuera del alcance de esta preproducción. Puedes
+          continuar a la revisión sin adjuntar archivos.
         </div>
       ) : null}
       {!data ? <p className="empty-state">Cargando requisitos…</p> : null}
