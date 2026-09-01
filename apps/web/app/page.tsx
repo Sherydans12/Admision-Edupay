@@ -43,6 +43,12 @@ import {
 } from "./reporting-admin-workflows";
 import { AdminSensitiveProcessingWorkspace } from "./sensitive-processing-workflows";
 import { AdminBusinessCalendarWorkspace } from "./business-calendar-workflows";
+import {
+  AppShell,
+  ResponsiveSectionNav,
+  StatePanel,
+  type SectionNavItem,
+} from "./ui-foundation";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
@@ -576,69 +582,81 @@ export default function Home() {
   }
 
   return (
-    <>
-      <a className="skip-link" href="#main-content">
-        Saltar al contenido
-      </a>
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Admisión · E5-C / Documentos y asistencia</p>
-          <p className="brand">Recorrido funcional sintético</p>
-        </div>
-        <div className="topbar-actions">
-          <SessionControls
-            busy={logoutLoading}
-            loading={sessionLoading}
-            onLogout={logout}
-            session={session}
-          />
-          <label className="tenant-field">
-            <span>Tenant de desarrollo</span>
-            <input
-              aria-label="Tenant de desarrollo"
-              value={tenantId}
-              onChange={(event) => {
-                setTenantId(event.target.value);
-                setActiveApplicationId("");
-                setFamilySection("home");
-                setApplications([]);
-                setOfferings([]);
-                setStudents([]);
-                setConfiguration(null);
-                setTenantPermissions([]);
-              }}
-            />
-          </label>
-          <button
-            className={
-              mode === "family"
-                ? "button button-primary"
-                : "button button-quiet"
-            }
-            onClick={() => setMode("family")}
-          >
-            Familia
-          </button>
-          <button
-            className={
-              mode === "admin" ? "button button-primary" : "button button-quiet"
-            }
-            onClick={() => setMode("admin")}
-          >
-            Administración
-          </button>
-          <button
-            className={
-              mode === "staff" ? "button button-primary" : "button button-quiet"
-            }
-            onClick={() => setMode("staff")}
-          >
-            Atención
-          </button>
-        </div>
-      </header>
-
-      <main id="main-content" className="shell">
+    <AppShell
+      header={
+        <>
+          <div className="topbar-brand">
+            <p className="eyebrow">Admisión · E5-C / Documentos y asistencia</p>
+            <p className="brand">Recorrido funcional sintético</p>
+          </div>
+          <div className="topbar-actions">
+            <div className="topbar-context">
+              <SessionControls
+                busy={logoutLoading}
+                loading={sessionLoading}
+                onLogout={logout}
+                session={session}
+              />
+              <label className="tenant-field">
+                <span>Tenant de desarrollo</span>
+                <input
+                  aria-label="Tenant de desarrollo"
+                  value={tenantId}
+                  onChange={(event) => {
+                    setTenantId(event.target.value);
+                    setActiveApplicationId("");
+                    setFamilySection("home");
+                    setApplications([]);
+                    setOfferings([]);
+                    setStudents([]);
+                    setConfiguration(null);
+                    setTenantPermissions([]);
+                  }}
+                />
+              </label>
+            </div>
+            <div aria-label="Espacio de trabajo" className="role-switcher">
+              <button
+                aria-pressed={mode === "family"}
+                className={
+                  mode === "family"
+                    ? "button button-primary"
+                    : "button button-quiet"
+                }
+                onClick={() => setMode("family")}
+                type="button"
+              >
+                Familia
+              </button>
+              <button
+                aria-pressed={mode === "admin"}
+                className={
+                  mode === "admin"
+                    ? "button button-primary"
+                    : "button button-quiet"
+                }
+                onClick={() => setMode("admin")}
+                type="button"
+              >
+                Administración
+              </button>
+              <button
+                aria-pressed={mode === "staff"}
+                className={
+                  mode === "staff"
+                    ? "button button-primary"
+                    : "button button-quiet"
+                }
+                onClick={() => setMode("staff")}
+                type="button"
+              >
+                Atención
+              </button>
+            </div>
+          </div>
+        </>
+      }
+      hero={
         <section className="hero-card" aria-labelledby="page-title">
           <div>
             <p className="eyebrow">
@@ -661,6 +679,7 @@ export default function Home() {
           </div>
           <div className="status-panel" aria-live="polite">
             <span
+              aria-hidden="true"
               className={
                 loading ? "status-dot status-dot-loading" : "status-dot"
               }
@@ -668,62 +687,62 @@ export default function Home() {
             <span>{loading ? "Cargando" : notice}</span>
           </div>
         </section>
+      }
+    >
+      {error ? (
+        <div className="alert alert-error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
-        {error ? (
-          <div className="alert alert-error" role="alert">
-            {error}
-          </div>
-        ) : null}
-
-        {sessionLoading ? (
-          <AuthGate loading />
-        ) : sessionError ? (
-          <AuthGate error onRetry={refreshSession} />
-        ) : session?.authenticated !== true ? (
-          <AuthGate />
-        ) : mode === "family" ? (
-          <FamilyView
-            tenantId={tenantId}
-            applications={applications}
-            familyProfile={familyProfile}
-            familySection={familySection}
-            onCreateProfile={saveFamilyProfile}
-            onCreateStudent={saveStudent}
-            onDraftSave={saveDraft}
-            onRefresh={loadFamily}
-            activeApplicationId={activeApplicationId}
-            onOpenApplication={(applicationId) => {
-              setActiveApplicationId(applicationId);
-              setFamilySection("authority");
-            }}
-            onOpenActivities={(applicationId) => {
-              setActiveApplicationId(applicationId);
-              setFamilySection("activities");
-            }}
-            onSectionChange={setFamilySection}
-            onStartApplication={startApplication}
-            offerings={offerings}
-            selectedStudentId={selectedStudentId}
-            setSelectedStudentId={setSelectedStudentId}
-            students={students}
-          />
-        ) : mode === "admin" ? (
-          <AdminView
-            adminSection={adminSection}
-            configuration={configuration}
-            onSectionChange={setAdminSection}
-            onSubmit={saveAdminResource}
-            tenantId={tenantId}
-          />
-        ) : (
-          <StaffView
-            onSectionChange={setStaffSection}
-            staffSection={staffSection}
-            tenantId={tenantId}
-          />
-        )}
-      </main>
-    </>
+      {sessionLoading ? (
+        <AuthGate loading />
+      ) : sessionError ? (
+        <AuthGate error onRetry={refreshSession} />
+      ) : session?.authenticated !== true ? (
+        <AuthGate />
+      ) : mode === "family" ? (
+        <FamilyView
+          tenantId={tenantId}
+          applications={applications}
+          familyProfile={familyProfile}
+          familySection={familySection}
+          onCreateProfile={saveFamilyProfile}
+          onCreateStudent={saveStudent}
+          onDraftSave={saveDraft}
+          onRefresh={loadFamily}
+          activeApplicationId={activeApplicationId}
+          onOpenApplication={(applicationId) => {
+            setActiveApplicationId(applicationId);
+            setFamilySection("authority");
+          }}
+          onOpenActivities={(applicationId) => {
+            setActiveApplicationId(applicationId);
+            setFamilySection("activities");
+          }}
+          onSectionChange={setFamilySection}
+          onStartApplication={startApplication}
+          offerings={offerings}
+          selectedStudentId={selectedStudentId}
+          setSelectedStudentId={setSelectedStudentId}
+          students={students}
+        />
+      ) : mode === "admin" ? (
+        <AdminView
+          adminSection={adminSection}
+          configuration={configuration}
+          onSectionChange={setAdminSection}
+          onSubmit={saveAdminResource}
+          tenantId={tenantId}
+        />
+      ) : (
+        <StaffView
+          onSectionChange={setStaffSection}
+          staffSection={staffSection}
+          tenantId={tenantId}
+        />
+      )}
+    </AppShell>
   );
 }
 
@@ -783,44 +802,41 @@ function AuthGate({
   loading?: boolean;
   onRetry?: () => Promise<void>;
 }) {
+  const tone = error ? "error" : loading ? "loading" : "empty";
+  const title = loading
+    ? "Comprobando tu sesión…"
+    : error
+      ? "No se pudo comprobar la sesión"
+      : "Necesitas iniciar sesión";
+  const actions =
+    !loading && error && onRetry ? (
+      <button className="button button-primary" onClick={onRetry} type="button">
+        Reintentar
+      </button>
+    ) : !loading ? (
+      <>
+        <a className="button button-primary" href="/register">
+          Iniciar sesión o crear acceso
+        </a>
+        <a className="button button-secondary" href="/register/verify">
+          Ya tengo un código
+        </a>
+      </>
+    ) : undefined;
+
   return (
-    <section className="workspace auth-gate" aria-live="polite">
-      <p className="eyebrow">
-        {error ? "Conexión con la API" : "Acceso protegido"}
-      </p>
-      <h2>
-        {loading
-          ? "Comprobando tu sesión…"
-          : error
-            ? "No se pudo comprobar la sesión"
-            : "Necesitas iniciar sesión"}
-      </h2>
+    <StatePanel
+      actions={actions}
+      label={error ? "Conexión con la API" : "Acceso protegido"}
+      title={title}
+      tone={tone}
+    >
       <p>
         {error
           ? "La API no respondió correctamente. Revisa la conexión y vuelve a intentarlo; no se ha borrado tu sesión."
           : "La cuenta se activa con un código enviado al correo. Después podrás continuar automáticamente con el portal familiar o el espacio institucional que tengas autorizado."}
       </p>
-      {!loading && error && onRetry ? (
-        <div className="flow-actions">
-          <button
-            className="button button-primary"
-            onClick={onRetry}
-            type="button"
-          >
-            Reintentar
-          </button>
-        </div>
-      ) : !loading ? (
-        <div className="flow-actions">
-          <a className="button button-primary" href="/register">
-            Iniciar sesión o crear acceso
-          </a>
-          <a className="button button-secondary" href="/register/verify">
-            Ya tengo un código
-          </a>
-        </div>
-      ) : null}
-    </section>
+    </StatePanel>
   );
 }
 
@@ -863,6 +879,8 @@ function FamilyView(props: {
           ] as FamilySection[]
         ).map((section) => (
           <button
+            aria-current={familySection === section ? "page" : undefined}
+            aria-pressed={familySection === section}
             className={
               familySection === section
                 ? "nav-item nav-item-active"
@@ -870,6 +888,7 @@ function FamilyView(props: {
             }
             key={section}
             onClick={() => onSectionChange(section)}
+            type="button"
           >
             {section === "home"
               ? "Inicio"
@@ -1288,7 +1307,7 @@ function AdminView({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   tenantId: string;
 }) {
-  const sections: { key: AdminSection; label: string }[] = [
+  const sections: SectionNavItem<AdminSection>[] = [
     { key: "access", label: "Accesos" },
     { key: "audit", label: "Auditoría" },
     { key: "forms", label: "Formularios" },
@@ -1305,29 +1324,17 @@ function AdminView({
   ];
   return (
     <div className="content-grid">
-      <aside className="side-nav" aria-label="Navegación administrativa">
-        <p className="nav-label">Administración</p>
-        {sections.map((section) => (
-          <button
-            className={
-              adminSection === section.key
-                ? "nav-item nav-item-active"
-                : "nav-item"
-            }
-            key={section.key}
-            onClick={() => onSectionChange(section.key)}
-          >
-            {section.label}
-          </button>
-        ))}
-        <div className="side-note">
-          <strong>Server-side</strong>
-          <span>
-            La UI sólo presenta acciones; permisos y tenant se verifican en la
-            API.
-          </span>
-        </div>
-      </aside>
+      <ResponsiveSectionNav
+        activeKey={adminSection}
+        ariaLabel="Navegación administrativa"
+        items={sections}
+        label="Administración"
+        note={{
+          body: "La UI sólo presenta acciones; permisos y tenant se verifican en la API.",
+          title: "Server-side",
+        }}
+        onSelect={onSectionChange}
+      />
       <section className="workspace">
         <div className="section-heading">
           <div>
@@ -1386,7 +1393,7 @@ function StaffView({
   staffSection: StaffSection;
   tenantId: string;
 }) {
-  const sections: { key: StaffSection; label: string }[] = [
+  const sections: SectionNavItem<StaffSection>[] = [
     { key: "dashboard", label: "Dashboard operativo" },
     { key: "authority", label: "Autoridad de postulación" },
     { key: "communications", label: "Comunicaciones" },
@@ -1401,29 +1408,17 @@ function StaffView({
   ];
   return (
     <div className="content-grid">
-      <aside className="side-nav" aria-label="Navegación de atención">
-        <p className="nav-label">Atención institucional</p>
-        {sections.map((section) => (
-          <button
-            className={
-              staffSection === section.key
-                ? "nav-item nav-item-active"
-                : "nav-item"
-            }
-            key={section.key}
-            onClick={() => onSectionChange(section.key)}
-          >
-            {section.label}
-          </button>
-        ))}
-        <div className="side-note">
-          <strong>Acceso mínimo</strong>
-          <span>
-            Se exige tenant, rol, propósito e identificador exacto. No hay
-            búsqueda global de familias.
-          </span>
-        </div>
-      </aside>
+      <ResponsiveSectionNav
+        activeKey={staffSection}
+        ariaLabel="Navegación de atención"
+        items={sections}
+        label="Atención institucional"
+        note={{
+          body: "Se exige tenant, rol, propósito e identificador exacto. No hay búsqueda global de familias.",
+          title: "Acceso mínimo",
+        }}
+        onSelect={onSectionChange}
+      />
       <section className="workspace">
         <div className="section-heading">
           <div>

@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import { AccessibleConfirmationDialog as Confirmation } from "./ui-foundation";
 
 interface Capacity {
   adjustments: Array<{
@@ -137,51 +139,6 @@ function statusLabel(status: string): string {
       PROMOTED: "Promovida",
       WITHDRAWN: "Desistida",
     }[status] ?? status
-  );
-}
-
-function Confirmation({
-  description,
-  onCancel,
-  onConfirm,
-  open,
-  title,
-}: {
-  description: string;
-  onCancel: () => void;
-  onConfirm: () => void;
-  open: boolean;
-  title: string;
-}) {
-  const confirm = useRef<HTMLButtonElement>(null);
-  useEffect(() => {
-    if (open) confirm.current?.focus();
-  }, [open]);
-  if (!open) return null;
-  return (
-    <div
-      aria-labelledby="capacity-offer-confirmation-title"
-      aria-modal="true"
-      className="confirmation-dialog-shell"
-      role="dialog"
-    >
-      <div className="confirmation-dialog-card">
-        <h3 id="capacity-offer-confirmation-title">{title}</h3>
-        <p>{description}</p>
-        <div className="flow-actions">
-          <button className="button button-secondary" onClick={onCancel}>
-            Cancelar
-          </button>
-          <button
-            className="button button-primary"
-            onClick={onConfirm}
-            ref={confirm}
-          >
-            Confirmar
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 

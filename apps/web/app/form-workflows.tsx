@@ -572,8 +572,12 @@ export function FamilyApplicationFlow({
           </div>
         </div>
       ) : null}
-      <dialog className="confirmation-dialog" ref={dialogRef}>
-        <h2>¿Enviar esta postulación?</h2>
+      <dialog
+        aria-labelledby="submit-confirmation-title"
+        className="confirmation-dialog"
+        ref={dialogRef}
+      >
+        <h2 id="submit-confirmation-title">¿Enviar esta postulación?</h2>
         <p>
           Después del envío, esta versión y sus respuestas quedarán registradas
           como una copia inmutable.
@@ -581,6 +585,7 @@ export function FamilyApplicationFlow({
         <p className="warning-copy">Postular no garantiza vacante.</p>
         <div className="flow-actions">
           <button
+            autoFocus
             className="button button-secondary"
             onClick={() => dialogRef.current?.close()}
             type="button"
@@ -1310,14 +1315,21 @@ export function AdminFormBuilder({
           ) : null}
         </>
       ) : null}
-      <dialog className="confirmation-dialog" ref={publishDialog}>
-        <h2>Publicar versión {version?.versionNumber}</h2>
+      <dialog
+        aria-labelledby="publish-confirmation-title"
+        className="confirmation-dialog"
+        ref={publishDialog}
+      >
+        <h2 id="publish-confirmation-title">
+          Publicar versión {version?.versionNumber}
+        </h2>
         <p>
           La estructura quedará inmutable. Para cambios posteriores deberás
           crear una nueva versión.
         </p>
         <div className="flow-actions">
           <button
+            autoFocus
             className="button button-secondary"
             onClick={() => publishDialog.current?.close()}
             type="button"
