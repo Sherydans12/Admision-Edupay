@@ -31,8 +31,8 @@ Se ejecutó con cuentas sintéticas y sin documentos reales:
 | Direction decision version 1 | `APROBADO` |
 | Seat reservation | `ACTIVE` |
 | Admission offer version 1 | `ACTIVE` |
-| Offer acceptance | registrado |
-| IntegrationHandoff | `REQUESTED` por Dirección |
+| Offer acceptance | `b4b2738c-5de7-4393-8d88-0789931ba152` registrado |
+| IntegrationHandoff | `2c9804d4-9d8c-4f00-91c4-c85a3c3cd1f7` solicitado por Dirección |
 | Documentos | fuera del recorrido sintético (`ADMISSION_DOCUMENTS_ENABLED=false`) |
 
 La oferta tiene una expiración calculada por calendario laboral y conserva el
