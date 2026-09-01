@@ -148,3 +148,56 @@ La suite focal `tenant-bootstrap.integration.spec.ts` demuestra:
 - rechazo de cuenta ausente o correo no verificado;
 - conflicto fail-closed ante reutilización incompatible de `tenantCode`;
 - validación y normalización del código sin referencias institucionales hardcodeadas.
+
+## 8. Revisor sintético de autoridad (sólo preproducción)
+
+Para completar el smoke autenticado sin ampliar el rol de configuración, existe una
+operación one-shot separada. No es una ruta HTTP, no se ejecuta durante el arranque
+normal y está bloqueada por dos comprobaciones: etapa exacta
+`preproduction-synthetic`, tenant exacto `synthetic-school` y confirmación exacta del
+código. El correo del revisor también debe terminar en `@resend.dev`.
+
+### Precondiciones
+
+1. El administrador sintético ya ejecutó correctamente el bootstrap de tenant.
+2. Una segunda cuenta sintética se registró y verificó por Resend; no se reutiliza la
+   cuenta administradora.
+3. `PREPROD_SYNTHETIC=true` se entrega sólo en la invocación temporal.
+4. Las variables one-shot no se guardan en GitHub, Git ni como configuración
+   permanente después de terminar.
+
+### Variables temporales
+
+```text
+PREPROD_SYNTHETIC=true
+SYNTHETIC_REVIEWER_TENANT_CODE=synthetic-school
+SYNTHETIC_REVIEWER_EMAIL=authority-reviewer@resend.dev
+SYNTHETIC_REVIEWER_CONFIRM=synthetic-school
+```
+
+Desde el directorio del Compose de la revisión desplegada, ejecutar explícitamente:
+
+```bash
+docker compose --profile bootstrap run --rm tenant-bootstrap \
+  node bootstrap-synthetic-authority-reviewer.mjs
+```
+
+La salida sólo contiene IDs técnicos, el código sintético y flags `created`. La
+primera ejecución debe crear una membresía, un rol y una auditoría; repetirla devuelve
+los mismos IDs con flags `false`. El rol `synthetic.authority.reviewer` contiene
+exclusivamente `application.authority.read` y `application.authority.review`, con
+scope `*`. El actor de auditoría es el administrador que ya poseía
+`institution_admin.bootstrap`.
+
+Después de una ejecución exitosa:
+
+1. eliminar las cuatro variables temporales del entorno de Coolify;
+2. abrir una sesión separada con la cuenta revisora;
+3. en **Staff → Autoridad**, consultar el ID exacto de la postulación sintética;
+4. aplicar `DECLARED → UNDER_REVIEW` y luego `UNDER_REVIEW → VERIFIED`, cada una
+   con una razón operativa sintética;
+5. volver a la sesión familiar y enviar la postulación.
+
+La operación no crea usuarios, no verifica correos, no modifica datos familiares y no
+puede recibir un tenant productivo. La provisión productiva debe tener un procedimiento
+institucional separado y aprobado; este comando no se copia ni se habilita para ella.

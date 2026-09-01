@@ -433,3 +433,13 @@ export {
   type BootstrapTenantAdminResult,
   type TenantBootstrapErrorCode,
 } from "./tenant-bootstrap.js";
+export {
+  SYNTHETIC_AUTHORITY_REVIEWER_PERMISSIONS,
+  SYNTHETIC_AUTHORITY_REVIEWER_ROLE_KEY,
+  SYNTHETIC_AUTHORITY_TENANT_CODE,
+  SyntheticAuthorityReviewerProvisionError,
+  SyntheticAuthorityReviewerProvisioner,
+  type ProvisionSyntheticAuthorityReviewerInput,
+  type ProvisionSyntheticAuthorityReviewerResult,
+  type SyntheticAuthorityReviewerProvisionErrorCode,
+} from "./synthetic-authority-reviewer.js";
