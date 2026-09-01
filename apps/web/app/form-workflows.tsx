@@ -94,6 +94,16 @@ interface OfferingOption {
   code: string;
 }
 
+class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code?: string,
+  ) {
+    super(code === undefined ? `HTTP_${status}` : `HTTP_${status}_${code}`);
+    this.name = "ApiError";
+  }
+}
+
 async function request<T>(
   apiBase: string,
   path: string,
@@ -104,8 +114,38 @@ async function request<T>(
     ...init,
     headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) },
   });
-  if (!response.ok) throw new Error(`HTTP_${response.status}`);
+  if (!response.ok) {
+    let code: string | undefined;
+    try {
+      const payload = (await response.json()) as { code?: unknown };
+      if (typeof payload.code === "string") code = payload.code;
+    } catch {
+      // Preserve the HTTP status when the error response has no JSON body.
+    }
+    throw new ApiError(response.status, code);
+  }
   return (await response.json()) as T;
+}
+
+function submissionErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.code === "APPLICATION_AUTHORITY_NOT_VERIFIED") {
+      return "La declaración fue recibida, pero todavía debe ser verificada por un revisor institucional. Puedes conservar el borrador y enviarlo después de esa verificación.";
+    }
+    if (error.code === "APPLICATION_AUTHORITY_NOT_DECLARED") {
+      return "Antes de enviar debes registrar la declaración de autoridad.";
+    }
+    if (error.code === "APPLICATION_AUTHORITY_MODE_INVALID") {
+      return "La declaración de autoridad no coincide con la edad del estudiante. Revísala antes de enviar.";
+    }
+    if (error.status === 401) {
+      return "Tu sesión ya no está activa. Inicia sesión nuevamente antes de enviar.";
+    }
+    if (error.status === 403) {
+      return "No tienes autorización para enviar esta postulación.";
+    }
+  }
+  return "No fue posible enviar. El borrador sigue disponible y no se creó un envío parcial.";
 }
 
 async function mutation<T>(
@@ -320,11 +360,9 @@ export function FamilyApplicationFlow({
       setSubmitted(true);
       setMessage("Postulación enviada y registrada.");
       await onSubmitted();
-    } catch {
+    } catch (requestError) {
       dialogRef.current?.close();
-      setError(
-        "No fue posible enviar. El borrador sigue disponible y no se creó un envío parcial.",
-      );
+      setError(submissionErrorMessage(requestError));
       window.setTimeout(() => errorRef.current?.focus(), 0);
     } finally {
       setSubmitting(false);
