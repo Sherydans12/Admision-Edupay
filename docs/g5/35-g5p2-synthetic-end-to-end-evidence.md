@@ -1,8 +1,11 @@
 # G5-P2 — Evidencia sintética de extremo a extremo
 
-**Fecha:** 2026-09-01  
-**Estado:** `PASS / SYNTHETIC / LOCAL_HANDOFF_REQUESTED`  
-**Tenant:** `synthetic-school` (`cd565ac0-362d-5ea1-a1f5-42aa111a63a3`)  
+**Fecha:** 2026-09-01
+
+**Estado:** `PASS / SYNTHETIC / LOCAL_HANDOFF_REQUESTED`
+
+**Tenant:** `synthetic-school` (`cd565ac0-362d-5ea1-a1f5-42aa111a63a3`)
+
 **Application:** `4e9cce7f-5334-4485-97be-250de4428493`
 
 ## Recorrido confirmado
