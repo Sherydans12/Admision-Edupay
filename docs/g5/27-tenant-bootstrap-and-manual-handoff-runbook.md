@@ -207,7 +207,8 @@ institucional separado y aprobado; este comando no se copia ni se habilita para 
 El workspace de recomendación requiere una membership separada de la cuenta de
 configuración y de la cuenta revisora de autoridad. La cuenta `admissions-operator@resend.dev`
 se provisiona únicamente después de registrarse y verificar su correo. El rol concede sólo
-`application.read` y `application.recommend`; no concede `application.decide`, para mantener
+`application.read`, `application.recommend` y `restricted.read`; no concede
+`application.decide`, para mantener
 separación de funciones entre recomendación y Dirección.
 
 ### Variables temporales
