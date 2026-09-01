@@ -14,14 +14,14 @@ COPY packages/database/package.json packages/database/package.json
 RUN pnpm install --frozen-lockfile
 
 COPY packages/database packages/database
-COPY scripts/bootstrap-tenant-admin.mjs scripts/bootstrap-synthetic-authority-reviewer.mjs scripts/bootstrap-synthetic-admissions-operator.mjs ./
+COPY scripts/bootstrap-tenant-admin.mjs scripts/bootstrap-synthetic-authority-reviewer.mjs scripts/bootstrap-synthetic-admissions-operator.mjs scripts/bootstrap-synthetic-admissions-director.mjs ./
 
 RUN DATABASE_MIGRATION_URL=postgresql://admission_migrator:bootstrap_build_only@localhost:5432/admission_preprod \
   DATABASE_APP_URL=postgresql://admission_app:bootstrap_build_only@localhost:5432/admission_preprod \
   pnpm --filter @admission/database db:generate
 RUN pnpm --filter @admission/database build
 RUN pnpm deploy --legacy --filter @admission/database --prod /runtime
-COPY scripts/bootstrap-tenant-admin.mjs scripts/bootstrap-synthetic-authority-reviewer.mjs scripts/bootstrap-synthetic-admissions-operator.mjs /runtime/
+COPY scripts/bootstrap-tenant-admin.mjs scripts/bootstrap-synthetic-authority-reviewer.mjs scripts/bootstrap-synthetic-admissions-operator.mjs scripts/bootstrap-synthetic-admissions-director.mjs /runtime/
 
 FROM node:22.18.0-bookworm-slim AS runtime
 

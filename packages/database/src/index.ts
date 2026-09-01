@@ -453,3 +453,13 @@ export {
   type ProvisionSyntheticAdmissionsOperatorResult,
   type SyntheticAdmissionsOperatorProvisionErrorCode,
 } from "./synthetic-admissions-operator.js";
+export {
+  SYNTHETIC_ADMISSIONS_DIRECTOR_PERMISSIONS,
+  SYNTHETIC_ADMISSIONS_DIRECTOR_ROLE_KEY,
+  SYNTHETIC_ADMISSIONS_DIRECTOR_TENANT_CODE,
+  SyntheticAdmissionsDirectorProvisionError,
+  SyntheticAdmissionsDirectorProvisioner,
+  type ProvisionSyntheticAdmissionsDirectorInput,
+  type ProvisionSyntheticAdmissionsDirectorResult,
+  type SyntheticAdmissionsDirectorProvisionErrorCode,
+} from "./synthetic-admissions-director.js";

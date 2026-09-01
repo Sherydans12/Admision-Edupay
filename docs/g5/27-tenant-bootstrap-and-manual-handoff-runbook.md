@@ -237,3 +237,35 @@ La decisión de Dirección debe ejecutarse desde otra cuenta sintética, porque 
 de recomendaciones aplica separación de funciones y rechaza que quien envió la
 recomendación decida la misma postulación. Esa segunda cuenta y su rol se provisionarán
 mediante un procedimiento one-shot independiente y aprobado.
+
+## 10. Director sintético de admisiones (sólo preproducción)
+
+La cuenta `admissions-director@resend.dev` se provisiona en una membership separada,
+únicamente después de registrarse y verificar su correo. El rol concede lectura de
+postulaciones, decisión de Dirección, lectura restringida, gestión/lectura de capacidad,
+lectura de ofertas y promoción/lectura de lista de espera, además de solicitar el handoff
+posterior a matrícula. No concede `application.recommend`, para preservar la separación
+de funciones con la cuenta operativa.
+
+### Variables temporales
+
+```text
+PREPROD_SYNTHETIC=true
+SYNTHETIC_DIRECTOR_TENANT_CODE=synthetic-school
+SYNTHETIC_DIRECTOR_EMAIL=admissions-director@resend.dev
+SYNTHETIC_DIRECTOR_CONFIRM=synthetic-school
+```
+
+Desde el directorio del Compose desplegado, ejecutar explícitamente:
+
+```bash
+docker compose --profile bootstrap run --rm tenant-bootstrap \
+  node bootstrap-synthetic-admissions-director.mjs
+```
+
+La salida sólo contiene IDs técnicos, el código sintético y flags `created`. Después de
+una ejecución exitosa se deben eliminar las variables temporales del entorno de Coolify.
+La operación es idempotente y falla cerrada si el tenant no es `synthetic-school`, la etapa
+no es `preproduction-synthetic`, el correo no es `@resend.dev`, la cuenta no está activa y
+verificada, o el rol determinista ya tiene permisos incompatibles. La cuenta no puede
+crear recomendaciones ni modificar configuración institucional.
