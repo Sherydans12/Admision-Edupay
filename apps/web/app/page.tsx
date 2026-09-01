@@ -190,6 +190,9 @@ export default function Home() {
   const [sessionLoading, setSessionLoading] = useState(true);
   const [sessionError, setSessionError] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
+  const [tenantPermissions, setTenantPermissions] = useState<string[]>([]);
+  const [tenantPermissionsLoading, setTenantPermissionsLoading] =
+    useState(false);
 
   const tenantPath = useMemo(() => `/family/tenants/${tenantId}`, [tenantId]);
 
@@ -211,12 +214,36 @@ export default function Home() {
     }
   }, []);
 
+  const refreshTenantPermissions = useCallback(async () => {
+    if (session?.authenticated !== true || tenantId.trim() === "") {
+      setTenantPermissions([]);
+      setTenantPermissionsLoading(false);
+      return;
+    }
+    setTenantPermissionsLoading(true);
+    try {
+      const access = await apiFetch<{ permissions: string[] }>(
+        `/staff/tenants/${tenantId}/access/me`,
+      );
+      setTenantPermissions(access.permissions);
+    } catch {
+      // Family-only or unknown tenant sessions must not learn access details.
+      setTenantPermissions([]);
+    } finally {
+      setTenantPermissionsLoading(false);
+    }
+  }, [session?.authenticated, tenantId]);
+
   const hasPermission = useCallback(
     (permission: string) =>
-      session?.memberships?.some((membership) =>
-        membership.permissions.includes(permission),
-      ) ?? false,
-    [session],
+      tenantPermissions.includes(permission) ||
+      (session?.memberships?.some(
+        (membership) =>
+          membership.tenantId === tenantId &&
+          membership.permissions.includes(permission),
+      ) ??
+        false),
+    [session, tenantId, tenantPermissions],
   );
 
   const loadFamily = useCallback(async () => {
@@ -293,7 +320,14 @@ export default function Home() {
   }, [refreshSession]);
 
   useEffect(() => {
-    if (sessionLoading || session === null) return;
+    const handle = window.setTimeout(() => {
+      void refreshTenantPermissions();
+    }, 0);
+    return () => window.clearTimeout(handle);
+  }, [refreshTenantPermissions]);
+
+  useEffect(() => {
+    if (sessionLoading || tenantPermissionsLoading || session === null) return;
     const handle = window.setTimeout(() => {
       setError("");
       if (!session.authenticated) {
@@ -319,7 +353,15 @@ export default function Home() {
       }
     }, 0);
     return () => window.clearTimeout(handle);
-  }, [hasPermission, loadAdmin, loadFamily, mode, session, sessionLoading]);
+  }, [
+    hasPermission,
+    loadAdmin,
+    loadFamily,
+    mode,
+    session,
+    sessionLoading,
+    tenantPermissionsLoading,
+  ]);
 
   async function logout(): Promise<void> {
     setLoading(true);
@@ -349,6 +391,7 @@ export default function Home() {
       setOfferings([]);
       setApplications([]);
       setConfiguration(null);
+      setTenantPermissions([]);
       setNotice("Sesión cerrada de forma segura.");
       setMode("family");
     } catch {
@@ -544,6 +587,7 @@ export default function Home() {
                 setOfferings([]);
                 setStudents([]);
                 setConfiguration(null);
+                setTenantPermissions([]);
               }}
             />
           </label>
