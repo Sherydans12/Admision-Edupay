@@ -57,6 +57,7 @@ const FALLBACK_TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 type Mode = "family" | "admin" | "staff";
 type FamilySection =
   | "home"
+  | "profile"
   | "students"
   | "offerings"
   | "applications"
@@ -586,7 +587,7 @@ export default function Home() {
       header={
         <>
           <div className="topbar-brand">
-            <p className="eyebrow">Admisión · E5-C / Documentos y asistencia</p>
+            <p className="eyebrow">Admisión · postulación y seguimiento</p>
             <p className="brand">Recorrido funcional sintético</p>
           </div>
           <div className="topbar-actions">
@@ -671,7 +672,7 @@ export default function Home() {
             </h1>
             <p className="lede">
               {mode === "family"
-                ? "Completa el formulario, adjunta documentos y revisa antes de enviar."
+                ? "Registra estudiantes, completa el formulario y revisa antes de enviar. Los documentos no se solicitan en esta etapa."
                 : mode === "admin"
                   ? "Configura procesos, formularios y requisitos versionados sin hardcodear una institución piloto."
                   : "Revisa documentos o acompaña una postulación presencial con autorización trazable."}
@@ -719,6 +720,10 @@ export default function Home() {
           onOpenActivities={(applicationId) => {
             setActiveApplicationId(applicationId);
             setFamilySection("activities");
+          }}
+          onOpenAdmission={(applicationId) => {
+            setActiveApplicationId(applicationId);
+            setFamilySection("admission");
           }}
           onSectionChange={setFamilySection}
           onStartApplication={startApplication}
@@ -772,6 +777,7 @@ function SessionControls({
           </span>
         </span>
         <button
+          aria-label={`Cerrar sesión de ${session.user.email}`}
           className="button button-quiet"
           disabled={busy}
           onClick={onLogout}
@@ -840,6 +846,19 @@ function AuthGate({
   );
 }
 
+type FamilyNavSection = Exclude<FamilySection, "form">;
+
+const FAMILY_NAV_ITEMS: ReadonlyArray<SectionNavItem<FamilyNavSection>> = [
+  { key: "home", label: "Resumen" },
+  { key: "profile", label: "Perfil familiar" },
+  { key: "students", label: "Estudiantes" },
+  { key: "offerings", label: "Ofertas disponibles" },
+  { key: "applications", label: "Postulaciones" },
+  { key: "authority", label: "Autoridad" },
+  { key: "activities", label: "Seguimiento" },
+  { key: "admission", label: "Oferta y resultado" },
+];
+
 function FamilyView(props: {
   activeApplicationId: string;
   applications: Application[];
@@ -853,6 +872,7 @@ function FamilyView(props: {
   ) => void;
   onOpenApplication: (applicationId: string) => void;
   onOpenActivities: (applicationId: string) => void;
+  onOpenAdmission: (applicationId: string) => void;
   onRefresh: () => Promise<void>;
   onSectionChange: (section: FamilySection) => void;
   onStartApplication: (offeringId: string) => void;
@@ -863,67 +883,51 @@ function FamilyView(props: {
   tenantId: string;
 }) {
   const { familySection, onSectionChange } = props;
+  const submittedApplicationId =
+    props.activeApplicationId ||
+    props.applications.find((application) => application.status === "SUBMITTED")
+      ?.id ||
+    "";
+  const admissionApplicationId =
+    props.activeApplicationId ||
+    props.applications.find((application) => application.status !== "DRAFT")
+      ?.id ||
+    "";
+  const navigationSection: FamilyNavSection =
+    familySection === "form" ? "applications" : familySection;
+
   return (
     <div className="content-grid">
-      <aside className="side-nav" aria-label="Navegación familiar">
-        <p className="nav-label">Mi espacio familiar</p>
-        {(
-          [
-            "home",
-            "students",
-            "offerings",
-            "applications",
-            "authority",
-            "activities",
-            "admission",
-          ] as FamilySection[]
-        ).map((section) => (
-          <button
-            aria-current={familySection === section ? "page" : undefined}
-            aria-pressed={familySection === section}
-            className={
-              familySection === section
-                ? "nav-item nav-item-active"
-                : "nav-item"
-            }
-            key={section}
-            onClick={() => onSectionChange(section)}
-            type="button"
-          >
-            {section === "home"
-              ? "Inicio"
-              : section === "students"
-                ? "Estudiantes"
-                : section === "offerings"
-                  ? "Ofertas"
-                  : section === "applications"
-                    ? "Postulaciones"
-                    : section === "authority"
-                      ? "Autoridad"
-                      : section === "activities"
-                        ? "Actividades"
-                        : "Resultado de admisión"}
-          </button>
-        ))}
-        <div className="side-note">
-          <strong>Privacidad visible</strong>
-          <span>
-            No mostramos cupos exactos, posiciones de espera ni decisiones
-            internas.
-          </span>
-        </div>
-      </aside>
+      <ResponsiveSectionNav
+        activeKey={navigationSection}
+        ariaLabel="Navegación familiar"
+        items={FAMILY_NAV_ITEMS}
+        label="Mi espacio familiar"
+        note={{
+          body: "No mostramos cupos exactos, posiciones de espera ni decisiones internas.",
+          title: "Privacidad visible",
+        }}
+        onSelect={onSectionChange}
+      />
       <section className="workspace" aria-live="polite">
         {!props.familyProfile ? (
           <FamilyProfileSetup onSubmit={props.onCreateProfile} />
-        ) : null}
-        {familySection === "home" ? <FamilyHome {...props} /> : null}
-        {familySection === "students" ? <StudentsSection {...props} /> : null}
-        {familySection === "offerings" ? <OfferingsSection {...props} /> : null}
-        {familySection === "applications" ? (
+        ) : familySection === "home" ? (
+          <FamilyHome
+            applications={props.applications}
+            familyProfile={props.familyProfile}
+            onSectionChange={props.onSectionChange}
+            students={props.students}
+          />
+        ) : familySection === "profile" ? (
+          <FamilyProfileSection familyProfile={props.familyProfile} />
+        ) : familySection === "students" ? (
+          <StudentsSection {...props} />
+        ) : familySection === "offerings" ? (
+          <OfferingsSection {...props} />
+        ) : familySection === "applications" ? (
           <ApplicationsSection {...props} />
-        ) : null}
-        {familySection === "authority" && props.activeApplicationId ? (
+        ) : familySection === "authority" && props.activeApplicationId ? (
           <FamilyAuthorityWorkspace
             apiBase={API_BASE}
             applicationId={props.activeApplicationId}
@@ -931,34 +935,37 @@ function FamilyView(props: {
             onContinue={() => props.onSectionChange("form")}
             tenantId={props.tenantId}
           />
-        ) : null}
-        {familySection === "activities" ? (
+        ) : familySection === "authority" ? (
+          <FamilyApplicationSelectionState
+            description="Elige un borrador para revisar su declaración de autoridad antes de continuar con el formulario."
+            onSelect={() => onSectionChange("applications")}
+            title="Selecciona una postulación"
+          />
+        ) : familySection === "activities" && submittedApplicationId ? (
           <FamilyActivityWorkspace
             apiBase={API_BASE}
-            applicationId={
-              props.activeApplicationId ||
-              props.applications.find(
-                (application) => application.status === "SUBMITTED",
-              )?.id ||
-              ""
-            }
+            applicationId={submittedApplicationId}
             tenantId={props.tenantId}
           />
-        ) : null}
-        {familySection === "admission" ? (
+        ) : familySection === "activities" ? (
+          <FamilyApplicationSelectionState
+            description="Cuando envíes una postulación, aquí podrás revisar sus actividades y próximos pasos."
+            onSelect={() => onSectionChange("applications")}
+            title="Aún no hay una postulación enviada"
+          />
+        ) : familySection === "admission" && admissionApplicationId ? (
           <FamilyAdmissionWorkspace
             apiBase={API_BASE}
-            applicationId={
-              props.activeApplicationId ||
-              props.applications.find(
-                (application) => application.status !== "DRAFT",
-              )?.id ||
-              ""
-            }
+            applicationId={admissionApplicationId}
             tenantId={props.tenantId}
           />
-        ) : null}
-        {familySection === "form" && props.activeApplicationId ? (
+        ) : familySection === "admission" ? (
+          <FamilyApplicationSelectionState
+            description="El resultado y una eventual oferta estarán disponibles después del envío y la revisión institucional."
+            onSelect={() => onSectionChange("applications")}
+            title="No hay resultados para consultar"
+          />
+        ) : familySection === "form" && props.activeApplicationId ? (
           <FamilyApplicationFlow
             apiBase={API_BASE}
             applicationId={props.activeApplicationId}
@@ -967,9 +974,44 @@ function FamilyView(props: {
             onSubmitted={props.onRefresh}
             tenantId={props.tenantId}
           />
-        ) : null}
+        ) : (
+          <FamilyApplicationSelectionState
+            description="Vuelve a tus postulaciones y selecciona el borrador que quieres continuar."
+            onSelect={() => onSectionChange("applications")}
+            title="No hay un borrador activo"
+          />
+        )}
       </section>
     </div>
+  );
+}
+
+function FamilyApplicationSelectionState({
+  description,
+  onSelect,
+  title,
+}: {
+  description: string;
+  onSelect: () => void;
+  title: string;
+}) {
+  return (
+    <StatePanel
+      actions={
+        <button
+          className="button button-primary"
+          onClick={onSelect}
+          type="button"
+        >
+          Ver mis postulaciones
+        </button>
+      }
+      label="Recorrido familiar"
+      title={title}
+      tone="empty"
+    >
+      <p>{description}</p>
+    </StatePanel>
   );
 }
 
@@ -979,61 +1021,145 @@ function FamilyProfileSetup({
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   return (
-    <form className="form-card form-wide" onSubmit={onSubmit}>
-      <p className="eyebrow">Primer acceso familiar</p>
-      <h2>Configura tu perfil sintético</h2>
-      <p className="form-help">
-        Este nombre es solamente una etiqueta de prueba para la preproducción;
-        no ingreses nombres reales.
-      </p>
-      <Field label="Nombre visible del perfil" name="displayName" />
-      <button className="button button-primary" type="submit">
-        Crear perfil familiar
-      </button>
-    </form>
+    <div className="family-onboarding">
+      <div className="section-heading">
+        <div>
+          <h2>Comienza con tu perfil familiar</h2>
+          <p className="muted">
+            Este primer paso habilita el recorrido de estudiantes y
+            postulaciones.
+          </p>
+        </div>
+        <span className="badge">Paso 1 de 5</span>
+      </div>
+      <form className="form-card form-wide" onSubmit={onSubmit}>
+        <p className="auth-boundary-note">
+          Usa sólo una etiqueta sintética de preproducción. No ingreses nombres
+          reales.
+        </p>
+        <Field label="Nombre visible del perfil" name="displayName" />
+        <button className="button button-primary" type="submit">
+          Crear perfil y continuar
+        </button>
+      </form>
+    </div>
   );
 }
 
-function FamilyHome({
-  applications,
-  onSectionChange,
-  students,
+function FamilyProfileSection({
+  familyProfile,
 }: {
-  applications: Application[];
-  onSectionChange: (section: FamilySection) => void;
-  students: Student[];
+  familyProfile: FamilyProfile;
 }) {
   return (
     <>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Resumen familiar</p>
-          <h2>Próxima acción clara</h2>
+          <h2>Perfil familiar</h2>
+          <p className="muted">
+            Esta etiqueta identifica tu espacio sintético dentro del tenant
+            actual.
+          </p>
         </div>
-        <span className="badge badge-synthetic">Sesión opaca</span>
+        <span className="badge badge-open">Configurado</span>
       </div>
+      <article className="profile-summary-card">
+        <div>
+          <span>Nombre visible</span>
+          <strong>{familyProfile.displayName}</strong>
+        </div>
+        <p>
+          La cuenta verificada y la declaración de autoridad son controles
+          distintos. La autoridad se revisa por cada postulación.
+        </p>
+      </article>
+    </>
+  );
+}
+
+function FamilyHome({
+  applications,
+  familyProfile,
+  onSectionChange,
+  students,
+}: {
+  applications: Application[];
+  familyProfile: FamilyProfile;
+  onSectionChange: (section: FamilySection) => void;
+  students: Student[];
+}) {
+  const draftCount = applications.filter(
+    (application) => application.status === "DRAFT",
+  ).length;
+  const submittedCount = applications.filter(
+    (application) => application.status === "SUBMITTED",
+  ).length;
+  const nextAction =
+    students.length === 0
+      ? {
+          description:
+            "Registra al menos un estudiante sintético para consultar ofertas.",
+          label: "Agregar estudiante",
+          section: "students" as const,
+          title: "Registra un estudiante",
+        }
+      : applications.length === 0
+        ? {
+            description:
+              "Selecciona una oferta publicada y crea un borrador para continuar.",
+            label: "Ver ofertas disponibles",
+            section: "offerings" as const,
+            title: "Inicia una postulación",
+          }
+        : draftCount > 0
+          ? {
+              description:
+                "Revisa la autoridad y continúa el formulario del borrador activo.",
+              label: "Continuar borrador",
+              section: "applications" as const,
+              title: "Continúa tu borrador",
+            }
+          : {
+              description:
+                "Consulta actividades, citas y próximos pasos de tus postulaciones enviadas.",
+              label: "Ver seguimiento",
+              section: "activities" as const,
+              title: "Revisa el seguimiento",
+            };
+
+  return (
+    <>
+      <div className="section-heading">
+        <div>
+          <h2>Resumen familiar</h2>
+          <p className="muted">Hola, {familyProfile.displayName}.</p>
+        </div>
+        <span className="badge badge-synthetic">Sesión activa</span>
+      </div>
+      <FamilyJourney
+        applications={applications}
+        onSectionChange={onSectionChange}
+        students={students}
+      />
       <div className="metric-grid">
         <Metric label="Estudiantes" value={String(students.length)} />
-        <Metric label="Borradores" value={String(applications.length)} />
-        <Metric label="Integración EduPay" value="No habilitada" />
+        <Metric label="Borradores" value={String(draftCount)} />
+        <Metric label="Enviadas" value={String(submittedCount)} />
       </div>
       <div className="split-grid">
-        <article className="info-card">
-          <p className="eyebrow">Estado del slice</p>
-          <h3>Formulario y envío habilitados</h3>
-          <p>
-            Registra estudiantes, consulta disponibilidad categórica, guarda
-            avances y envía una postulación con su versión exacta preservada.
-          </p>
+        <article className="info-card family-next-action">
+          <span className="badge">Próxima acción</span>
+          <h3>{nextAction.title}</h3>
+          <p>{nextAction.description}</p>
           <button
             className="text-button"
-            onClick={() => onSectionChange("offerings")}
+            onClick={() => onSectionChange(nextAction.section)}
+            type="button"
           >
-            Ver ofertas disponibles →
+            {nextAction.label}
           </button>
         </article>
         <article className="info-card info-card-accent">
-          <p className="eyebrow">Aviso importante</p>
           <h3>Postular no garantiza vacante</h3>
           <p>
             La disponibilidad se presenta como categoría pública: abierta, cupos
@@ -1042,6 +1168,86 @@ function FamilyHome({
         </article>
       </div>
     </>
+  );
+}
+
+function FamilyJourney({
+  applications,
+  onSectionChange,
+  students,
+}: {
+  applications: Application[];
+  onSectionChange: (section: FamilySection) => void;
+  students: Student[];
+}) {
+  const hasApplication = applications.length > 0;
+  const hasSubmittedApplication = applications.some(
+    (application) => application.status === "SUBMITTED",
+  );
+  const steps: Array<{
+    complete: boolean;
+    label: string;
+    section: FamilySection;
+  }> = [
+    { complete: true, label: "Perfil", section: "profile" },
+    {
+      complete: students.length > 0,
+      label: "Estudiante",
+      section: "students",
+    },
+    {
+      complete: hasApplication,
+      label: "Postulación",
+      section: hasApplication ? "applications" : "offerings",
+    },
+    {
+      complete: hasSubmittedApplication,
+      label: "Autoridad",
+      section: "authority",
+    },
+    {
+      complete: false,
+      label: "Seguimiento",
+      section: "activities",
+    },
+  ];
+  const currentIndex = Math.max(
+    0,
+    steps.findIndex((step) => !step.complete),
+  );
+
+  return (
+    <nav aria-label="Etapas del recorrido familiar" className="family-journey">
+      <ol>
+        {steps.map((step, index) => {
+          const current = index === currentIndex;
+          const available = index <= currentIndex || step.complete;
+          return (
+            <li
+              aria-current={current ? "step" : undefined}
+              className={
+                current
+                  ? "journey-step journey-step-current"
+                  : step.complete
+                    ? "journey-step journey-step-complete"
+                    : "journey-step"
+              }
+              key={step.label}
+            >
+              <button
+                aria-pressed={current}
+                disabled={!available}
+                onClick={() => onSectionChange(step.section)}
+                type="button"
+              >
+                <span aria-hidden="true">{index + 1}</span>
+                <strong>{step.label}</strong>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
   );
 }
 
@@ -1060,8 +1266,10 @@ function StudentsSection({
     <>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Familia</p>
           <h2>Estudiantes</h2>
+          <p className="muted">
+            Selecciona quién postula o registra un nuevo estudiante sintético.
+          </p>
         </div>
         <span className="badge">{students.length} registrados</span>
       </div>
@@ -1070,7 +1278,13 @@ function StudentsSection({
           <h3>Mis estudiantes</h3>
           <div className="stack-list">
             {students.length === 0 ? (
-              <p className="empty-state">Aún no hay estudiantes registrados.</p>
+              <div className="empty-state empty-state-guided">
+                <strong>Aún no hay estudiantes</strong>
+                <span>
+                  Completa el formulario contiguo para habilitar la consulta de
+                  ofertas.
+                </span>
+              </div>
             ) : (
               students.map((student) => (
                 <label className="select-row" key={student.id}>
@@ -1129,8 +1343,11 @@ function OfferingsSection({
     <>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Nueva postulación</p>
           <h2>Ofertas y disponibilidad</h2>
+          <p className="muted">
+            Elige un estudiante y revisa la disponibilidad pública antes de
+            crear el borrador.
+          </p>
         </div>
         <span className="badge">Categoría pública</span>
       </div>
@@ -1153,9 +1370,13 @@ function OfferingsSection({
       </div>
       <div className="cards-grid">
         {offerings.length === 0 ? (
-          <p className="empty-state">
-            No hay ofertas publicadas para este tenant.
-          </p>
+          <div className="empty-state empty-state-guided">
+            <strong>No hay ofertas publicadas</strong>
+            <span>
+              No necesitas realizar ninguna acción hasta que exista una oferta
+              disponible para este tenant.
+            </span>
+          </div>
         ) : (
           offerings.map((offering) => (
             <article className="offering-card" key={offering.id}>
@@ -1183,7 +1404,28 @@ function OfferingsSection({
                 </div>
               </dl>
               <p className="warning-copy">Postular no garantiza vacante.</p>
+              {!selectedStudentId ? (
+                <p
+                  className="disabled-help"
+                  id={`offering-help-${offering.id}`}
+                >
+                  Selecciona un estudiante para habilitar esta acción.
+                </p>
+              ) : offering.availabilityCategory === "PROCESS_CLOSED" ? (
+                <p
+                  className="disabled-help"
+                  id={`offering-help-${offering.id}`}
+                >
+                  El proceso está cerrado y no admite nuevos borradores.
+                </p>
+              ) : null}
               <button
+                aria-describedby={
+                  !selectedStudentId ||
+                  offering.availabilityCategory === "PROCESS_CLOSED"
+                    ? `offering-help-${offering.id}`
+                    : undefined
+                }
                 className="button button-primary"
                 disabled={
                   offering.availabilityCategory === "PROCESS_CLOSED" ||
@@ -1204,29 +1446,53 @@ function OfferingsSection({
 function ApplicationsSection({
   applications,
   onDraftSave,
+  onOpenAdmission,
   onOpenApplication,
   onOpenActivities,
+  onSectionChange,
 }: {
   applications: Application[];
   onDraftSave: (
     application: Application,
     acknowledgedNoGuarantee: boolean,
   ) => void;
+  onOpenAdmission: (applicationId: string) => void;
   onOpenApplication: (applicationId: string) => void;
   onOpenActivities: (applicationId: string) => void;
+  onSectionChange: (section: FamilySection) => void;
 }) {
   return (
     <>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Seguimiento</p>
           <h2>Mis postulaciones</h2>
+          <p className="muted">
+            Continúa borradores o consulta el seguimiento de los envíos.
+          </p>
         </div>
         <span className="badge">Borradores y envíos</span>
       </div>
       <div className="stack-list">
         {applications.length === 0 ? (
-          <p className="empty-state">Todavía no hay borradores.</p>
+          <StatePanel
+            actions={
+              <button
+                className="button button-primary"
+                onClick={() => onSectionChange("offerings")}
+                type="button"
+              >
+                Ver ofertas disponibles
+              </button>
+            }
+            label="Primera postulación"
+            title="Todavía no hay borradores"
+            tone="empty"
+          >
+            <p>
+              Selecciona un estudiante y una oferta publicada para iniciar el
+              recorrido.
+            </p>
+          </StatePanel>
         ) : (
           applications.map((application) => (
             <article className="application-card" key={application.id}>
@@ -1238,7 +1504,7 @@ function ApplicationsSection({
                       : "badge badge-draft"
                   }
                 >
-                  {application.status}
+                  {application.status === "SUBMITTED" ? "Enviada" : "Borrador"}
                 </span>
                 <h3>
                   {application.student.givenName}{" "}
@@ -1258,7 +1524,7 @@ function ApplicationsSection({
                     onClick={() => onOpenApplication(application.id)}
                     type="button"
                   >
-                    Continuar formulario
+                    Revisar autoridad y continuar
                   </button>
                   <label className="checkbox-row">
                     <input
@@ -1273,13 +1539,22 @@ function ApplicationsSection({
                 </div>
               ) : null}
               {application.status === "SUBMITTED" ? (
-                <button
-                  className="button button-secondary"
-                  onClick={() => onOpenActivities(application.id)}
-                  type="button"
-                >
-                  Ver actividades y citas
-                </button>
+                <div className="application-actions application-actions-row">
+                  <button
+                    className="button button-primary"
+                    onClick={() => onOpenActivities(application.id)}
+                    type="button"
+                  >
+                    Ver seguimiento
+                  </button>
+                  <button
+                    className="button button-secondary"
+                    onClick={() => onOpenAdmission(application.id)}
+                    type="button"
+                  >
+                    Ver oferta y resultado
+                  </button>
+                </div>
               ) : null}
               {application.status === "DRAFT" && !application.formVersionId ? (
                 <span className="muted">

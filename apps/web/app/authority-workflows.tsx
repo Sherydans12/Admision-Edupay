@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 type SubjectMode = "MINOR_REPRESENTATIVE" | "ADULT_STUDENT_SELF";
 type AuthorityStatus =
@@ -139,15 +139,22 @@ export function FamilyAuthorityWorkspace({
 }) {
   const [authority, setAuthority] = useState<AuthorityDto | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
   const path = `/family/tenants/${tenantId}/applications/${applicationId}/authority`;
 
   const load = useCallback(async () => {
     if (!applicationId) return;
+    setLoading(true);
     try {
       setAuthority(await request<AuthorityDto>(apiBase, path));
+      setError("");
     } catch {
       setError("No fue posible consultar la declaración de autoridad.");
+      window.setTimeout(() => errorRef.current?.focus(), 0);
+    } finally {
+      setLoading(false);
     }
   }, [apiBase, applicationId, path]);
 
@@ -193,7 +200,11 @@ export function FamilyAuthorityWorkspace({
           <h2 id="authority-title">Declaración de autoridad</h2>
         </div>
         <span className="badge badge-synthetic">
-          {authority ? statusCopy[authority.status] : "Cargando"}
+          {loading
+            ? "Cargando"
+            : authority
+              ? statusCopy[authority.status]
+              : "No disponible"}
         </span>
       </div>
       <p className="muted">
@@ -201,7 +212,17 @@ export function FamilyAuthorityWorkspace({
         autoridad. No compartimos la fecha de nacimiento con las ofertas
         públicas.
       </p>
-      {isUnknown ? (
+      {loading ? (
+        <div
+          aria-busy="true"
+          aria-live="polite"
+          className="empty-state empty-state-guided"
+          role="status"
+        >
+          <strong>Cargando declaración de autoridad…</strong>
+          <span>Estamos consultando el estado de esta postulación.</span>
+        </div>
+      ) : error ? null : isUnknown ? (
         <p className="alert alert-error">
           Antes de declarar, completa una fecha de nacimiento válida del
           estudiante en tu perfil familiar.
@@ -317,7 +338,12 @@ export function FamilyAuthorityWorkspace({
         </button>
       ) : null}
       {error ? (
-        <p className="alert alert-error" role="alert">
+        <p
+          className="alert alert-error"
+          ref={errorRef}
+          role="alert"
+          tabIndex={-1}
+        >
           {error}
         </p>
       ) : null}

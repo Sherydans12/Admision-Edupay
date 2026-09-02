@@ -161,10 +161,12 @@ export function FamilyActivityWorkspace({
 }) {
   const [activities, setActivities] = useState<FamilyActivity[]>([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(Boolean(applicationId));
   const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
     if (!applicationId) return;
+    setLoading(true);
     try {
       setActivities(
         await apiFetch<FamilyActivity[]>(
@@ -175,6 +177,8 @@ export function FamilyActivityWorkspace({
       setError("");
     } catch {
       setError("No se pudieron cargar las actividades de esta postulación.");
+    } finally {
+      setLoading(false);
     }
   }, [apiBase, applicationId, tenantId]);
   useEffect(() => {
@@ -241,11 +245,24 @@ export function FamilyActivityWorkspace({
           {notice}
         </p>
       ) : null}
-      <div className="activity-list">
-        {activities.length === 0 ? (
-          <p className="empty-state">
-            No hay actividades fijadas para esta postulación.
-          </p>
+      <div className="activity-list" aria-busy={loading}>
+        {loading ? (
+          <div
+            aria-live="polite"
+            className="empty-state empty-state-guided"
+            role="status"
+          >
+            <strong>Cargando seguimiento…</strong>
+            <span>Consultamos las actividades de esta postulación.</span>
+          </div>
+        ) : !error && activities.length === 0 ? (
+          <div className="empty-state empty-state-guided">
+            <strong>No hay actividades programadas</strong>
+            <span>
+              Vuelve a consultar más tarde. Esta pantalla no se actualiza
+              periódicamente.
+            </span>
+          </div>
         ) : (
           activities.map((activity) => (
             <article className="activity-card" key={activity.activityId}>

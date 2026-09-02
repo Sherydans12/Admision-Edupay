@@ -154,13 +154,17 @@ export function FamilyAdmissionWorkspace({
   const [applicationId, setApplicationId] = useState(initialApplicationId);
   const [projection, setProjection] = useState<FamilyProjection | null>(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
+  const [acting, setActing] = useState(false);
   const [confirmation, setConfirmation] = useState<
     "ACCEPT" | "DECLINE" | "WITHDRAW" | null
   >(null);
 
   async function load() {
     if (!applicationId) return;
+    setLoading(true);
+    setNotice("");
     try {
       setProjection(
         await apiFetch<FamilyProjection>(
@@ -170,11 +174,16 @@ export function FamilyAdmissionWorkspace({
       );
       setError("");
     } catch {
+      setProjection(null);
       setError("No encontramos esta postulación o ya no está disponible.");
+    } finally {
+      setLoading(false);
     }
   }
 
   async function perform(action: "ACCEPT" | "DECLINE" | "WITHDRAW") {
+    setActing(true);
+    setError("");
     try {
       const offer = projection?.offer;
       if (action === "WITHDRAW") {
@@ -207,11 +216,23 @@ export function FamilyAdmissionWorkspace({
           ? "La oferta cambió o venció. Actualiza la vista antes de continuar."
           : "No pudimos completar la acción. Inténtalo nuevamente.",
       );
+    } finally {
+      setActing(false);
     }
   }
 
   return (
     <div className="capacity-offer-workspace">
+      <div className="section-heading">
+        <div>
+          <h2>Oferta y resultado</h2>
+          <p className="muted">
+            Consulta el estado de la postulación y registra una decisión sólo si
+            existe una oferta vigente.
+          </p>
+        </div>
+        <span className="badge">Seguimiento seguro</span>
+      </div>
       <div className="lookup-bar">
         <label className="field">
           <span>Postulación</span>
@@ -221,8 +242,12 @@ export function FamilyAdmissionWorkspace({
             value={applicationId}
           />
         </label>
-        <button className="button button-primary" onClick={() => void load()}>
-          Ver estado
+        <button
+          className="button button-primary"
+          disabled={loading || !applicationId.trim()}
+          onClick={() => void load()}
+        >
+          {loading ? "Consultando…" : "Consultar estado"}
         </button>
       </div>
       {error ? (
@@ -234,6 +259,25 @@ export function FamilyAdmissionWorkspace({
         <p aria-live="polite" className="readiness-copy readiness-copy-ready">
           {notice}
         </p>
+      ) : null}
+      {loading ? (
+        <div
+          aria-busy="true"
+          aria-live="polite"
+          className="empty-state empty-state-guided"
+          role="status"
+        >
+          <strong>Consultando resultado…</strong>
+          <span>Verificamos la vigencia más reciente de esta postulación.</span>
+        </div>
+      ) : !projection && !error ? (
+        <div className="empty-state empty-state-guided">
+          <strong>Consulta una postulación</strong>
+          <span>
+            El identificador sintético seleccionado aparece arriba. Presiona
+            consultar para ver su estado actual.
+          </span>
+        </div>
       ) : null}
       {projection?.waitlist ? (
         <section className="admission-state-panel">
@@ -284,21 +328,29 @@ export function FamilyAdmissionWorkspace({
             matrícula, obligación ni pago.
           </p>
           {projection.offer.current.lifecycle === "ACCEPTED" ? (
-            <p className="readiness-copy readiness-copy-ready">
-              Oferta aceptada. La institución continuará con el próximo paso;
-              esta aceptación no equivale a matrícula ni pago.
-            </p>
+            <div className="offer-next-steps">
+              <strong>Oferta aceptada</strong>
+              <p>
+                Tu decisión quedó registrada sobre esta vigencia. La institución
+                continuará con el próximo paso.
+              </p>
+              <p>
+                Esta aceptación no equivale a matrícula, obligación ni pago.
+              </p>
+            </div>
           ) : null}
           {projection.offer.current.lifecycle === "ACTIVE" ? (
             <div className="flow-actions">
               <button
                 className="button button-secondary"
+                disabled={acting}
                 onClick={() => setConfirmation("DECLINE")}
               >
                 Rechazar oferta
               </button>
               <button
                 className="button button-primary"
+                disabled={acting}
                 onClick={() => setConfirmation("ACCEPT")}
               >
                 Aceptar oferta
@@ -343,6 +395,8 @@ export function FamilyAdmissionWorkspace({
         </p>
       ) : null}
       <Confirmation
+        confirmDisabled={acting}
+        confirmLabel={acting ? "Guardando…" : "Confirmar"}
         description={
           confirmation === "ACCEPT"
             ? "Registrarás una aceptación expresa sobre esta vigencia exacta."
