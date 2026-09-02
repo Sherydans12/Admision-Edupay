@@ -13,6 +13,10 @@ import {
   FamilyDocumentWorkspace,
   type DocumentReadiness,
 } from "./document-workflows";
+import { AccessibleConfirmationDialog } from "./ui-foundation";
+
+const DOCUMENTS_ENABLED =
+  process.env.NEXT_PUBLIC_ADMISSION_DOCUMENTS_ENABLED !== "false";
 
 type AnswerValue = boolean | string;
 type FormFieldType =
@@ -204,6 +208,7 @@ export function FamilyApplicationFlow({
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [documentReadiness, setDocumentReadiness] = useState<DocumentReadiness>(
     {
       blocked: 0,
@@ -212,7 +217,6 @@ export function FamilyApplicationFlow({
     },
   );
   const errorRef = useRef<HTMLDivElement>(null);
-  const dialogRef = useRef<HTMLDialogElement>(null);
   const basePath = `/family/tenants/${tenantId}/applications/${applicationId}`;
 
   const disabledCategories = useMemo(() => {
@@ -356,12 +360,12 @@ export function FamilyApplicationFlow({
     setError("");
     try {
       await mutation(apiBase, `${basePath}/submit`, "POST");
-      dialogRef.current?.close();
+      setConfirmationOpen(false);
       setSubmitted(true);
       setMessage("Postulación enviada y registrada.");
       await onSubmitted();
     } catch (requestError) {
-      dialogRef.current?.close();
+      setConfirmationOpen(false);
       setError(submissionErrorMessage(requestError));
       window.setTimeout(() => errorRef.current?.focus(), 0);
     } finally {
@@ -372,9 +376,7 @@ export function FamilyApplicationFlow({
   if (submitted) {
     return (
       <div className="submission-success" role="status">
-        <span aria-hidden="true" className="success-mark">
-          ✓
-        </span>
+        <span className="badge badge-open">Enviada</span>
         <div>
           <h2>Postulación enviada</h2>
           <p>
@@ -397,19 +399,54 @@ export function FamilyApplicationFlow({
             {isReview
               ? "Revisa antes de enviar"
               : isDocuments
-                ? "Documentos de la postulación"
+                ? DOCUMENTS_ENABLED
+                  ? "Documentos de la postulación"
+                  : "Documentos no solicitados"
                 : (section?.title ?? "Formulario de postulación")}
           </h2>
           <p className="muted">
             {isReview
               ? "Confirma que la información sea correcta."
               : isDocuments
-                ? "Carga y revisa los documentos aplicables antes de enviar."
+                ? DOCUMENTS_ENABLED
+                  ? "Carga y revisa los documentos aplicables antes de enviar."
+                  : "Los documentos están fuera del alcance de esta preproducción; puedes continuar sin adjuntar archivos."
                 : section?.description}
           </p>
         </div>
         <span className="badge">Versión {data?.form.versionNumber ?? "—"}</span>
       </div>
+      {data ? (
+        <ol aria-label="Etapas del formulario" className="form-stepper">
+          {[
+            ...applicableSections.map((item) => item.title),
+            DOCUMENTS_ENABLED ? "Documentos" : "Sin documentos",
+            "Revisión",
+          ].map((label, index) => {
+            const currentIndex = isReview
+              ? applicableSections.length + 1
+              : isDocuments
+                ? applicableSections.length
+                : step;
+            return (
+              <li
+                aria-current={index === currentIndex ? "step" : undefined}
+                className={
+                  index === currentIndex
+                    ? "form-step form-step-current"
+                    : index < currentIndex
+                      ? "form-step form-step-complete"
+                      : "form-step"
+                }
+                key={`${index}:${label}`}
+              >
+                <span aria-hidden="true">{index + 1}</span>
+                <strong>{label}</strong>
+              </li>
+            );
+          })}
+        </ol>
+      ) : null}
       <div className="progress-block" aria-label={`Avance ${progress}%`}>
         <div>
           <span>
@@ -439,7 +476,14 @@ export function FamilyApplicationFlow({
         </div>
       ) : null}
       {!data && !error ? (
-        <p className="empty-state">Cargando contenido versionado…</p>
+        <div
+          aria-busy="true"
+          className="empty-state empty-state-guided"
+          role="status"
+        >
+          <strong>Cargando formulario…</strong>
+          <span>Recuperamos la versión y el borrador guardado.</span>
+        </div>
       ) : null}
       {data && !isReview && !isDocuments && section ? (
         <form
@@ -555,7 +599,9 @@ export function FamilyApplicationFlow({
               onClick={() => setStep(applicableSections.length)}
               type="button"
             >
-              Volver a documentos
+              {DOCUMENTS_ENABLED
+                ? "Volver a documentos"
+                : "Volver al aviso de documentos"}
             </button>
             <button
               className="button button-primary"
@@ -564,7 +610,7 @@ export function FamilyApplicationFlow({
                 review.missingRequired.length > 0 ||
                 !documentReadiness.ready
               }
-              onClick={() => dialogRef.current?.showModal()}
+              onClick={() => setConfirmationOpen(true)}
               type="button"
             >
               Enviar postulación
@@ -572,36 +618,16 @@ export function FamilyApplicationFlow({
           </div>
         </div>
       ) : null}
-      <dialog
-        aria-labelledby="submit-confirmation-title"
-        className="confirmation-dialog"
-        ref={dialogRef}
-      >
-        <h2 id="submit-confirmation-title">¿Enviar esta postulación?</h2>
-        <p>
-          Después del envío, esta versión y sus respuestas quedarán registradas
-          como una copia inmutable.
-        </p>
-        <p className="warning-copy">Postular no garantiza vacante.</p>
-        <div className="flow-actions">
-          <button
-            autoFocus
-            className="button button-secondary"
-            onClick={() => dialogRef.current?.close()}
-            type="button"
-          >
-            Volver a revisar
-          </button>
-          <button
-            className="button button-primary"
-            disabled={submitting}
-            onClick={() => void submit()}
-            type="button"
-          >
-            {submitting ? "Enviando…" : "Confirmar envío"}
-          </button>
-        </div>
-      </dialog>
+      <AccessibleConfirmationDialog
+        cancelLabel="Volver a revisar"
+        confirmDisabled={submitting}
+        confirmLabel={submitting ? "Enviando…" : "Confirmar envío"}
+        description="Después del envío, esta versión y sus respuestas quedarán registradas como una copia inmutable. Postular no garantiza vacante."
+        onCancel={() => setConfirmationOpen(false)}
+        onConfirm={() => void submit()}
+        open={confirmationOpen}
+        title="¿Enviar esta postulación?"
+      />
     </div>
   );
 }

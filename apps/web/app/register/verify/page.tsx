@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
+import { PublicAuthShell } from "../../ui-foundation";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_ADMISSION_API_URL ?? "http://localhost:3001";
@@ -16,11 +17,19 @@ export default function VerifyPage() {
   });
   const [resendMessage, setResendMessage] = useState("");
   const [resending, setResending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const statusRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (verified || error || resendMessage) statusRef.current?.focus();
+  }, [error, resendMessage, verified]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setResendMessage("");
     const data = new FormData(event.currentTarget);
+    setVerifying(true);
     try {
       const response = await fetch(`${API_BASE}/auth/verify`, {
         body: JSON.stringify({ challenge: data.get("challenge") }),
@@ -35,6 +44,8 @@ export default function VerifyPage() {
       setError(
         "El código no pudo usarse. Solicita una nueva verificación e inténtalo nuevamente.",
       );
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -69,77 +80,108 @@ export default function VerifyPage() {
   }
 
   return (
-    <main className="public-auth-shell">
-      <section className="public-auth-card" aria-labelledby="verify-title">
-        <p className="eyebrow">Admisión · verificación de cuenta</p>
-        <h1 id="verify-title">Verifica tu correo</h1>
-        <p className="lede">
-          Ingresa el código recibido en el mensaje de verificación.
+    <PublicAuthShell
+      currentStep={verified ? 3 : 2}
+      description="Ingresa el código recibido para confirmar el correo e iniciar tu sesión."
+      title="Verifica tu correo"
+    >
+      <div className="auth-card-heading">
+        <h2>{verified ? "Sesión iniciada" : "Ingresa tu código"}</h2>
+        <p>
+          {verified
+            ? "Tu acceso está listo. Puedes continuar donde dejaste el recorrido."
+            : "El código se puede pegar directamente y se utiliza una sola vez."}
         </p>
-        {verified ? (
-          <>
-            <div className="alert alert-success" role="status">
-              Cuenta verificada y sesión iniciada. Ya puedes continuar con el
-              portal.
-            </div>
-            <a className="button button-primary" href="/">
-              Continuar al portal
-            </a>
-          </>
-        ) : (
-          <form className="form-card" onSubmit={submit}>
-            <label className="field" htmlFor="verification-email">
-              Correo para solicitar otro código (opcional)
-              <input
-                autoComplete="email"
-                id="verification-email"
-                onChange={(event) => setEmail(event.target.value)}
-                type="email"
-                value={email}
-              />
-            </label>
-            <label className="field" htmlFor="verification-challenge">
-              Código de verificación
-              <input
-                autoComplete="one-time-code"
-                id="verification-challenge"
-                name="challenge"
-                required
-                spellCheck={false}
-                type="text"
-              />
-            </label>
-            <button className="button button-primary" type="submit">
-              Verificar cuenta
-            </button>
-            <button
-              className="button button-secondary"
-              disabled={resending}
-              onClick={(event) => {
-                event.preventDefault();
-                void resend();
-              }}
-              type="button"
+      </div>
+      {verified ? (
+        <div className="auth-result">
+          <div
+            className="alert alert-success"
+            ref={statusRef}
+            role="status"
+            tabIndex={-1}
+          >
+            Cuenta verificada y sesión iniciada correctamente.
+          </div>
+          <a className="button button-primary" href="/">
+            Continuar al portal familiar
+          </a>
+        </div>
+      ) : (
+        <form
+          aria-busy={verifying || resending}
+          className="auth-form"
+          onSubmit={submit}
+        >
+          <label className="field" htmlFor="verification-email">
+            Correo para solicitar otro código (opcional)
+            <input
+              autoComplete="email"
+              disabled={verifying || resending}
+              id="verification-email"
+              onChange={(event) => setEmail(event.target.value)}
+              type="email"
+              value={email}
+            />
+          </label>
+          <label className="field" htmlFor="verification-challenge">
+            Código de verificación
+            <input
+              autoComplete="one-time-code"
+              autoFocus
+              disabled={verifying || resending}
+              id="verification-challenge"
+              name="challenge"
+              required
+              spellCheck={false}
+              type="text"
+            />
+          </label>
+          <button
+            className="button button-primary"
+            disabled={verifying || resending}
+            type="submit"
+          >
+            {verifying ? "Verificando…" : "Verificar e iniciar sesión"}
+          </button>
+          <button
+            className="button button-secondary"
+            disabled={verifying || resending}
+            onClick={(event) => {
+              event.preventDefault();
+              void resend();
+            }}
+            type="button"
+          >
+            {resending ? "Solicitando…" : "Enviar otro código"}
+          </button>
+          {resendMessage ? (
+            <div
+              className="alert alert-success"
+              ref={statusRef}
+              role="status"
+              tabIndex={-1}
             >
-              {resending ? "Solicitando…" : "Enviar otro código"}
-            </button>
-            {resendMessage ? (
-              <p className="alert alert-success" role="status">
-                {resendMessage}
-              </p>
-            ) : null}
-            {error ? (
-              <p className="alert alert-error" role="alert">
-                {error}
-              </p>
-            ) : null}
-          </form>
-        )}
-        <nav className="public-auth-links" aria-label="Acciones de cuenta">
-          <a href="/register">Solicitar otra verificación</a>
-          <a href="/">Volver al portal</a>
-        </nav>
-      </section>
-    </main>
+              {resendMessage}
+            </div>
+          ) : null}
+          {error ? (
+            <div
+              className="alert alert-error"
+              ref={statusRef}
+              role="alert"
+              tabIndex={-1}
+            >
+              {error}
+              <span>El código no fue descartado desde esta pantalla.</span>
+            </div>
+          ) : null}
+        </form>
+      )}
+      <nav className="public-auth-links" aria-label="Acciones de cuenta">
+        <a href="/register">Solicitar un código nuevo</a>
+        <a href="/">Ya tengo una sesión activa</a>
+      </nav>
+    </PublicAuthShell>
   );
 }

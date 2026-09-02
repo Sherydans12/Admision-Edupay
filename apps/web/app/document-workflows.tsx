@@ -269,6 +269,7 @@ export function FamilyDocumentWorkspace({
   }, [load, onReadinessChange]);
 
   useEffect(() => {
+    if (!DOCUMENTS_ENABLED) return;
     const pending = data?.items.some((item) =>
       ["QUARANTINED", "PROCESSING"].includes(
         item.currentDocumentVersion?.technicalStatus ?? "",
@@ -316,7 +317,9 @@ export function FamilyDocumentWorkspace({
         <div>
           <h2>Documentos</h2>
           <p className="muted">
-            Sube sólo archivos PDF, JPG o PNG solicitados para esta postulación.
+            {DOCUMENTS_ENABLED
+              ? "Sube sólo archivos PDF, JPG o PNG solicitados para esta postulación."
+              : "No se solicitan ni se pueden adjuntar archivos en esta preproducción sintética."}
           </p>
         </div>
         <span
@@ -550,7 +553,9 @@ export function DocumentReadinessSummary({
         }
       >
         {state.ready
-          ? `Los ${state.totalApplicable} requisitos obligatorios aplicables están listos.`
+          ? DOCUMENTS_ENABLED
+            ? `Los ${state.totalApplicable} requisitos obligatorios aplicables están listos.`
+            : "Los documentos no se solicitan en esta preproducción; esta etapa no bloquea el envío."
           : `${state.blocked} requisitos documentales aún bloquean el envío.`}
       </p>
     </section>

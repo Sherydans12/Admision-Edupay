@@ -25,6 +25,76 @@ export function AppShell({
   );
 }
 
+export function PublicAuthShell({
+  children,
+  currentStep,
+  description,
+  title,
+}: {
+  children: ReactNode;
+  currentStep: 1 | 2 | 3;
+  description: string;
+  title: string;
+}) {
+  const steps = ["Solicitar código", "Verificar correo", "Continuar"];
+
+  return (
+    <AppShell
+      header={
+        <>
+          <a className="auth-brand-link" href="/">
+            <span className="brand">Admisión EduPay</span>
+            <span>Portal de preproducción</span>
+          </a>
+          <div className="auth-header-actions">
+            <a className="button button-quiet" href="/">
+              Volver al portal
+            </a>
+          </div>
+        </>
+      }
+      hero={
+        <section className="auth-hero" aria-labelledby="auth-page-title">
+          <div>
+            <h1 id="auth-page-title">{title}</h1>
+            <p className="lede">{description}</p>
+          </div>
+          <span className="badge badge-synthetic">Sólo datos sintéticos</span>
+        </section>
+      }
+    >
+      <div className="auth-layout">
+        <nav aria-label="Progreso de acceso" className="auth-stepper">
+          <ol>
+            {steps.map((step, index) => {
+              const stepNumber = index + 1;
+              const current = stepNumber === currentStep;
+              const complete = stepNumber < currentStep;
+              return (
+                <li
+                  aria-current={current ? "step" : undefined}
+                  className={
+                    current
+                      ? "auth-step auth-step-current"
+                      : complete
+                        ? "auth-step auth-step-complete"
+                        : "auth-step"
+                  }
+                  key={step}
+                >
+                  <span aria-hidden="true">{stepNumber}</span>
+                  <strong>{step}</strong>
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+        <section className="public-auth-card">{children}</section>
+      </div>
+    </AppShell>
+  );
+}
+
 export type SectionNavItem<T extends string> = {
   key: T;
   label: string;
@@ -154,6 +224,7 @@ export function StatePanel({
 export function AccessibleConfirmationDialog({
   cancelLabel = "Cancelar",
   confirmLabel = "Confirmar",
+  confirmDisabled = false,
   description,
   onCancel,
   onConfirm,
@@ -162,6 +233,7 @@ export function AccessibleConfirmationDialog({
 }: {
   cancelLabel?: string;
   confirmLabel?: string;
+  confirmDisabled?: boolean;
   description: string;
   onCancel: () => void;
   onConfirm: () => void;
@@ -253,6 +325,7 @@ export function AccessibleConfirmationDialog({
           </button>
           <button
             className="button button-primary"
+            disabled={confirmDisabled}
             onClick={onConfirm}
             type="button"
           >
