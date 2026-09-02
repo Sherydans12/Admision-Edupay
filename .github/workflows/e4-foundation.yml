@@ -49,6 +49,9 @@ jobs:
       - name: Validate synthetic Coolify deployment contract
         run: pnpm g5coolify:config:smoke
 
+      - name: Validate synthetic production candidate contract
+        run: pnpm g5production:config:smoke
+
       - name: Bootstrap local database roles
         env:
           PGPASSWORD: admission_bootstrap_local_only
