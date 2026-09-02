@@ -85,18 +85,22 @@ export function StaffDashboardWorkspace(props: {
   }, [loadMetrics]);
 
   return (
-    <div className="workspace-section">
-      <div className="section-heading">
+    <div className="workspace-section staff-overview">
+      <div className="workspace-intro">
         <div>
-          <p className="eyebrow">Dashboard Operativo Staff</p>
-          <h2>Métricas de Gestión Institucional</h2>
+          <h2>Resumen de atención</h2>
+          <p>
+            Prioriza expedientes y seguimientos del tenant activo. Las cifras
+            son agregadas y no reemplazan la autorización de cada acción.
+          </p>
         </div>
         <button
           className="button button-quiet"
           disabled={loading}
           onClick={loadMetrics}
+          type="button"
         >
-          {loading ? "Cargando..." : "Actualizar métricas"}
+          {loading ? "Actualizando…" : "Actualizar métricas"}
         </button>
       </div>
 
@@ -106,37 +110,62 @@ export function StaffDashboardWorkspace(props: {
         </div>
       ) : null}
 
+      {loading && !metrics ? <p className="muted">Cargando métricas…</p> : null}
       {metrics ? (
-        <div className="metric-grid">
-          <div className="metric">
-            <span>Nuevas postulaciones</span>
-            <strong>{metrics.newApplicationsCount}</strong>
-          </div>
-          <div className="metric">
-            <span>Documentos por revisar</span>
-            <strong>{metrics.documentsPendingReviewCount}</strong>
-          </div>
-          <div className="metric">
-            <span>Correcciones venciendo</span>
-            <strong>{metrics.documentCorrectionsExpiringCount}</strong>
-          </div>
-          <div className="metric">
-            <span>Citas próximas</span>
-            <strong>{metrics.upcomingAppointmentsCount}</strong>
-          </div>
-          <div className="metric">
-            <span>Esperando decisión</span>
-            <strong>{metrics.waitingDecisionCount}</strong>
-          </div>
-          <div className="metric">
-            <span>Ofertas por vencer</span>
-            <strong>{metrics.offersExpiringCount}</strong>
-          </div>
-          <div className="metric">
-            <span>Lista de espera</span>
-            <strong>{metrics.waitlistCount}</strong>
-          </div>
-        </div>
+        <>
+          <section
+            className="metric-cluster"
+            aria-labelledby="attention-queue-title"
+          >
+            <div className="metric-cluster-heading">
+              <h3 id="attention-queue-title">Colas de atención</h3>
+              <span className="muted">Revisa primero lo que puede vencer.</span>
+            </div>
+            <div className="metric-grid staff-metric-grid">
+              <div className="metric metric-priority">
+                <span>Nuevas postulaciones</span>
+                <strong>{metrics.newApplicationsCount}</strong>
+              </div>
+              <div className="metric metric-priority">
+                <span>Documentos por revisar</span>
+                <strong>{metrics.documentsPendingReviewCount}</strong>
+              </div>
+              <div className="metric metric-priority">
+                <span>Correcciones venciendo</span>
+                <strong>{metrics.documentCorrectionsExpiringCount}</strong>
+              </div>
+              <div className="metric metric-priority">
+                <span>Esperando decisión</span>
+                <strong>{metrics.waitingDecisionCount}</strong>
+              </div>
+            </div>
+          </section>
+          <section
+            className="metric-cluster"
+            aria-labelledby="attention-followup-title"
+          >
+            <div className="metric-cluster-heading">
+              <h3 id="attention-followup-title">Agenda y disponibilidad</h3>
+              <span className="muted">
+                Señales para planificar el seguimiento.
+              </span>
+            </div>
+            <div className="metric-grid staff-metric-grid staff-metric-grid-secondary">
+              <div className="metric">
+                <span>Citas próximas</span>
+                <strong>{metrics.upcomingAppointmentsCount}</strong>
+              </div>
+              <div className="metric">
+                <span>Ofertas por vencer</span>
+                <strong>{metrics.offersExpiringCount}</strong>
+              </div>
+              <div className="metric">
+                <span>Lista de espera</span>
+                <strong>{metrics.waitlistCount}</strong>
+              </div>
+            </div>
+          </section>
+        </>
       ) : null}
     </div>
   );

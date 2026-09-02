@@ -66,6 +66,7 @@ type FamilySection =
   | "authority"
   | "form";
 type AdminSection =
+  | "overview"
   | "access"
   | "audit"
   | "forms"
@@ -182,8 +183,8 @@ export default function Home() {
     process.env.NEXT_PUBLIC_ADMISSION_TENANT_ID ?? FALLBACK_TENANT,
   );
   const [familySection, setFamilySection] = useState<FamilySection>("home");
-  const [adminSection, setAdminSection] = useState<AdminSection>("forms");
-  const [staffSection, setStaffSection] = useState<StaffSection>("review");
+  const [adminSection, setAdminSection] = useState<AdminSection>("overview");
+  const [staffSection, setStaffSection] = useState<StaffSection>("dashboard");
   const [students, setStudents] = useState<Student[]>([]);
   const [familyProfile, setFamilyProfile] = useState<FamilyProfile | null>(
     null,
@@ -1583,19 +1584,24 @@ function AdminView({
   tenantId: string;
 }) {
   const sections: SectionNavItem<AdminSection>[] = [
-    { key: "access", label: "Accesos" },
-    { key: "audit", label: "Auditoría" },
-    { key: "forms", label: "Formularios" },
-    { key: "documents", label: "Documentos" },
-    { key: "sensitiveProcessing", label: "Tratamiento sensible" },
-    { key: "businessCalendar", label: "Calendario y plazos" },
-    { key: "activities", label: "Actividades" },
-    { key: "campus", label: "Sede" },
-    { key: "academicYear", label: "Año" },
-    { key: "courseLevel", label: "Curso" },
-    { key: "process", label: "Proceso" },
-    { key: "offering", label: "Oferta" },
-    { key: "support", label: "Soporte global" },
+    { group: "Inicio", key: "overview", label: "Resumen" },
+    { group: "Estructura", key: "campus", label: "Sedes" },
+    { group: "Estructura", key: "academicYear", label: "Años académicos" },
+    { group: "Estructura", key: "courseLevel", label: "Cursos y niveles" },
+    { group: "Estructura", key: "process", label: "Procesos" },
+    { group: "Estructura", key: "offering", label: "Ofertas" },
+    { group: "Diseño", key: "forms", label: "Formularios" },
+    { group: "Diseño", key: "documents", label: "Documentos" },
+    {
+      group: "Diseño",
+      key: "sensitiveProcessing",
+      label: "Tratamiento sensible",
+    },
+    { group: "Diseño", key: "businessCalendar", label: "Calendario y plazos" },
+    { group: "Diseño", key: "activities", label: "Actividades" },
+    { group: "Control", key: "access", label: "Accesos" },
+    { group: "Control", key: "audit", label: "Auditoría" },
+    { group: "Control", key: "support", label: "Soporte global" },
   ];
   return (
     <div className="content-grid">
@@ -1620,7 +1626,12 @@ function AdminView({
           </div>
           <span className="badge badge-synthetic">Auditado</span>
         </div>
-        {adminSection === "forms" ? (
+        {adminSection === "overview" ? (
+          <AdminOverview
+            configuration={configuration}
+            onSectionChange={onSectionChange}
+          />
+        ) : adminSection === "forms" ? (
           <AdminFormBuilder
             apiBase={API_BASE}
             key={tenantId}
@@ -1669,17 +1680,33 @@ function StaffView({
   tenantId: string;
 }) {
   const sections: SectionNavItem<StaffSection>[] = [
-    { key: "dashboard", label: "Dashboard operativo" },
-    { key: "authority", label: "Autoridad de postulación" },
-    { key: "communications", label: "Comunicaciones" },
-    { key: "review", label: "Revisión documental" },
-    { key: "assistance", label: "Postulación asistida" },
-    { key: "activities", label: "Agenda y actividades" },
-    { key: "recommendation", label: "Recomendación interna" },
-    { key: "direction", label: "Disposición de Dirección" },
-    { key: "capacityOffers", label: "Cupos, espera y ofertas" },
-    { key: "reports", label: "Reportes" },
-    { key: "audit", label: "Auditoría" },
+    { group: "Inicio", key: "dashboard", label: "Resumen operativo" },
+    {
+      group: "Expedientes",
+      key: "authority",
+      label: "Autoridad de postulación",
+    },
+    { group: "Expedientes", key: "review", label: "Revisión documental" },
+    { group: "Expedientes", key: "assistance", label: "Postulación asistida" },
+    { group: "Seguimiento", key: "activities", label: "Agenda y actividades" },
+    {
+      group: "Seguimiento",
+      key: "recommendation",
+      label: "Recomendación interna",
+    },
+    {
+      group: "Seguimiento",
+      key: "direction",
+      label: "Disposición de Dirección",
+    },
+    {
+      group: "Seguimiento",
+      key: "capacityOffers",
+      label: "Cupos, espera y ofertas",
+    },
+    { group: "Control", key: "communications", label: "Comunicaciones" },
+    { group: "Control", key: "reports", label: "Reportes" },
+    { group: "Control", key: "audit", label: "Auditoría" },
   ];
   return (
     <div className="content-grid">
@@ -1744,6 +1771,149 @@ function StaffView({
   );
 }
 
+function AdminOverview({
+  configuration,
+  onSectionChange,
+}: {
+  configuration: Configuration | null;
+  onSectionChange: (section: AdminSection) => void;
+}) {
+  const counts = [
+    {
+      key: "campus" as const,
+      label: "Sedes",
+      value: configuration?.campuses.length ?? 0,
+    },
+    {
+      key: "academicYear" as const,
+      label: "Años académicos",
+      value: configuration?.academicYears.length ?? 0,
+    },
+    {
+      key: "courseLevel" as const,
+      label: "Cursos y niveles",
+      value: configuration?.courseLevels.length ?? 0,
+    },
+    {
+      key: "process" as const,
+      label: "Procesos",
+      value: configuration?.processes.length ?? 0,
+    },
+    {
+      key: "offering" as const,
+      label: "Ofertas",
+      value: configuration?.offerings.length ?? 0,
+    },
+  ];
+  const setupSteps = [
+    {
+      label: "Estructura institucional",
+      detail: "Sede, año académico y curso o nivel.",
+      complete:
+        (configuration?.campuses.length ?? 0) > 0 &&
+        (configuration?.academicYears.length ?? 0) > 0 &&
+        (configuration?.courseLevels.length ?? 0) > 0,
+      section: "campus" as const,
+    },
+    {
+      label: "Proceso de admisión",
+      detail: "Relaciona el proceso con un año académico.",
+      complete: (configuration?.processes.length ?? 0) > 0,
+      section: "process" as const,
+    },
+    {
+      label: "Oferta y cupos",
+      detail:
+        "Crea la oferta como borrador y configura capacidad antes de publicar.",
+      complete: (configuration?.offerings.length ?? 0) > 0,
+      section: "offering" as const,
+    },
+  ];
+
+  return (
+    <div className="workspace-section admin-overview">
+      <div className="workspace-intro">
+        <div>
+          <h2>Resumen de configuración</h2>
+          <p>
+            Organiza la estructura del tenant y avanza por etapas. Los cambios
+            se validan en el servidor y quedan auditados.
+          </p>
+        </div>
+        <span className="badge badge-synthetic">Preproducción sintética</span>
+      </div>
+
+      <section
+        className="overview-summary"
+        aria-labelledby="admin-summary-title"
+      >
+        <div className="overview-summary-heading">
+          <div>
+            <h3 id="admin-summary-title">Estado de la configuración</h3>
+            <p className="muted">
+              {configuration
+                ? "Datos cargados para el tenant activo."
+                : "Cargando el tenant activo…"}
+            </p>
+          </div>
+          <span className="code">tenant aislado</span>
+        </div>
+        <div className="overview-counts">
+          {counts.map((count) => (
+            <button
+              className="overview-count"
+              key={count.key}
+              onClick={() => onSectionChange(count.key)}
+              type="button"
+            >
+              <strong>{count.value}</strong>
+              <span>{count.label}</span>
+              <span className="overview-link">Gestionar</span>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="setup-path" aria-labelledby="setup-path-title">
+        <div>
+          <h3 id="setup-path-title">Ruta recomendada</h3>
+          <p className="muted">
+            Completa la base institucional antes de trabajar con postulaciones.
+          </p>
+        </div>
+        <ol className="setup-path-list">
+          {setupSteps.map((step, index) => (
+            <li
+              className={
+                step.complete ? "setup-step setup-step-complete" : "setup-step"
+              }
+              key={step.label}
+            >
+              <span aria-hidden="true">{step.complete ? "✓" : index + 1}</span>
+              <div>
+                <strong>{step.label}</strong>
+                <p>{step.detail}</p>
+              </div>
+              <button
+                className="button button-secondary"
+                onClick={() => onSectionChange(step.section)}
+                type="button"
+              >
+                {step.complete ? "Revisar" : "Configurar"}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <p className="privacy-note">
+        Este espacio sólo configura el tenant autorizado. No importa padrón de
+        alumnos, apoderados ni datos de EduPay.
+      </p>
+    </div>
+  );
+}
+
 function AdminForm({
   adminSection,
   configuration,
@@ -1751,6 +1921,7 @@ function AdminForm({
 }: {
   adminSection: Exclude<
     AdminSection,
+    | "overview"
     | "access"
     | "audit"
     | "forms"

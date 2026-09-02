@@ -603,6 +603,17 @@ h3 {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+.nav-group-label {
+  margin: 0.85rem 0.65rem 0.15rem;
+  color: #70838a;
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+.nav-group-label:first-of-type {
+  margin-top: 0.1rem;
+}
 .nav-item {
   display: block;
   width: 100%;
@@ -638,6 +649,145 @@ h3 {
 .workspace {
   min-width: 0;
   padding: clamp(1rem, 3vw, 2rem);
+}
+.workspace-section {
+  display: grid;
+  gap: 1.25rem;
+}
+.metric-cluster {
+  display: grid;
+  gap: 0.7rem;
+}
+.metric-cluster-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.metric-cluster-heading h3 {
+  margin-bottom: 0;
+}
+.staff-metric-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.staff-metric-grid-secondary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.metric-priority {
+  background: #eaf5f2;
+}
+.workspace-intro {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.workspace-intro h2,
+.workspace-intro p {
+  margin-bottom: 0.35rem;
+}
+.workspace-intro p {
+  max-width: 68ch;
+  color: var(--muted);
+}
+.overview-summary,
+.setup-path {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: #f8fbfa;
+}
+.overview-summary-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.overview-summary-heading h3,
+.overview-summary-heading p,
+.setup-path h3,
+.setup-path p {
+  margin-bottom: 0.25rem;
+}
+.overview-counts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+.overview-count {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 7rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 0.65rem;
+  background: var(--card);
+  color: var(--ink);
+  text-align: left;
+}
+.overview-count:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-action-subtle);
+}
+.overview-count strong {
+  color: var(--teal-dark);
+  font-size: 1.65rem;
+  line-height: 1;
+}
+.overview-count span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+.overview-count .overview-link {
+  margin-top: auto;
+  color: var(--teal-dark);
+  font-size: 0.74rem;
+}
+.setup-path-list {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.setup-step {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 0.6rem;
+  background: var(--card);
+}
+.setup-step > span {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+.setup-step strong {
+  display: block;
+}
+.setup-step p {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.setup-step-complete > span {
+  border-color: var(--color-action);
+  background: var(--color-action);
+  color: var(--color-text-on-strong);
 }
 .auth-gate {
   display: grid;
@@ -1633,6 +1783,13 @@ h3 {
   .topbar-context {
     justify-content: start;
   }
+  .overview-counts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .staff-metric-grid,
+  .staff-metric-grid-secondary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 @media (max-width: 800px) {
   .auth-layout {
@@ -1689,6 +1846,10 @@ h3 {
   .nav-label,
   .side-note {
     display: none;
+  }
+  .nav-group-label {
+    grid-column: 1 / -1;
+    margin-top: 0.7rem;
   }
   .nav-item {
     width: auto;
@@ -1854,6 +2015,25 @@ h3 {
   .section-nav-list {
     grid-template-columns: 1fr;
   }
+  .workspace-intro,
+  .overview-summary-heading {
+    flex-direction: column;
+  }
+  .metric-cluster-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .overview-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .setup-step {
+    grid-template-columns: 2rem minmax(0, 1fr);
+  }
+  .setup-step .button {
+    grid-column: 2;
+    justify-self: start;
+  }
   .document-card-heading,
   .version-row,
   .lookup-bar {
@@ -1871,6 +2051,9 @@ h3 {
     flex-direction: column;
   }
   .capacity-measures {
+    grid-template-columns: 1fr;
+  }
+  .overview-counts {
     grid-template-columns: 1fr;
   }
   .offer-decision-heading,
