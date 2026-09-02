@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useId, useRef } from "react";
+import { Fragment, type ReactNode, useEffect, useId, useRef } from "react";
 
 export function AppShell({
   children,
@@ -96,6 +96,7 @@ export function PublicAuthShell({
 }
 
 export type SectionNavItem<T extends string> = {
+  group?: string;
   key: T;
   label: string;
 };
@@ -154,19 +155,24 @@ export function ResponsiveSectionNav<T extends string>({
         </summary>
         <nav aria-label={ariaLabel} className="section-nav-list">
           <p className="nav-label">{label}</p>
-          {items.map((item) => {
+          {items.map((item, index) => {
             const active = item.key === activeKey;
             return (
-              <button
-                aria-current={active ? "page" : undefined}
-                aria-pressed={active}
-                className={active ? "nav-item nav-item-active" : "nav-item"}
-                key={item.key}
-                onClick={() => select(item.key)}
-                type="button"
-              >
-                {item.label}
-              </button>
+              <Fragment key={item.key}>
+                {item.group &&
+                (index === 0 || items[index - 1]?.group !== item.group) ? (
+                  <p className="nav-group-label">{item.group}</p>
+                ) : null}
+                <button
+                  aria-current={active ? "page" : undefined}
+                  aria-pressed={active}
+                  className={active ? "nav-item nav-item-active" : "nav-item"}
+                  onClick={() => select(item.key)}
+                  type="button"
+                >
+                  {item.label}
+                </button>
+              </Fragment>
             );
           })}
         </nav>
